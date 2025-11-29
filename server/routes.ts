@@ -162,7 +162,7 @@ export async function registerRoutes(
   app.post("/api/tenants", async (req, res) => {
     try {
       // For development: allow testing without auth, use hardcoded userId
-      const userId = req.session!.userId || 1;
+      const userId = (req.session && req.session.userId) || 1;
 
       const body = createTenantSchema.parse(req.body);
       const tenant = await storage.createTenant({

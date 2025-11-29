@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -21,6 +22,16 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// Session middleware - must come before routes
+app.use(
+  session({
+    secret: "dev-secret-key-change-in-production",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false, httpOnly: true },
+  }),
+);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
