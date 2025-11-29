@@ -131,13 +131,20 @@ export async function registerRoutes(
     try {
       const body = loginSchema.parse(req.body);
 
+      // Check if user exists
+      const existingUser = await storage.getUserByEmail(body.email);
+      if (!existingUser) {
+        return res.status(401).json({ error: "User not found. Please register first." });
+      }
+
+      // Verify password
       const user = await storage.verifyPassword(body.email, body.password);
       if (!user) {
-        return res.status(401).json({ error: "Invalid credentials" });
+        return res.status(401).json({ error: "Invalid password. Please try again." });
       }
 
       if (!user.isVerified) {
-        return res.status(401).json({ error: "Email not verified" });
+        return res.status(401).json({ error: "Email not verified. Please verify your email to login." });
       }
 
       req.session!.userId = user.id;
