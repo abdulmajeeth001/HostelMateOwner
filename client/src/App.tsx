@@ -13,6 +13,11 @@ import TenantsList from "@/pages/TenantsList";
 import AddTenant from "@/pages/AddTenant";
 import Payments from "@/pages/Payments";
 import Notifications from "@/pages/Notifications";
+import Rooms from "@/pages/Rooms";
+import Complaints from "@/pages/Complaints";
+import Maintenance from "@/pages/Maintenance";
+import Reports from "@/pages/Reports";
+import Settings from "@/pages/Settings";
 
 function Router() {
   return (
@@ -25,6 +30,11 @@ function Router() {
       <Route path="/tenants/add" component={AddTenant} />
       <Route path="/payments" component={Payments} />
       <Route path="/notifications" component={Notifications} />
+      <Route path="/rooms" component={Rooms} />
+      <Route path="/complaints" component={Complaints} />
+      <Route path="/maintenance" component={Maintenance} />
+      <Route path="/reports" component={Reports} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

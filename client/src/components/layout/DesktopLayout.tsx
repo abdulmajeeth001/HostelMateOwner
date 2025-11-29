@@ -1,0 +1,44 @@
+import Sidebar from "./Sidebar";
+import MobileLayout from "./MobileLayout";
+
+interface DesktopLayoutProps {
+  children: React.ReactNode;
+  title?: string;
+  action?: React.ReactNode;
+  showNav?: boolean;
+}
+
+export default function DesktopLayout({ 
+  children, 
+  title,
+  action,
+  showNav = true
+}: DesktopLayoutProps) {
+  return (
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      
+      <div className="flex-1 overflow-hidden">
+        {/* Desktop Header */}
+        <header className="hidden lg:flex bg-card border-b border-border h-16 items-center justify-between px-8 sticky top-0 z-40">
+          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+          {action}
+        </header>
+
+        {/* Desktop Main Content */}
+        <main className="hidden lg:flex flex-col overflow-y-auto h-[calc(100vh-4rem)]">
+          <div className="p-8 space-y-6">
+            {children}
+          </div>
+        </main>
+
+        {/* Mobile Layout */}
+        <div className="lg:hidden">
+          <MobileLayout title={title} action={action} showNav={showNav}>
+            {children}
+          </MobileLayout>
+        </div>
+      </div>
+    </div>
+  );
+}
