@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Register() {
   const [, setLocation] = useLocation();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -20,6 +20,7 @@ export default function Register() {
     name: "",
     mobile: "",
     email: "",
+    userType: "owner",
     pgAddress: "",
     pgLocation: "",
     password: "",
@@ -49,6 +50,8 @@ export default function Register() {
     if (step === 1) {
       setStep(2);
     } else if (step === 2) {
+      setStep(3);
+    } else if (step === 3) {
       if (formData.password !== formData.confirmPassword) {
         setError("Passwords do not match");
         return;
@@ -63,6 +66,7 @@ export default function Register() {
             name: formData.name,
             email: formData.email,
             mobile: formData.mobile,
+            userType: formData.userType,
             password: formData.password,
             pgAddress: formData.pgAddress,
             pgLocation: formData.pgLocation,
@@ -75,12 +79,12 @@ export default function Register() {
         }
 
         setIsLoading(false);
-        setStep(3);
+        setStep(4);
       } catch (err) {
         setError((err as any).message);
         setIsLoading(false);
       }
-    } else if (step === 3) {
+    } else if (step === 4) {
       const otpCode = otp.join("");
       if (otpCode.length !== 6) {
         setError("Please enter all 6 digits");
@@ -127,14 +131,14 @@ export default function Register() {
           <ChevronLeft className="w-6 h-6" />
         </Button>
         <h1 className="font-bold text-lg ml-2">
-          {step === 1 ? "Create Account" : step === 2 ? "Set Password" : "Verification"}
+          {step === 1 ? "Create Account" : step === 2 ? "Select Role" : step === 3 ? "Set Password" : "Verification"}
         </h1>
       </header>
 
-      <main className="flex-1 p-6 overflow-y-auto">
+      <main className="flex-1 p-6 overflow-y-auto pb-24">
         <div className="max-w-sm mx-auto space-y-6">
           <div className="flex justify-between mb-8 px-4">
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4].map((s) => (
               <div key={s} className="flex flex-col items-center gap-2">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors duration-300 ${
                   step >= s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
@@ -142,7 +146,7 @@ export default function Register() {
                   {s}
                 </div>
                 <span className="text-[10px] text-muted-foreground font-medium">
-                  {s === 1 ? "Details" : s === 2 ? "Security" : "Verify"}
+                  {s === 1 ? "Details" : s === 2 ? "Role" : s === 3 ? "Security" : "Verify"}
                 </span>
               </div>
             ))}
@@ -265,6 +269,59 @@ export default function Register() {
               {step === 2 && (
                 <>
                   <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground mb-4">Select how you'll use HostelMate</p>
+                    
+                    <div 
+                      onClick={() => handleInputChange("userType", "owner")}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        formData.userType === "owner" 
+                          ? "border-primary bg-primary/10" 
+                          : "border-border bg-card hover:border-primary/50"
+                      }`}
+                      data-testid="button-role-owner"
+                    >
+                      <h3 className="font-semibold text-base">PG Owner</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Manage properties, rooms, tenants & payments</p>
+                    </div>
+
+                    <div 
+                      onClick={() => handleInputChange("userType", "tenant")}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        formData.userType === "tenant" 
+                          ? "border-primary bg-primary/10" 
+                          : "border-border bg-card hover:border-primary/50"
+                      }`}
+                      data-testid="button-role-tenant"
+                    >
+                      <h3 className="font-semibold text-base">Tenant</h3>
+                      <p className="text-sm text-muted-foreground mt-1">View payments, complaints & announcements</p>
+                    </div>
+
+                    <div 
+                      onClick={() => handleInputChange("userType", "admin")}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        formData.userType === "admin" 
+                          ? "border-primary bg-primary/10" 
+                          : "border-border bg-card hover:border-primary/50"
+                      }`}
+                      data-testid="button-role-admin"
+                    >
+                      <h3 className="font-semibold text-base">Admin</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Manage users, properties & system settings</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <Button type="submit" className="w-full h-12 text-base" data-testid="button-role-next">
+                      Next <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {step === 3 && (
+                <>
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="password">Create Password</Label>
                       <div className="relative">
@@ -321,7 +378,7 @@ export default function Register() {
                 </>
               )}
 
-              {step === 3 && (
+              {step === 4 && (
                 <div className="text-center space-y-6">
                   <div>
                     <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">

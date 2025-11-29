@@ -22,6 +22,7 @@ const registrationSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   mobile: z.string().min(10),
+  userType: z.enum(["owner", "tenant", "admin"]).default("owner"),
   password: z.string().min(8),
   pgAddress: z.string(),
   pgLocation: z.string(),
