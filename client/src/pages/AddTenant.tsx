@@ -24,17 +24,20 @@ export default function AddTenant() {
       const response = await fetch("/api/tenants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          ownerId: 1, // TODO: Get from session/context
-        }),
+        body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to create tenant");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.details || error.error || "Failed to create tenant");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tenants"] });
       setLocation("/tenants");
+    },
+    onError: (error) => {
+      console.error("Mutation error:", error);
     },
   });
 
