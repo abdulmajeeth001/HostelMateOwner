@@ -4,17 +4,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DoorOpen, Plus, Wifi, Droplet, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
-interface Room {
-  id: number;
-  roomNumber: string;
-  monthlyRent: string;
-  tenantId: number | null;
-  status: string;
-  amenities: string[];
+interface RoomData {
+  room: {
+    id: number;
+    roomNumber: string;
+    monthlyRent: string;
+    tenantId: number | null;
+    status: string;
+    amenities: string[];
+  };
+  tenant: {
+    id: number;
+    name: string;
+    phone: string;
+  } | null;
 }
 
 export default function Rooms() {
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomsData, setRoomsData] = useState<RoomData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,12 +35,25 @@ export default function Rooms() {
       const response = await fetch("/api/rooms");
       if (!response.ok) throw new Error("Failed to fetch rooms");
       const data = await response.json();
-      setRooms(data);
+      setRoomsData(data);
       setError(null);
     } catch (err) {
       console.error("Error fetching rooms:", err);
       setError("Failed to load rooms");
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSeedRooms = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/rooms/seed", { method: "POST" });
+      if (!response.ok) throw new Error("Failed to seed rooms");
+      await fetchRooms();
+    } catch (err) {
+      console.error("Error seeding rooms:", err);
+      setError("Failed to seed rooms");
       setLoading(false);
     }
   };
@@ -60,19 +80,28 @@ export default function Rooms() {
     <DesktopLayout 
       title="Room Management" 
       action={
-        <Button className="gap-2">
-          <Plus className="w-4 h-4" /> Add Room
-        </Button>
+        <div className="flex gap-2">
+          {roomsData.length === 0 && (
+            <Button onClick={handleSeedRooms} className="gap-2" data-testid="button-seed-rooms">
+              <Plus className="w-4 h-4" /> Seed Demo Rooms
+            </Button>
+          )}
+          {roomsData.length > 0 && (
+            <Button className="gap-2" data-testid="button-add-room">
+              <Plus className="w-4 h-4" /> Add Room
+            </Button>
+          )}
+        </div>
       }
       showNav={false}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rooms.length === 0 ? (
+        {roomsData.length === 0 ? (
           <div className="col-span-full text-center py-12">
-            <p className="text-muted-foreground">No rooms found. Create your first room.</p>
+            <p className="text-muted-foreground mb-4">No rooms found. Click "Seed Demo Rooms" to create initial rooms.</p>
           </div>
         ) : (
-          rooms.map((room) => (
+          roomsData.map(({ room, tenant }) => (
             <Card key={room.id} className="hover:shadow-lg transition-shadow" data-testid={`card-room-${room.id}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -81,7 +110,7 @@ export default function Rooms() {
                       <DoorOpen className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{room.roomNumber}</CardTitle>
+                      <CardTitle className="text-lg">Room {room.roomNumber}</CardTitle>
                       <p className="text-xs text-muted-foreground">{`₹${room.monthlyRent}`}/month</p>
                     </div>
                   </div>
@@ -93,15 +122,16 @@ export default function Rooms() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {room.tenantId && (
+                {tenant && (
                   <div className="pb-4 border-b border-border">
                     <p className="text-xs text-muted-foreground mb-1">Current Tenant</p>
-                    <p className="font-semibold text-foreground" data-testid={`text-tenant-${room.id}`}>Tenant ID: {room.tenantId}</p>
+                    <p className="font-semibold text-foreground" data-testid={`text-tenant-${room.id}`}>{tenant.name}</p>
+                    <p className="text-sm text-muted-foreground">{tenant.phone}</p>
                   </div>
                 )}
                 
                 {room.amenities && room.amenities.length > 0 && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     {room.amenities.map((amenity) => (
                       <div key={amenity} className="flex items-center gap-1 px-2 py-1 bg-secondary rounded text-xs">
                         {amenity === 'WiFi' && <Wifi className="w-3 h-3" />}

@@ -60,6 +60,9 @@ export interface IStorage {
   createRoom(room: InsertRoom): Promise<Room>;
   updateRoom(id: number, updates: Partial<Room>): Promise<Room | undefined>;
   deleteRoom(id: number): Promise<void>;
+  getRoomWithTenant(roomId: number): Promise<any>;
+  getAllRoomsWithTenants(ownerId: number): Promise<any[]>;
+  seedInitialRooms(ownerId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -207,6 +210,82 @@ export class DatabaseStorage implements IStorage {
 
   async deleteRoom(id: number): Promise<void> {
     await db.delete(rooms).where(eq(rooms.id, id));
+  }
+
+  async getRoomWithTenant(roomId: number): Promise<any> {
+    const result = await db
+      .select({
+        room: rooms,
+        tenant: tenants,
+      })
+      .from(rooms)
+      .leftJoin(tenants, eq(rooms.tenantId, tenants.id))
+      .where(eq(rooms.id, roomId))
+      .limit(1);
+    return result[0];
+  }
+
+  async getAllRoomsWithTenants(ownerId: number): Promise<any[]> {
+    try {
+      const result = await db
+        .select()
+        .from(rooms)
+        .where(eq(rooms.ownerId, ownerId))
+        .orderBy(desc(rooms.createdAt));
+      
+      // Fetch tenant data for each room
+      const roomsWithTenants = await Promise.all(
+        result.map(async (room) => {
+          let tenant = null;
+          if (room.tenantId) {
+            tenant = await this.getTenant(room.tenantId);
+          }
+          return { room, tenant };
+        })
+      );
+      
+      return roomsWithTenants;
+    } catch (error) {
+      console.error("Error fetching rooms with tenants:", error);
+      return [];
+    }
+  }
+
+  async seedInitialRooms(ownerId: number): Promise<void> {
+    const seedData = [
+      { roomNumber: "101", monthlyRent: "5000", tenantName: "Rahul Kumar", tenantPhone: "98765 43210", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "102", monthlyRent: "6500", tenantName: "Amit Singh", tenantPhone: "98765 43211", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "201", monthlyRent: "7000", tenantName: "Priya Sharma", tenantPhone: "98765 43212", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "202", monthlyRent: "5500", tenantName: null, tenantPhone: null, status: "vacant", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "301", monthlyRent: "8000", tenantName: "Sneha Gupta", tenantPhone: "98765 43213", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "302", monthlyRent: "8000", tenantName: null, tenantPhone: null, status: "vacant", amenities: ["WiFi", "Water", "Power"] },
+    ];
+
+    for (const data of seedData) {
+      let tenantId: number | null = null;
+
+      // Create tenant if room is occupied
+      if (data.tenantName && data.tenantPhone) {
+        const createdTenant = await this.createTenant({
+          ownerId,
+          name: data.tenantName,
+          phone: data.tenantPhone,
+          roomNumber: data.roomNumber,
+          monthlyRent: data.monthlyRent,
+        });
+        tenantId = createdTenant.id;
+      }
+
+      // Create room
+      await this.createRoom({
+        ownerId,
+        roomNumber: data.roomNumber,
+        monthlyRent: data.monthlyRent,
+        tenantId,
+        status: data.status,
+        amenities: data.amenities,
+      });
+    }
   }
 }
 

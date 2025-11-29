@@ -280,10 +280,21 @@ export async function registerRoutes(
   app.get("/api/rooms", async (req, res) => {
     try {
       const userId = (req.session && req.session.userId) || 1;
-      const rooms = await storage.getRooms(userId);
-      res.json(rooms);
+      const roomsWithTenants = await storage.getAllRoomsWithTenants(userId);
+      res.json(roomsWithTenants);
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch rooms" });
+    }
+  });
+
+  app.post("/api/rooms/seed", async (req, res) => {
+    try {
+      const userId = (req.session && req.session.userId) || 1;
+      await storage.seedInitialRooms(userId);
+      res.json({ success: true, message: "Rooms and tenants seeded successfully" });
+    } catch (error) {
+      console.error("Seed error:", error);
+      res.status(400).json({ error: "Failed to seed rooms", details: (error as any).message });
     }
   });
 
