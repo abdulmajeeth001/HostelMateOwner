@@ -274,18 +274,25 @@ export async function registerRoutes(
     }
   });
 
-  // ACTIVE ROOMS ROUTE (for tenant add/edit screens)
+  // ACTIVE ROOMS ROUTE (for tenant add/edit screens - only rooms with available slots)
   app.get("/api/active-rooms", async (req, res) => {
     try {
       const userId = (req.session && req.session.userId) || 1;
       const rooms = await storage.getRooms(userId);
-      // Return only roomNumber and monthlyRent for tenant assignment
-      const activeRooms = rooms.map(room => ({
-        id: room.id,
-        roomNumber: room.roomNumber,
-        monthlyRent: room.monthlyRent,
-        status: room.status
-      }));
+      // Return only rooms that have available slots (not fully occupied)
+      const activeRooms = rooms
+        .filter(room => {
+          const occupiedSlots = (Array.isArray(room.tenantIds) && room.tenantIds.length) || 0;
+          return occupiedSlots < room.sharing;
+        })
+        .map(room => ({
+          id: room.id,
+          roomNumber: room.roomNumber,
+          monthlyRent: room.monthlyRent,
+          status: room.status,
+          sharing: room.sharing,
+          availableSlots: room.sharing - ((Array.isArray(room.tenantIds) && room.tenantIds.length) || 0)
+        }));
       res.json(activeRooms);
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch rooms" });
