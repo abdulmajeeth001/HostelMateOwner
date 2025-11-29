@@ -145,7 +145,7 @@ export default function Rooms() {
                   </div>
                 </div>
 
-                {roomsData.length > 0 && tenants.length > 0 && (
+                {tenants.length > 0 && (
                   <div className="pb-4 border-b border-border">
                     <p className="text-xs text-muted-foreground mb-2">Assigned Tenants ({tenants.length}/{room.sharing})</p>
                     <div className="space-y-2">
@@ -158,7 +158,7 @@ export default function Rooms() {
                     </div>
                   </div>
                 )}
-                {roomsData.length > 0 && tenants.length === 0 && (
+                {tenants.length === 0 && (
                   <div className="pb-4 border-b border-border">
                     <p className="text-xs text-yellow-700 bg-yellow-50 p-2 rounded">Vacant - No tenants assigned</p>
                   </div>

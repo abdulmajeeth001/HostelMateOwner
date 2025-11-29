@@ -10,6 +10,10 @@ declare global {
       userId?: number;
       registrationData?: any;
     }
+    interface SessionData {
+      userId?: number;
+      registrationData?: any;
+    }
   }
 }
 
