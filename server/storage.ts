@@ -1,38 +1,179 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { 
+  type User, 
+  type InsertUser, 
+  type OtpCode,
+  type InsertOtp,
+  type Tenant,
+  type InsertTenant,
+  type Payment,
+  type InsertPayment,
+  type Notification,
+  type InsertNotification,
+  users,
+  otpCodes,
+  tenants,
+  payments,
+  notifications
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc, gte } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  // Users
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
+  verifyPassword(email: string, password: string): Promise<User | null>;
+  
+  // OTP
+  createOtp(otp: InsertOtp): Promise<OtpCode>;
+  getValidOtp(email: string, code: string): Promise<OtpCode | undefined>;
+  deleteOtp(id: number): Promise<void>;
+  
+  // Tenants
+  getTenants(ownerId: number): Promise<Tenant[]>;
+  getTenant(id: number): Promise<Tenant | undefined>;
+  createTenant(tenant: InsertTenant): Promise<Tenant>;
+  updateTenant(id: number, updates: Partial<Tenant>): Promise<Tenant | undefined>;
+  deleteTenant(id: number): Promise<void>;
+  
+  // Payments
+  getPayments(ownerId: number): Promise<Payment[]>;
+  getPaymentsByTenant(tenantId: number): Promise<Payment[]>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined>;
+  
+  // Notifications
+  getNotifications(userId: number): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  // Users
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0];
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
+    return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    // Hash password if provided
+    if (insertUser.password) {
+      insertUser.password = await bcrypt.hash(insertUser.password, 10);
+    }
+    
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const result = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    return result[0];
+  }
+
+  async verifyPassword(email: string, password: string): Promise<User | null> {
+    const user = await this.getUserByEmail(email);
+    if (!user || !user.password) return null;
+    
+    const isValid = await bcrypt.compare(password, user.password);
+    return isValid ? user : null;
+  }
+
+  // OTP
+  async createOtp(insertOtp: InsertOtp): Promise<OtpCode> {
+    const result = await db.insert(otpCodes).values(insertOtp).returning();
+    return result[0];
+  }
+
+  async getValidOtp(email: string, code: string): Promise<OtpCode | undefined> {
+    const now = new Date();
+    const result = await db
+      .select()
+      .from(otpCodes)
+      .where(
+        and(
+          eq(otpCodes.email, email),
+          eq(otpCodes.code, code),
+          gte(otpCodes.expiresAt, now)
+        )
+      )
+      .limit(1);
+    return result[0];
+  }
+
+  async deleteOtp(id: number): Promise<void> {
+    await db.delete(otpCodes).where(eq(otpCodes.id, id));
+  }
+
+  // Tenants
+  async getTenants(ownerId: number): Promise<Tenant[]> {
+    return await db.select().from(tenants).where(eq(tenants.ownerId, ownerId)).orderBy(desc(tenants.createdAt));
+  }
+
+  async getTenant(id: number): Promise<Tenant | undefined> {
+    const result = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createTenant(tenant: InsertTenant): Promise<Tenant> {
+    const result = await db.insert(tenants).values(tenant).returning();
+    return result[0];
+  }
+
+  async updateTenant(id: number, updates: Partial<Tenant>): Promise<Tenant | undefined> {
+    const result = await db.update(tenants).set(updates).where(eq(tenants.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteTenant(id: number): Promise<void> {
+    await db.delete(tenants).where(eq(tenants.id, id));
+  }
+
+  // Payments
+  async getPayments(ownerId: number): Promise<Payment[]> {
+    return await db.select().from(payments).where(eq(payments.ownerId, ownerId)).orderBy(desc(payments.createdAt));
+  }
+
+  async getPaymentsByTenant(tenantId: number): Promise<Payment[]> {
+    return await db.select().from(payments).where(eq(payments.tenantId, tenantId)).orderBy(desc(payments.createdAt));
+  }
+
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const result = await db.insert(payments).values(payment).returning();
+    return result[0];
+  }
+
+  async updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined> {
+    const result = await db.update(payments).set(updates).where(eq(payments.id, id)).returning();
+    return result[0];
+  }
+
+  // Notifications
+  async getNotifications(userId: number): Promise<Notification[]> {
+    return await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt));
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const result = await db.insert(notifications).values(notification).returning();
+    return result[0];
+  }
+
+  async markNotificationAsRead(id: number): Promise<void> {
+    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
