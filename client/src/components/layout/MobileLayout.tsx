@@ -1,7 +1,9 @@
 import { Link, useLocation } from "wouter";
-import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3 } from "lucide-react";
+import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
 
 interface MobileLayoutProps {
@@ -18,6 +20,7 @@ export default function MobileLayout({
   action
 }: MobileLayoutProps) {
   const [location] = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const sideNavItems = [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
@@ -41,8 +44,11 @@ export default function MobileLayout({
 
   return (
     <div className="min-h-screen bg-background max-w-4xl mx-auto border-x border-border shadow-2xl relative flex overflow-hidden">
-      {/* Side Navigation - Always visible */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col shrink-0 overflow-y-auto">
+      {/* Side Navigation - Collapsible */}
+      <aside className={cn(
+        "bg-card border-r border-border flex flex-col shrink-0 overflow-y-auto transition-all duration-300 absolute lg:relative h-full",
+        sidebarOpen ? "w-64 z-40" : "w-0"
+      )}>
         {/* Header */}
         <div className="p-6 border-b border-border">
           <Link href="/dashboard">
@@ -89,12 +95,31 @@ export default function MobileLayout({
         </div>
       </aside>
 
+      {/* Backdrop for mobile when sidebar is open */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 lg:hidden z-30 cursor-pointer"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         {title && (
           <header className="bg-card/80 backdrop-blur-md border-b border-border px-4 h-16 flex items-center justify-between shrink-0">
-            <h1 className="text-lg font-bold tracking-tight text-foreground">{title}</h1>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden"
+                data-testid="button-toggle-sidebar"
+              >
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+              <h1 className="text-lg font-bold tracking-tight text-foreground">{title}</h1>
+            </div>
             {action}
           </header>
         )}
