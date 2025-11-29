@@ -142,6 +142,7 @@ export default function MobileLayout({
                   <Link 
                     key={path} 
                     href={path}
+                    onClick={() => setSidebarOpen(false)}
                     className={cn(
                       "flex flex-col items-center justify-center flex-1 h-16 space-y-1 transition-colors duration-200 cursor-pointer no-underline",
                       isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
