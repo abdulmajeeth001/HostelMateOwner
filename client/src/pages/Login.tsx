@@ -13,15 +13,33 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Login failed");
+      }
+
+      const data = await res.json();
+      setLocation("/dashboard");
+    } catch (err) {
+      setError((err as any).message);
       setIsLoading(false);
-      setLocation("/subscription");
-    }, 1500);
+    }
   };
 
   return (
@@ -47,9 +65,23 @@ export default function Login() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm" data-testid="error-message">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="owner@example.com" required className="h-12 bg-background/50" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="owner@example.com" 
+                  required 
+                  className="h-12 bg-background/50"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  data-testid="input-login-email"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
@@ -59,7 +91,10 @@ export default function Login() {
                     type={showPassword ? "text" : "password"} 
                     placeholder="••••••••" 
                     required 
-                    className="h-12 bg-background/50 pr-10" 
+                    className="h-12 bg-background/50 pr-10"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    data-testid="input-login-password"
                   />
                   <button 
                     type="button"
@@ -79,7 +114,7 @@ export default function Login() {
                 </label>
                 <a href="#" className="text-primary font-medium hover:underline">Forgot password?</a>
               </div>
-              <Button type="submit" className="w-full h-12 text-base font-medium" disabled={isLoading}>
+              <Button type="submit" className="w-full h-12 text-base font-medium" disabled={isLoading} data-testid="button-login-submit">
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
