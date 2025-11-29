@@ -161,12 +161,59 @@ export class DatabaseStorage implements IStorage {
 
   async createTenant(tenant: InsertTenant): Promise<Tenant> {
     const result = await db.insert(tenants).values(tenant).returning();
-    return result[0];
+    const createdTenant = result[0];
+    
+    // If tenant has a room assigned, update room's tenantIds
+    if (createdTenant && tenant.roomNumber) {
+      const room = await this.getRoomByNumber(tenant.ownerId, tenant.roomNumber);
+      if (room) {
+        const currentIds = Array.isArray(room.tenantIds) ? room.tenantIds : [];
+        if (!currentIds.includes(createdTenant.id)) {
+          await this.updateRoom(room.id, {
+            tenantIds: [...currentIds, createdTenant.id]
+          });
+        }
+      }
+    }
+    
+    return createdTenant;
   }
 
   async updateTenant(id: number, updates: Partial<Tenant>): Promise<Tenant | undefined> {
+    // Get the current tenant to check if room changed
+    const currentTenant = await this.getTenant(id);
+    if (!currentTenant) return undefined;
+
     const result = await db.update(tenants).set(updates).where(eq(tenants.id, id)).returning();
-    return result[0];
+    const updatedTenant = result[0];
+
+    // Handle room change if roomNumber was updated
+    if (updates.roomNumber && updates.roomNumber !== currentTenant.roomNumber) {
+      // Remove from old room
+      if (currentTenant.roomNumber) {
+        const oldRoom = await this.getRoomByNumber(currentTenant.ownerId, currentTenant.roomNumber);
+        if (oldRoom && Array.isArray(oldRoom.tenantIds)) {
+          await this.updateRoom(oldRoom.id, {
+            tenantIds: oldRoom.tenantIds.filter(tid => tid !== id)
+          });
+        }
+      }
+
+      // Add to new room
+      if (updates.roomNumber && updatedTenant) {
+        const newRoom = await this.getRoomByNumber(updatedTenant.ownerId, updates.roomNumber);
+        if (newRoom) {
+          const currentIds = Array.isArray(newRoom.tenantIds) ? newRoom.tenantIds : [];
+          if (!currentIds.includes(id)) {
+            await this.updateRoom(newRoom.id, {
+              tenantIds: [...currentIds, id]
+            });
+          }
+        }
+      }
+    }
+
+    return updatedTenant;
   }
 
   async deleteTenant(id: number): Promise<void> {
