@@ -356,11 +356,22 @@ export default function Register() {
                       <Input
                         key={idx}
                         id={`otp-${idx}`}
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         maxLength={1}
                         className="w-10 h-12 text-center text-lg font-bold bg-card"
                         value={digit}
-                        onChange={(e) => handleOtpChange(idx, e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          handleOtpChange(idx, val);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Backspace' && !digit && idx > 0) {
+                            const prevInput = document.getElementById(`otp-${idx - 1}`);
+                            prevInput?.focus();
+                          }
+                        }}
                         data-testid={`input-otp-${idx}`}
                       />
                     ))}
