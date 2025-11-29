@@ -5,6 +5,12 @@ import { DoorOpen, Plus, Wifi, Droplet, Zap, Wind, Bath } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
+interface Tenant {
+  id: number;
+  name: string;
+  phone: string;
+}
+
 interface RoomData {
   room: {
     id: number;
@@ -14,15 +20,11 @@ interface RoomData {
     floor: number;
     hasAttachedBathroom: boolean;
     hasAC: boolean;
-    tenantId: number | null;
+    tenantIds: number[];
     status: string;
     amenities: string[];
   };
-  tenant: {
-    id: number;
-    name: string;
-    phone: string;
-  } | null;
+  tenants: Tenant[];
 }
 
 export default function Rooms() {
@@ -107,7 +109,7 @@ export default function Rooms() {
             <p className="text-muted-foreground mb-4">No rooms found. Click "Seed Demo Rooms" to create initial rooms.</p>
           </div>
         ) : (
-          roomsData.map(({ room, tenant }) => (
+          roomsData.map(({ room, tenants }) => (
             <Card key={room.id} className="hover:shadow-lg transition-shadow" data-testid={`card-room-${room.id}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -143,11 +145,22 @@ export default function Rooms() {
                   </div>
                 </div>
 
-                {tenant && (
+                {roomsData.length > 0 && tenants.length > 0 && (
                   <div className="pb-4 border-b border-border">
-                    <p className="text-xs text-muted-foreground mb-1">Current Tenant</p>
-                    <p className="font-semibold text-foreground" data-testid={`text-tenant-${room.id}`}>{tenant.name}</p>
-                    <p className="text-sm text-muted-foreground">{tenant.phone}</p>
+                    <p className="text-xs text-muted-foreground mb-2">Assigned Tenants ({tenants.length}/{room.sharing})</p>
+                    <div className="space-y-2">
+                      {tenants.map((tenant) => (
+                        <div key={tenant.id} className="p-2 bg-green-50 rounded">
+                          <p className="font-semibold text-foreground text-sm" data-testid={`text-tenant-${room.id}`}>{tenant.name}</p>
+                          <p className="text-xs text-muted-foreground">{tenant.phone}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {roomsData.length > 0 && tenants.length === 0 && (
+                  <div className="pb-4 border-b border-border">
+                    <p className="text-xs text-yellow-700 bg-yellow-50 p-2 rounded">Vacant - No tenants assigned</p>
                   </div>
                 )}
                 
