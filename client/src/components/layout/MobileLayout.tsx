@@ -109,7 +109,7 @@ export default function MobileLayout({
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden h-screen">
         {/* Header */}
         {title && (
           <header className="bg-card/80 backdrop-blur-md border-b border-border px-4 h-16 flex items-center justify-between shrink-0">
@@ -130,7 +130,7 @@ export default function MobileLayout({
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-scroll">
+        <main className="flex-1 overflow-y-scroll w-full">
           <div className="p-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {children}
           </div>
