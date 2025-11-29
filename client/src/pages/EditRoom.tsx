@@ -39,7 +39,7 @@ export default function EditRoom() {
       try {
         const [roomRes, tenantsRes] = await Promise.all([
           fetch(`/api/rooms/${id}`),
-          fetch("/api/tenants")
+          fetch("/api/available-tenants")
         ]);
 
         if (roomRes.ok) {
