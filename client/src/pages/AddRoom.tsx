@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Wind, Bath, Users, MapPin } from "lucide-react";
 
 export default function AddRoom() {
   const [, setLocation] = useLocation();
@@ -75,144 +75,214 @@ export default function AddRoom() {
 
   return (
     <MobileLayout title="Add Room" showNav={false}>
-      <div className="max-w-md mx-auto p-4">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => setLocation("/rooms")}
-          className="mb-4"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </Button>
-
-        {error && (
-          <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm mb-4" data-testid="error-message">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Room Number */}
-          <div className="space-y-2">
-            <Label htmlFor="roomNumber">Room Number *</Label>
-            <Input
-              id="roomNumber"
-              placeholder="e.g., 101"
-              value={formData.roomNumber}
-              onChange={(e) => handleInputChange("roomNumber", e.target.value)}
-              required
-              data-testid="input-room-number"
-            />
-          </div>
-
-          {/* Monthly Rent */}
-          <div className="space-y-2">
-            <Label htmlFor="monthlyRent">Monthly Rent (₹) *</Label>
-            <Input
-              id="monthlyRent"
-              type="number"
-              placeholder="e.g., 5000"
-              value={formData.monthlyRent}
-              onChange={(e) => handleInputChange("monthlyRent", e.target.value)}
-              required
-              data-testid="input-monthly-rent"
-            />
-          </div>
-
-          {/* Sharing */}
-          <div className="space-y-2">
-            <Label htmlFor="sharing">Number of Sharing *</Label>
-            <select
-              id="sharing"
-              value={formData.sharing}
-              onChange={(e) => handleInputChange("sharing", e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background"
-              data-testid="select-sharing"
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-20">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-4">
+          <div className="flex items-center gap-3 mb-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setLocation("/rooms")}
+              className="h-10 w-10"
             >
-              <option value="1">1-Sharing (Single)</option>
-              <option value="2">2-Sharing</option>
-              <option value="3">3-Sharing</option>
-            </select>
-          </div>
-
-          {/* Floor */}
-          <div className="space-y-2">
-            <Label htmlFor="floor">Floor Number *</Label>
-            <Input
-              id="floor"
-              type="number"
-              placeholder="e.g., 1"
-              value={formData.floor}
-              onChange={(e) => handleInputChange("floor", e.target.value)}
-              required
-              data-testid="input-floor"
-            />
-          </div>
-
-          {/* Bathroom Type */}
-          <div className="space-y-3">
-            <Label>Bathroom Type</Label>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.hasAttachedBathroom}
-                  onChange={(e) => handleInputChange("hasAttachedBathroom", e.target.checked)}
-                  className="w-4 h-4"
-                  data-testid="checkbox-attached-bathroom"
-                />
-                <span>Attached Bathroom</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!formData.hasAttachedBathroom}
-                  onChange={(e) => handleInputChange("hasAttachedBathroom", !e.target.checked)}
-                  className="w-4 h-4"
-                  data-testid="checkbox-common-bathroom"
-                />
-                <span>Common Bathroom</span>
-              </label>
+              <ChevronLeft className="w-6 h-6" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Add New Room</h1>
+              <p className="text-sm text-slate-500">Create a new room in your hostel</p>
             </div>
           </div>
 
-          {/* AC */}
-          <div className="space-y-3">
-            <Label>AC</Label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.hasAC}
-                onChange={(e) => handleInputChange("hasAC", e.target.checked)}
-                className="w-4 h-4"
-                data-testid="checkbox-ac"
-              />
-              <span>Room has AC</span>
-            </label>
-          </div>
+          {error && (
+            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200" data-testid="error-message">
+              {error}
+            </div>
+          )}
+        </div>
 
-          {/* Amenities */}
-          <div className="space-y-3">
-            <Label>Amenities</Label>
+        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto p-4 space-y-6">
+          {/* Basic Information Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
+            <div className="flex items-center gap-2 mb-4">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-semibold text-slate-900">Basic Information</h2>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="roomNumber" className="text-slate-700 font-medium">Room Number *</Label>
+                <Input
+                  id="roomNumber"
+                  placeholder="e.g., 101"
+                  value={formData.roomNumber}
+                  onChange={(e) => handleInputChange("roomNumber", e.target.value)}
+                  required
+                  data-testid="input-room-number"
+                  className="h-11 border-slate-300 rounded-lg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="floor" className="text-slate-700 font-medium">Floor *</Label>
+                <Input
+                  id="floor"
+                  type="number"
+                  placeholder="e.g., 1"
+                  value={formData.floor}
+                  onChange={(e) => handleInputChange("floor", e.target.value)}
+                  required
+                  data-testid="input-floor"
+                  className="h-11 border-slate-300 rounded-lg"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              {amenitiesOptions.map((amenity) => (
-                <label key={amenity} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.amenities.includes(amenity)}
-                    onChange={() => toggleAmenity(amenity)}
-                    className="w-4 h-4"
-                    data-testid={`checkbox-amenity-${amenity.toLowerCase()}`}
-                  />
-                  <span>{amenity}</span>
-                </label>
-              ))}
+              <Label htmlFor="monthlyRent" className="text-slate-700 font-medium">Monthly Rent (₹) *</Label>
+              <Input
+                id="monthlyRent"
+                type="number"
+                placeholder="e.g., 5000"
+                value={formData.monthlyRent}
+                onChange={(e) => handleInputChange("monthlyRent", e.target.value)}
+                required
+                data-testid="input-monthly-rent"
+                className="h-11 border-slate-300 rounded-lg text-lg font-semibold"
+              />
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-add-room-submit">
-            {isLoading ? "Adding..." : "Add Room"}
-          </Button>
+          {/* Room Configuration Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-5 h-5 text-purple-600" />
+              <h2 className="text-lg font-semibold text-slate-900">Room Configuration</h2>
+            </div>
+
+            {/* Sharing Type */}
+            <div className="space-y-3">
+              <Label htmlFor="sharing" className="text-slate-700 font-medium">Number of Sharing *</Label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { value: "1", label: "Single", icon: "👤" },
+                  { value: "2", label: "Double", icon: "👥" },
+                  { value: "3", label: "Triple", icon: "👫" }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleInputChange("sharing", option.value)}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      formData.sharing === option.value
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-slate-200 bg-slate-50 hover:border-slate-300"
+                    }`}
+                    data-testid={`button-sharing-${option.value}`}
+                  >
+                    <div className="text-2xl mb-1">{option.icon}</div>
+                    <div className="text-sm font-medium text-slate-700">{option.label}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Amenities Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Bath className="w-5 h-5 text-green-600" />
+              <h2 className="text-lg font-semibold text-slate-900">Facilities</h2>
+            </div>
+
+            {/* Bathroom Type */}
+            <div className="space-y-3">
+              <Label className="text-slate-700 font-medium">Bathroom Type</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { type: "attached", label: "Attached Bathroom", icon: "🚿" },
+                  { type: "common", label: "Common Bathroom", icon: "🛁" }
+                ].map((option) => (
+                  <button
+                    key={option.type}
+                    type="button"
+                    onClick={() => handleInputChange("hasAttachedBathroom", option.type === "attached")}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      (option.type === "attached" ? formData.hasAttachedBathroom : !formData.hasAttachedBathroom)
+                        ? "border-green-500 bg-green-50"
+                        : "border-slate-200 bg-slate-50 hover:border-slate-300"
+                    }`}
+                    data-testid={`button-bathroom-${option.type}`}
+                  >
+                    <div className="text-2xl mb-1">{option.icon}</div>
+                    <div className="text-sm font-medium text-slate-700">{option.label}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* AC */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-slate-300 cursor-pointer transition-all group hover:bg-blue-50"
+                onClick={() => handleInputChange("hasAC", !formData.hasAC)}
+              >
+                <input
+                  type="checkbox"
+                  checked={formData.hasAC}
+                  className="w-5 h-5 accent-blue-600"
+                  data-testid="checkbox-ac"
+                  readOnly
+                />
+                <div className="flex-1">
+                  <Wind className="w-5 h-5 text-blue-600 inline mr-2" />
+                  <span className="font-medium text-slate-700">Air Conditioning</span>
+                </div>
+              </label>
+            </div>
+
+            {/* Amenities Checklist */}
+            <div className="space-y-3 pt-2">
+              <Label className="text-slate-700 font-medium">Available Amenities</Label>
+              <div className="space-y-2">
+                {amenitiesOptions.map((amenity) => (
+                  <label key={amenity} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:border-slate-300 cursor-pointer transition-all hover:bg-slate-50"
+                    onClick={() => toggleAmenity(amenity)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.amenities.includes(amenity)}
+                      className="w-4 h-4 accent-purple-600"
+                      data-testid={`checkbox-amenity-${amenity.toLowerCase()}`}
+                      readOnly
+                    />
+                    <span className="font-medium text-slate-700 flex-1">{amenity}</span>
+                    {formData.amenities.includes(amenity) && (
+                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">Selected</span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pb-6">
+            <Button 
+              type="button"
+              variant="outline" 
+              className="flex-1 h-12 rounded-lg"
+              onClick={() => setLocation("/rooms")}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              className="flex-1 h-12 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              disabled={isLoading} 
+              data-testid="button-add-room-submit"
+            >
+              {isLoading ? "Creating Room..." : "Create Room"}
+            </Button>
+          </div>
         </form>
       </div>
     </MobileLayout>
