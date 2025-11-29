@@ -1,8 +1,9 @@
 import DesktopLayout from "@/components/layout/DesktopLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DoorOpen, Plus, Wifi, Droplet, Zap } from "lucide-react";
+import { DoorOpen, Plus, Wifi, Droplet, Zap, Wind, Bath } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 
 interface RoomData {
   room: {
@@ -10,6 +11,9 @@ interface RoomData {
     roomNumber: string;
     monthlyRent: string;
     sharing: number;
+    floor: number;
+    hasAttachedBathroom: boolean;
+    hasAC: boolean;
     tenantId: number | null;
     status: string;
     amenities: string[];
@@ -22,6 +26,7 @@ interface RoomData {
 }
 
 export default function Rooms() {
+  const [, setLocation] = useLocation();
   const [roomsData, setRoomsData] = useState<RoomData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +93,7 @@ export default function Rooms() {
             </Button>
           )}
           {roomsData.length > 0 && (
-            <Button className="gap-2" data-testid="button-add-room">
+            <Button onClick={() => setLocation("/rooms/add")} className="gap-2" data-testid="button-add-room">
               <Plus className="w-4 h-4" /> Add Room
             </Button>
           )}
@@ -106,13 +111,13 @@ export default function Rooms() {
             <Card key={room.id} className="hover:shadow-lg transition-shadow" data-testid={`card-room-${room.id}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                       <DoorOpen className="w-6 h-6 text-primary" />
                     </div>
                     <div>
                       <CardTitle className="text-lg">Room {room.roomNumber}</CardTitle>
-                      <p className="text-xs text-muted-foreground">{`₹${room.monthlyRent}`}/month • {room.sharing}-sharing</p>
+                      <p className="text-xs text-muted-foreground">{`₹${room.monthlyRent}`}/month • Floor {room.floor}</p>
                     </div>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -123,6 +128,21 @@ export default function Rooms() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Room Details */}
+                <div className="grid grid-cols-2 gap-2 py-2 border-b border-border">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{room.sharing}-Sharing</span>
+                  </div>
+                  <div className="flex items-center gap-2 justify-end">
+                    {room.hasAC && <div title="AC"><Wind className="w-4 h-4 text-blue-500" /></div>}
+                    {room.hasAttachedBathroom ? (
+                      <div title="Attached Bathroom"><Bath className="w-4 h-4 text-green-500" /></div>
+                    ) : (
+                      <div title="Common Bathroom"><Bath className="w-4 h-4 text-gray-400" /></div>
+                    )}
+                  </div>
+                </div>
+
                 {tenant && (
                   <div className="pb-4 border-b border-border">
                     <p className="text-xs text-muted-foreground mb-1">Current Tenant</p>
@@ -144,7 +164,13 @@ export default function Rooms() {
                   </div>
                 )}
 
-                <Button variant="outline" className="w-full text-sm" size="sm" data-testid={`button-edit-room-${room.id}`}>
+                <Button 
+                  variant="outline" 
+                  className="w-full text-sm" 
+                  size="sm" 
+                  onClick={() => setLocation(`/rooms/edit/${room.id}`)}
+                  data-testid={`button-edit-room-${room.id}`}
+                >
                   Edit Details
                 </Button>
               </CardContent>

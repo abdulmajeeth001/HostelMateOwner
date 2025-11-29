@@ -112,6 +112,9 @@ export const rooms = pgTable("rooms", {
   monthlyRent: decimal("monthly_rent", { precision: 10, scale: 2 }).notNull(),
   tenantId: integer("tenant_id").references(() => tenants.id),
   sharing: integer("sharing").default(1), // 1 for single, 2 for 2-sharing, 3 for 3-sharing
+  floor: integer("floor").default(1), // Floor number
+  hasAttachedBathroom: boolean("has_attached_bathroom").default(false), // true for attached, false for common
+  hasAC: boolean("has_ac").default(false), // true if AC, false if no AC
   status: text("status").default("vacant"), // occupied, vacant
   amenities: text("amenities").array().default([]), // WiFi, Water, Power
   createdAt: timestamp("created_at").defaultNow(),

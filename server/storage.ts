@@ -253,12 +253,12 @@ export class DatabaseStorage implements IStorage {
 
   async seedInitialRooms(ownerId: number): Promise<void> {
     const seedData = [
-      { roomNumber: "101", monthlyRent: "5000", sharing: 1, tenantName: "Rahul Kumar", tenantPhone: "98765 43210", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
-      { roomNumber: "102", monthlyRent: "6500", sharing: 2, tenantName: "Amit Singh", tenantPhone: "98765 43211", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
-      { roomNumber: "201", monthlyRent: "7000", sharing: 3, tenantName: "Priya Sharma", tenantPhone: "98765 43212", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
-      { roomNumber: "202", monthlyRent: "5500", sharing: 2, tenantName: null, tenantPhone: null, status: "vacant", amenities: ["WiFi", "Water", "Power"] },
-      { roomNumber: "301", monthlyRent: "8000", sharing: 1, tenantName: "Sneha Gupta", tenantPhone: "98765 43213", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
-      { roomNumber: "302", monthlyRent: "8000", sharing: 3, tenantName: null, tenantPhone: null, status: "vacant", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "101", monthlyRent: "5000", sharing: 1, floor: 1, hasAttachedBathroom: true, hasAC: true, tenantName: "Rahul Kumar", tenantPhone: "98765 43210", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "102", monthlyRent: "6500", sharing: 2, floor: 1, hasAttachedBathroom: false, hasAC: false, tenantName: "Amit Singh", tenantPhone: "98765 43211", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "201", monthlyRent: "7000", sharing: 3, floor: 2, hasAttachedBathroom: false, hasAC: false, tenantName: "Priya Sharma", tenantPhone: "98765 43212", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "202", monthlyRent: "5500", sharing: 2, floor: 2, hasAttachedBathroom: true, hasAC: false, tenantName: null, tenantPhone: null, status: "vacant", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "301", monthlyRent: "8000", sharing: 1, floor: 3, hasAttachedBathroom: true, hasAC: true, tenantName: "Sneha Gupta", tenantPhone: "98765 43213", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "302", monthlyRent: "8000", sharing: 3, floor: 3, hasAttachedBathroom: false, hasAC: false, tenantName: null, tenantPhone: null, status: "vacant", amenities: ["WiFi", "Water", "Power"] },
     ];
 
     for (const data of seedData) {
@@ -283,6 +283,9 @@ export class DatabaseStorage implements IStorage {
         monthlyRent: data.monthlyRent,
         tenantId,
         sharing: data.sharing,
+        floor: data.floor,
+        hasAttachedBathroom: data.hasAttachedBathroom,
+        hasAC: data.hasAC,
         status: data.status,
         amenities: data.amenities,
       });

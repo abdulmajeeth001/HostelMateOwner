@@ -16,6 +16,8 @@ import EditTenant from "@/pages/EditTenant";
 import Payments from "@/pages/Payments";
 import Notifications from "@/pages/Notifications";
 import Rooms from "@/pages/Rooms";
+import AddRoom from "@/pages/AddRoom";
+import EditRoom from "@/pages/EditRoom";
 import Complaints from "@/pages/Complaints";
 import Maintenance from "@/pages/Maintenance";
 import Reports from "@/pages/Reports";
@@ -35,6 +37,8 @@ function Router() {
       <Route path="/payments" component={Payments} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/rooms" component={Rooms} />
+      <Route path="/rooms/add" component={AddRoom} />
+      <Route path="/rooms/edit/:id" component={EditRoom} />
       <Route path="/complaints" component={Complaints} />
       <Route path="/maintenance" component={Maintenance} />
       <Route path="/reports" component={Reports} />
