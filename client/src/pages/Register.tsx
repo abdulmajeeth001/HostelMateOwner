@@ -2,9 +2,10 @@ import MobileLayout from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import LocationPicker from "@/components/LocationPicker";
 import { useLocation } from "wouter";
 import { useState } from "react";
-import { ChevronLeft, Mail, MapPin, Phone, User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { ChevronLeft, Mail, Phone, User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Register() {
@@ -216,37 +217,19 @@ export default function Register() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="address">PG Address</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Input 
-                          id="address" 
-                          placeholder="Building No, Street Name" 
-                          className="pl-10 bg-card" 
-                          value={formData.pgAddress}
-                          onChange={(e) => handleInputChange("pgAddress", e.target.value)}
-                          required 
-                          data-testid="input-register-address"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="location">PG Location (City/Area)</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Input 
-                          id="location" 
-                          placeholder="e.g. Koramangala, Bangalore" 
-                          className="pl-10 bg-card" 
-                          value={formData.pgLocation}
-                          onChange={(e) => handleInputChange("pgLocation", e.target.value)}
-                          required 
-                          data-testid="input-register-location"
-                        />
-                      </div>
-                    </div>
+                    <LocationPicker 
+                      onLocationSelect={(location) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          pgAddress: location.address,
+                          pgLocation: location.city
+                        }));
+                      }}
+                      selectedLocation={{ 
+                        address: formData.pgAddress, 
+                        city: formData.pgLocation 
+                      }}
+                    />
                   </div>
 
                   <div className="pt-4 space-y-4">
