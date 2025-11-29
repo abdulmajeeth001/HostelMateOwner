@@ -274,6 +274,24 @@ export async function registerRoutes(
     }
   });
 
+  // ACTIVE ROOMS ROUTE (for tenant add/edit screens)
+  app.get("/api/active-rooms", async (req, res) => {
+    try {
+      const userId = (req.session && req.session.userId) || 1;
+      const rooms = await storage.getRooms(userId);
+      // Return only roomNumber and monthlyRent for tenant assignment
+      const activeRooms = rooms.map(room => ({
+        id: room.id,
+        roomNumber: room.roomNumber,
+        monthlyRent: room.monthlyRent,
+        status: room.status
+      }));
+      res.json(activeRooms);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch rooms" });
+    }
+  });
+
   // ROOMS ROUTES
   app.post("/api/rooms", async (req, res) => {
     try {

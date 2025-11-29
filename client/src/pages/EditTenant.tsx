@@ -9,6 +9,13 @@ import { ChevronLeft, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 
+interface Room {
+  id: number;
+  roomNumber: string;
+  monthlyRent: string;
+  status: string;
+}
+
 export default function EditTenant() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/tenants/edit/:id");
@@ -34,6 +41,16 @@ export default function EditTenant() {
     enabled: !!tenantId,
   });
 
+  // Fetch active rooms
+  const { data: rooms = [] } = useQuery<Room[]>({
+    queryKey: ["active-rooms"],
+    queryFn: async () => {
+      const res = await fetch("/api/active-rooms");
+      if (!res.ok) throw new Error("Failed to fetch rooms");
+      return res.json();
+    },
+  });
+
   // Populate form when tenant data loads
   useEffect(() => {
     if (tenant) {
@@ -48,6 +65,16 @@ export default function EditTenant() {
       }
     }
   }, [tenant]);
+
+  // Update monthlyRent when room is changed
+  useEffect(() => {
+    if (formData.roomNumber) {
+      const selectedRoom = rooms.find(r => r.roomNumber === formData.roomNumber);
+      if (selectedRoom) {
+        setFormData(prev => ({ ...prev, monthlyRent: selectedRoom.monthlyRent }));
+      }
+    }
+  }, [formData.roomNumber, rooms]);
 
   const updateTenantMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -152,12 +179,18 @@ export default function EditTenant() {
               <Label htmlFor="room">Room No.</Label>
               <Select value={formData.roomNumber} onValueChange={(val) => setFormData({...formData, roomNumber: val})}>
                 <SelectTrigger className="bg-card" data-testid="select-edit-room">
-                  <SelectValue placeholder="Select" />
+                  <SelectValue placeholder="Select room" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="101">101</SelectItem>
-                  <SelectItem value="102">102</SelectItem>
-                  <SelectItem value="201">201</SelectItem>
+                  {rooms.length > 0 ? (
+                    rooms.map((room) => (
+                      <SelectItem key={room.id} value={room.roomNumber}>
+                        {room.roomNumber}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No rooms available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
