@@ -13,20 +13,21 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [error, setError] = useState("");
 
-  // Form State
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
     email: "",
-    address: "",
-    location: "",
+    pgAddress: "",
+    pgLocation: "",
     password: "",
     confirmPassword: ""
   });
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setError("");
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -35,49 +36,91 @@ export default function Register() {
     newOtp[index] = value;
     setOtp(newOtp);
     
-    // Auto-focus next input
     if (value && index < 5) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       nextInput?.focus();
     }
   };
 
-  const handleNext = (e: React.FormEvent) => {
+  const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (step === 1) {
       setStep(2);
     } else if (step === 2) {
-      // Simulate OTP sending
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+
       setIsLoading(true);
-      setTimeout(() => {
+      try {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            mobile: formData.mobile,
+            password: formData.password,
+            pgAddress: formData.pgAddress,
+            pgLocation: formData.pgLocation,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Registration failed");
+        }
+
         setIsLoading(false);
         setStep(3);
-      }, 1000);
-    } else {
-      // Verify OTP and complete registration
+      } catch (err) {
+        setError((err as any).message);
+        setIsLoading(false);
+      }
+    } else if (step === 3) {
+      const otpCode = otp.join("");
+      if (otpCode.length !== 6) {
+        setError("Please enter all 6 digits");
+        return;
+      }
+
       setIsLoading(true);
-      setTimeout(() => {
+      try {
+        const res = await fetch("/api/auth/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            code: otpCode,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "OTP verification failed");
+        }
+
         setIsLoading(false);
         setLocation("/dashboard");
-      }, 1500);
+      } catch (err) {
+        setError((err as any).message);
+        setIsLoading(false);
+      }
     }
   };
 
   const handleGoogleLogin = () => {
-    // Simulate Google Login flow
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      // If using Google login, we'd redirect to a profile completion page
-      // For this prototype, we'll go to dashboard but in a real app 
-      // we'd check if profile exists
       setLocation("/dashboard");
     }, 1500);
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto border-x border-border shadow-2xl relative">
-      {/* Header */}
       <header className="bg-card border-b border-border p-4 flex items-center h-16 sticky top-0 z-10">
         <Button variant="ghost" size="icon" onClick={() => step === 1 ? setLocation("/") : setStep(prev => prev - 1 as any)}>
           <ChevronLeft className="w-6 h-6" />
@@ -89,7 +132,6 @@ export default function Register() {
 
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-sm mx-auto space-y-6">
-          {/* Progress Steps */}
           <div className="flex justify-between mb-8 px-4">
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex flex-col items-center gap-2">
@@ -104,6 +146,12 @@ export default function Register() {
               </div>
             ))}
           </div>
+
+          {error && (
+            <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm" data-testid="error-message">
+              {error}
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
             <motion.form
@@ -129,6 +177,7 @@ export default function Register() {
                           value={formData.name}
                           onChange={(e) => handleInputChange("name", e.target.value)}
                           required 
+                          data-testid="input-register-name"
                         />
                       </div>
                     </div>
@@ -145,6 +194,7 @@ export default function Register() {
                           value={formData.mobile}
                           onChange={(e) => handleInputChange("mobile", e.target.value)}
                           required 
+                          data-testid="input-register-mobile"
                         />
                       </div>
                     </div>
@@ -161,6 +211,7 @@ export default function Register() {
                           value={formData.email}
                           onChange={(e) => handleInputChange("email", e.target.value)}
                           required 
+                          data-testid="input-register-email"
                         />
                       </div>
                     </div>
@@ -173,9 +224,10 @@ export default function Register() {
                           id="address" 
                           placeholder="Building No, Street Name" 
                           className="pl-10 bg-card" 
-                          value={formData.address}
-                          onChange={(e) => handleInputChange("address", e.target.value)}
+                          value={formData.pgAddress}
+                          onChange={(e) => handleInputChange("pgAddress", e.target.value)}
                           required 
+                          data-testid="input-register-address"
                         />
                       </div>
                     </div>
@@ -188,16 +240,17 @@ export default function Register() {
                           id="location" 
                           placeholder="e.g. Koramangala, Bangalore" 
                           className="pl-10 bg-card" 
-                          value={formData.location}
-                          onChange={(e) => handleInputChange("location", e.target.value)}
+                          value={formData.pgLocation}
+                          onChange={(e) => handleInputChange("pgLocation", e.target.value)}
                           required 
+                          data-testid="input-register-location"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div className="pt-4 space-y-4">
-                    <Button type="submit" className="w-full h-12 text-base">
+                    <Button type="submit" className="w-full h-12 text-base" data-testid="button-register-next">
                       Next <ArrowRight className="ml-2 w-4 h-4" />
                     </Button>
                     
@@ -215,6 +268,7 @@ export default function Register() {
                       variant="outline" 
                       className="w-full h-12 border-muted"
                       onClick={handleGoogleLogin}
+                      data-testid="button-register-google"
                     >
                       <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
                         <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
@@ -240,6 +294,7 @@ export default function Register() {
                           value={formData.password}
                           onChange={(e) => handleInputChange("password", e.target.value)}
                           required 
+                          data-testid="input-register-password"
                         />
                         <button 
                           type="button"
@@ -263,6 +318,7 @@ export default function Register() {
                           value={formData.confirmPassword}
                           onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                           required 
+                          data-testid="input-register-confirmpassword"
                         />
                       </div>
                     </div>
@@ -275,7 +331,7 @@ export default function Register() {
                   </div>
 
                   <div className="pt-4">
-                    <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+                    <Button type="submit" className="w-full h-12 text-base" disabled={isLoading} data-testid="button-register-sendotp">
                       {isLoading ? "Processing..." : "Send OTP"}
                     </Button>
                   </div>
@@ -305,15 +361,16 @@ export default function Register() {
                         className="w-10 h-12 text-center text-lg font-bold bg-card"
                         value={digit}
                         onChange={(e) => handleOtpChange(idx, e.target.value)}
+                        data-testid={`input-otp-${idx}`}
                       />
                     ))}
                   </div>
 
                   <div className="text-sm text-muted-foreground">
-                    Didn't receive code? <button type="button" className="text-primary font-medium hover:underline">Resend</button>
+                    Didn't receive code? <button type="button" className="text-primary font-medium hover:underline" data-testid="button-resend-otp">Resend</button>
                   </div>
 
-                  <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+                  <Button type="submit" className="w-full h-12 text-base" disabled={isLoading} data-testid="button-register-verify">
                     {isLoading ? "Verifying..." : "Verify & Register"}
                   </Button>
                 </div>
