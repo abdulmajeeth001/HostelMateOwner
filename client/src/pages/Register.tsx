@@ -1,0 +1,327 @@
+import MobileLayout from "@/components/layout/MobileLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useLocation } from "wouter";
+import { useState } from "react";
+import { ChevronLeft, Mail, MapPin, Phone, User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+export default function Register() {
+  const [, setLocation] = useLocation();
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: "",
+    mobile: "",
+    email: "",
+    address: "",
+    location: "",
+    password: "",
+    confirmPassword: ""
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) return;
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    
+    // Auto-focus next input
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      nextInput?.focus();
+    }
+  };
+
+  const handleNext = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step === 1) {
+      setStep(2);
+    } else if (step === 2) {
+      // Simulate OTP sending
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        setStep(3);
+      }, 1000);
+    } else {
+      // Verify OTP and complete registration
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        setLocation("/dashboard");
+      }, 1500);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    // Simulate Google Login flow
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      // If using Google login, we'd redirect to a profile completion page
+      // For this prototype, we'll go to dashboard but in a real app 
+      // we'd check if profile exists
+      setLocation("/dashboard");
+    }, 1500);
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto border-x border-border shadow-2xl relative">
+      {/* Header */}
+      <header className="bg-card border-b border-border p-4 flex items-center h-16 sticky top-0 z-10">
+        <Button variant="ghost" size="icon" onClick={() => step === 1 ? setLocation("/") : setStep(prev => prev - 1 as any)}>
+          <ChevronLeft className="w-6 h-6" />
+        </Button>
+        <h1 className="font-bold text-lg ml-2">
+          {step === 1 ? "Create Account" : step === 2 ? "Set Password" : "Verification"}
+        </h1>
+      </header>
+
+      <main className="flex-1 p-6 overflow-y-auto">
+        <div className="max-w-sm mx-auto space-y-6">
+          {/* Progress Steps */}
+          <div className="flex justify-between mb-8 px-4">
+            {[1, 2, 3].map((s) => (
+              <div key={s} className="flex flex-col items-center gap-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors duration-300 ${
+                  step >= s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                }`}>
+                  {s}
+                </div>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  {s === 1 ? "Details" : s === 2 ? "Security" : "Verify"}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.form
+              key={step}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              onSubmit={handleNext}
+              className="space-y-6"
+            >
+              {step === 1 && (
+                <>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                        <Input 
+                          id="name" 
+                          placeholder="Enter your full name" 
+                          className="pl-10 bg-card" 
+                          value={formData.name}
+                          onChange={(e) => handleInputChange("name", e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="mobile">Mobile Number</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                        <Input 
+                          id="mobile" 
+                          type="tel" 
+                          placeholder="+91 98765 43210" 
+                          className="pl-10 bg-card" 
+                          value={formData.mobile}
+                          onChange={(e) => handleInputChange("mobile", e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                        <Input 
+                          id="email" 
+                          type="email" 
+                          placeholder="you@example.com" 
+                          className="pl-10 bg-card" 
+                          value={formData.email}
+                          onChange={(e) => handleInputChange("email", e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="address">PG Address</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                        <Input 
+                          id="address" 
+                          placeholder="Building No, Street Name" 
+                          className="pl-10 bg-card" 
+                          value={formData.address}
+                          onChange={(e) => handleInputChange("address", e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="location">PG Location (City/Area)</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                        <Input 
+                          id="location" 
+                          placeholder="e.g. Koramangala, Bangalore" 
+                          className="pl-10 bg-card" 
+                          value={formData.location}
+                          onChange={(e) => handleInputChange("location", e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 space-y-4">
+                    <Button type="submit" className="w-full h-12 text-base">
+                      Next <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                    
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-muted" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full h-12 border-muted"
+                      onClick={handleGoogleLogin}
+                    >
+                      <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                      </svg>
+                      Google
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {step === 2 && (
+                <>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Create Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                        <Input 
+                          id="password" 
+                          type={showPassword ? "text" : "password"} 
+                          placeholder="Min 8 characters" 
+                          className="pl-10 pr-10 bg-card" 
+                          value={formData.password}
+                          onChange={(e) => handleInputChange("password", e.target.value)}
+                          required 
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                        <Input 
+                          id="confirmPassword" 
+                          type="password" 
+                          placeholder="Re-enter password" 
+                          className="pl-10 bg-card" 
+                          value={formData.confirmPassword}
+                          onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+
+                    <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+                      <li>At least 8 characters long</li>
+                      <li>Contains at least one number</li>
+                      <li>Contains at least one special character</li>
+                    </ul>
+                  </div>
+
+                  <div className="pt-4">
+                    <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+                      {isLoading ? "Processing..." : "Send OTP"}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {step === 3 && (
+                <div className="text-center space-y-6">
+                  <div>
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Mail className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="font-bold text-xl">Verify your Account</h3>
+                    <p className="text-muted-foreground text-sm mt-2">
+                      We've sent a 6-digit code to<br/>
+                      <span className="font-medium text-foreground">{formData.email}</span> and <span className="font-medium text-foreground">{formData.mobile}</span>
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center gap-2">
+                    {otp.map((digit, idx) => (
+                      <Input
+                        key={idx}
+                        id={`otp-${idx}`}
+                        type="number"
+                        maxLength={1}
+                        className="w-10 h-12 text-center text-lg font-bold bg-card"
+                        value={digit}
+                        onChange={(e) => handleOtpChange(idx, e.target.value)}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">
+                    Didn't receive code? <button type="button" className="text-primary font-medium hover:underline">Resend</button>
+                  </div>
+
+                  <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+                    {isLoading ? "Verifying..." : "Verify & Register"}
+                  </Button>
+                </div>
+              )}
+            </motion.form>
+          </AnimatePresence>
+        </div>
+      </main>
+    </div>
+  );
+}
