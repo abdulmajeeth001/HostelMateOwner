@@ -9,6 +9,7 @@ interface RoomData {
     id: number;
     roomNumber: string;
     monthlyRent: string;
+    sharing: number;
     tenantId: number | null;
     status: string;
     amenities: string[];
@@ -111,7 +112,7 @@ export default function Rooms() {
                     </div>
                     <div>
                       <CardTitle className="text-lg">Room {room.roomNumber}</CardTitle>
-                      <p className="text-xs text-muted-foreground">{`₹${room.monthlyRent}`}/month</p>
+                      <p className="text-xs text-muted-foreground">{`₹${room.monthlyRent}`}/month • {room.sharing}-sharing</p>
                     </div>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${

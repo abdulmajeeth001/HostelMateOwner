@@ -111,6 +111,7 @@ export const rooms = pgTable("rooms", {
   roomNumber: text("room_number").notNull(),
   monthlyRent: decimal("monthly_rent", { precision: 10, scale: 2 }).notNull(),
   tenantId: integer("tenant_id").references(() => tenants.id),
+  sharing: integer("sharing").default(1), // 1 for single, 2 for 2-sharing, 3 for 3-sharing
   status: text("status").default("vacant"), // occupied, vacant
   amenities: text("amenities").array().default([]), // WiFi, Water, Power
   createdAt: timestamp("created_at").defaultNow(),
