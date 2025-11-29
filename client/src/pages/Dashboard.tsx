@@ -1,6 +1,6 @@
 import DesktopLayout from "@/components/layout/DesktopLayout";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Users, Wallet, AlertCircle, TrendingUp, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
