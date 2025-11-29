@@ -5,12 +5,24 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
+import Login from "@/pages/Login";
+import Dashboard from "@/pages/Dashboard";
+import SubscriptionPlan from "@/pages/SubscriptionPlan";
+import TenantsList from "@/pages/TenantsList";
+import AddTenant from "@/pages/AddTenant";
+import Payments from "@/pages/Payments";
+import Notifications from "@/pages/Notifications";
+
 function Router() {
   return (
     <Switch>
-      {/* Add pages below */}
-      {/* <Route path="/" component={Home}/> */}
-      {/* Fallback to 404 */}
+      <Route path="/" component={Login} />
+      <Route path="/subscription" component={SubscriptionPlan} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/tenants" component={TenantsList} />
+      <Route path="/tenants/add" component={AddTenant} />
+      <Route path="/payments" component={Payments} />
+      <Route path="/notifications" component={Notifications} />
       <Route component={NotFound} />
     </Switch>
   );
