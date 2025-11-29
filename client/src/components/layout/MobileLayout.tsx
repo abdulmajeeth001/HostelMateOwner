@@ -20,7 +20,7 @@ export default function MobileLayout({
   action
 }: MobileLayoutProps) {
   const [location] = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Close sidebar when location changes
   useEffect(() => {
