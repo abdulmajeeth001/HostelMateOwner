@@ -103,3 +103,22 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 });
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+// Rooms table
+export const rooms = pgTable("rooms", {
+  id: serial("id").primaryKey(),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  roomNumber: text("room_number").notNull(),
+  monthlyRent: decimal("monthly_rent", { precision: 10, scale: 2 }).notNull(),
+  tenantId: integer("tenant_id").references(() => tenants.id),
+  status: text("status").default("vacant"), // occupied, vacant
+  amenities: text("amenities").array().default([]), // WiFi, Water, Power
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertRoomSchema = createInsertSchema(rooms).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertRoom = z.infer<typeof insertRoomSchema>;
+export type Room = typeof rooms.$inferSelect;

@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotificationSchema } from "@shared/schema";
+import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotificationSchema, insertRoomSchema } from "@shared/schema";
 import { z } from "zod";
 
 declare global {
@@ -256,6 +256,69 @@ export async function registerRoutes(
       res.json(notifications);
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // ROOMS ROUTES
+  app.post("/api/rooms", async (req, res) => {
+    try {
+      const userId = (req.session && req.session.userId) || 1;
+      const body = insertRoomSchema.parse(req.body);
+      
+      const room = await storage.createRoom({
+        ...body,
+        ownerId: userId,
+      });
+
+      res.json({ success: true, room });
+    } catch (error) {
+      console.error("Room creation error:", error);
+      res.status(400).json({ error: "Failed to create room", details: (error as any).message });
+    }
+  });
+
+  app.get("/api/rooms", async (req, res) => {
+    try {
+      const userId = (req.session && req.session.userId) || 1;
+      const rooms = await storage.getRooms(userId);
+      res.json(rooms);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch rooms" });
+    }
+  });
+
+  app.get("/api/rooms/:id", async (req, res) => {
+    try {
+      const room = await storage.getRoom(parseInt(req.params.id));
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+      res.json(room);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch room" });
+    }
+  });
+
+  app.put("/api/rooms/:id", async (req, res) => {
+    try {
+      const body = insertRoomSchema.partial().parse(req.body);
+      const room = await storage.updateRoom(parseInt(req.params.id), body);
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+      res.json({ success: true, room });
+    } catch (error) {
+      console.error("Room update error:", error);
+      res.status(400).json({ error: "Failed to update room", details: (error as any).message });
+    }
+  });
+
+  app.delete("/api/rooms/:id", async (req, res) => {
+    try {
+      await storage.deleteRoom(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to delete room" });
     }
   });
 

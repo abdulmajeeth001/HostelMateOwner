@@ -9,11 +9,14 @@ import {
   type InsertPayment,
   type Notification,
   type InsertNotification,
+  type Room,
+  type InsertRoom,
   users,
   otpCodes,
   tenants,
   payments,
-  notifications
+  notifications,
+  rooms
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte } from "drizzle-orm";
@@ -50,6 +53,13 @@ export interface IStorage {
   getNotifications(userId: number): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<void>;
+
+  // Rooms
+  getRooms(ownerId: number): Promise<Room[]>;
+  getRoom(id: number): Promise<Room | undefined>;
+  createRoom(room: InsertRoom): Promise<Room>;
+  updateRoom(id: number, updates: Partial<Room>): Promise<Room | undefined>;
+  deleteRoom(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -173,6 +183,30 @@ export class DatabaseStorage implements IStorage {
 
   async markNotificationAsRead(id: number): Promise<void> {
     await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
+  }
+
+  // Rooms
+  async getRooms(ownerId: number): Promise<Room[]> {
+    return await db.select().from(rooms).where(eq(rooms.ownerId, ownerId)).orderBy(desc(rooms.createdAt));
+  }
+
+  async getRoom(id: number): Promise<Room | undefined> {
+    const result = await db.select().from(rooms).where(eq(rooms.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createRoom(room: InsertRoom): Promise<Room> {
+    const result = await db.insert(rooms).values(room).returning();
+    return result[0];
+  }
+
+  async updateRoom(id: number, updates: Partial<Room>): Promise<Room | undefined> {
+    const result = await db.update(rooms).set(updates).where(eq(rooms.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteRoom(id: number): Promise<void> {
+    await db.delete(rooms).where(eq(rooms.id, id));
   }
 }
 
