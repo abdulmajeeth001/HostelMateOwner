@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
 
@@ -21,6 +21,11 @@ export default function MobileLayout({
 }: MobileLayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Close sidebar when location changes
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location]);
 
   const sideNavItems = [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
@@ -142,7 +147,6 @@ export default function MobileLayout({
                   <Link 
                     key={path} 
                     href={path}
-                    onClick={() => setSidebarOpen(false)}
                     className={cn(
                       "flex flex-col items-center justify-center flex-1 h-16 space-y-1 transition-colors duration-200 cursor-pointer no-underline",
                       isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
