@@ -131,7 +131,7 @@ export default function Register() {
           <ChevronLeft className="w-6 h-6" />
         </Button>
         <h1 className="font-bold text-lg ml-2">
-          {step === 1 ? "Create Account" : step === 2 ? "Select Role" : step === 3 ? "Set Password" : "Verification"}
+          {step === 1 ? "Select Role" : step === 2 ? "Your Details" : step === 3 ? "Set Password" : "Verification"}
         </h1>
       </header>
 
@@ -146,7 +146,7 @@ export default function Register() {
                   {s}
                 </div>
                 <span className="text-[10px] text-muted-foreground font-medium">
-                  {s === 1 ? "Details" : s === 2 ? "Role" : s === 3 ? "Security" : "Verify"}
+                  {s === 1 ? "Role" : s === 2 ? "Details" : s === 3 ? "Security" : "Verify"}
                 </span>
               </div>
             ))}
@@ -169,6 +169,81 @@ export default function Register() {
               className="space-y-6"
             >
               {step === 1 && (
+                <>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground mb-4">Select how you'll use HostelMate</p>
+                    
+                    <div 
+                      onClick={() => handleInputChange("userType", "owner")}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        formData.userType === "owner" 
+                          ? "border-primary bg-primary/10" 
+                          : "border-border bg-card hover:border-primary/50"
+                      }`}
+                      data-testid="button-role-owner"
+                    >
+                      <h3 className="font-semibold text-base">PG Owner</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Manage properties, rooms, tenants & payments</p>
+                    </div>
+
+                    <div 
+                      onClick={() => handleInputChange("userType", "tenant")}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        formData.userType === "tenant" 
+                          ? "border-primary bg-primary/10" 
+                          : "border-border bg-card hover:border-primary/50"
+                      }`}
+                      data-testid="button-role-tenant"
+                    >
+                      <h3 className="font-semibold text-base">Tenant</h3>
+                      <p className="text-sm text-muted-foreground mt-1">View payments, complaints & announcements</p>
+                    </div>
+
+                    <div 
+                      onClick={() => handleInputChange("userType", "admin")}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        formData.userType === "admin" 
+                          ? "border-primary bg-primary/10" 
+                          : "border-border bg-card hover:border-primary/50"
+                      }`}
+                      data-testid="button-role-admin"
+                    >
+                      <h3 className="font-semibold text-base">Admin</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Manage users, properties & system settings</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 space-y-4">
+                    <Button type="submit" className="w-full h-12 text-base" data-testid="button-role-next">
+                      Next <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                    
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-muted" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full h-12 border-muted"
+                      onClick={handleGoogleLogin}
+                      data-testid="button-register-google"
+                    >
+                      <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                      </svg>
+                      Google
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {step === 2 && (
                 <>
                   <div className="space-y-4">
                     <div className="space-y-2">
@@ -221,98 +296,25 @@ export default function Register() {
                       </div>
                     </div>
 
-                    <LocationPicker 
-                      onLocationSelect={(location) => {
-                        setFormData(prev => ({
-                          ...prev,
-                          pgAddress: location.address,
-                          pgLocation: location.city
-                        }));
-                      }}
-                      selectedLocation={{ 
-                        address: formData.pgAddress, 
-                        city: formData.pgLocation 
-                      }}
-                    />
-                  </div>
-
-                  <div className="pt-4 space-y-4">
-                    <Button type="submit" className="w-full h-12 text-base" data-testid="button-register-next">
-                      Next <ArrowRight className="ml-2 w-4 h-4" />
-                    </Button>
-                    
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-muted" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                      </div>
-                    </div>
-
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      className="w-full h-12 border-muted"
-                      onClick={handleGoogleLogin}
-                      data-testid="button-register-google"
-                    >
-                      <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-                        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
-                      </svg>
-                      Google
-                    </Button>
-                  </div>
-                </>
-              )}
-
-              {step === 2 && (
-                <>
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground mb-4">Select how you'll use HostelMate</p>
-                    
-                    <div 
-                      onClick={() => handleInputChange("userType", "owner")}
-                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        formData.userType === "owner" 
-                          ? "border-primary bg-primary/10" 
-                          : "border-border bg-card hover:border-primary/50"
-                      }`}
-                      data-testid="button-role-owner"
-                    >
-                      <h3 className="font-semibold text-base">PG Owner</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Manage properties, rooms, tenants & payments</p>
-                    </div>
-
-                    <div 
-                      onClick={() => handleInputChange("userType", "tenant")}
-                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        formData.userType === "tenant" 
-                          ? "border-primary bg-primary/10" 
-                          : "border-border bg-card hover:border-primary/50"
-                      }`}
-                      data-testid="button-role-tenant"
-                    >
-                      <h3 className="font-semibold text-base">Tenant</h3>
-                      <p className="text-sm text-muted-foreground mt-1">View payments, complaints & announcements</p>
-                    </div>
-
-                    <div 
-                      onClick={() => handleInputChange("userType", "admin")}
-                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        formData.userType === "admin" 
-                          ? "border-primary bg-primary/10" 
-                          : "border-border bg-card hover:border-primary/50"
-                      }`}
-                      data-testid="button-role-admin"
-                    >
-                      <h3 className="font-semibold text-base">Admin</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Manage users, properties & system settings</p>
-                    </div>
+                    {formData.userType === "owner" && (
+                      <LocationPicker 
+                        onLocationSelect={(location) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            pgAddress: location.address,
+                            pgLocation: location.city
+                          }));
+                        }}
+                        selectedLocation={{ 
+                          address: formData.pgAddress, 
+                          city: formData.pgLocation 
+                        }}
+                      />
+                    )}
                   </div>
 
                   <div className="pt-4">
-                    <Button type="submit" className="w-full h-12 text-base" data-testid="button-role-next">
+                    <Button type="submit" className="w-full h-12 text-base" data-testid="button-details-next">
                       Next <ArrowRight className="ml-2 w-4 h-4" />
                     </Button>
                   </div>
