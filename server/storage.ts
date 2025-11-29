@@ -187,10 +187,10 @@ export class DatabaseStorage implements IStorage {
     const result = await db.update(tenants).set(updates).where(eq(tenants.id, id)).returning();
     const updatedTenant = result[0];
 
-    // Handle room change if roomNumber was updated
-    if (updates.roomNumber && updates.roomNumber !== currentTenant.roomNumber) {
-      // Remove from old room
-      if (currentTenant.roomNumber) {
+    // Handle room assignment if roomNumber was updated
+    if (updates.roomNumber) {
+      // Remove from old room if it exists and is different
+      if (currentTenant.roomNumber && currentTenant.roomNumber !== updates.roomNumber) {
         const oldRoom = await this.getRoomByNumber(currentTenant.ownerId, currentTenant.roomNumber);
         if (oldRoom && Array.isArray(oldRoom.tenantIds)) {
           await this.updateRoom(oldRoom.id, {
@@ -199,11 +199,12 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // Add to new room
-      if (updates.roomNumber && updatedTenant) {
+      // Add to new room (either first assignment or room change)
+      if (updatedTenant) {
         const newRoom = await this.getRoomByNumber(updatedTenant.ownerId, updates.roomNumber);
         if (newRoom) {
           const currentIds = Array.isArray(newRoom.tenantIds) ? newRoom.tenantIds : [];
+          // Add tenant ID if not already present
           if (!currentIds.includes(id)) {
             await this.updateRoom(newRoom.id, {
               tenantIds: [...currentIds, id]
