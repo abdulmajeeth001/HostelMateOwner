@@ -182,15 +182,11 @@ export default function EditTenant() {
                   <SelectValue placeholder="Select room" />
                 </SelectTrigger>
                 <SelectContent>
-                  {rooms.length > 0 ? (
-                    rooms.map((room) => (
-                      <SelectItem key={room.id} value={room.roomNumber}>
-                        {room.roomNumber}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="" disabled>No rooms available</SelectItem>
-                  )}
+                  {rooms.map((room) => (
+                    <SelectItem key={room.id} value={room.roomNumber}>
+                      {room.roomNumber}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
