@@ -27,10 +27,10 @@ export default function MobileLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-background max-w-md mx-auto border-x border-border shadow-2xl relative flex flex-col overflow-hidden">
+    <div className="h-screen bg-background max-w-md mx-auto border-x border-border shadow-2xl relative flex flex-col overflow-hidden">
       {/* Header */}
       {title && (
-        <header className="bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-50 px-4 h-16 flex items-center justify-between">
+        <header className="bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-50 px-4 h-16 flex items-center justify-between shrink-0">
           <h1 className="text-lg font-bold tracking-tight text-foreground">{title}</h1>
           {action}
         </header>
@@ -38,14 +38,14 @@ export default function MobileLayout({
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto scrollbar-hide">
-        <div className="p-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
+        <div className="p-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ paddingBottom: showNav ? '100px' : '24px' }}>
           {children}
         </div>
       </main>
 
       {/* Bottom Navigation */}
       {showNav && (
-        <nav className="bg-card border-t border-border fixed bottom-0 w-full max-w-md z-50 pb-safe-area-inset-bottom">
+        <nav className="bg-card border-t border-border fixed bottom-0 w-full max-w-md z-50 pb-safe-area-inset-bottom shrink-0">
           <div className="flex items-center justify-around h-16 px-1 overflow-x-auto">
             {navItems.map(({ icon: Icon, label, path }) => {
               const isActive = location === path || (path !== "/dashboard" && location.startsWith(path));
