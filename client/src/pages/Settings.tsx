@@ -38,7 +38,7 @@ export default function Settings() {
   };
 
   return (
-    <DesktopLayout title="Settings" showNav={false}>
+    <DesktopLayout title="Settings" showNav={true}>
       <div className="max-w-3xl space-y-6">
         {/* Profile Settings */}
         <Card>
