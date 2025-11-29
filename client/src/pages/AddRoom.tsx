@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
-import { ChevronLeft, Wind, Bath, Users, MapPin } from "lucide-react";
+import { ChevronLeft, Wind, Bath, Users, MapPin, Plus, X } from "lucide-react";
 
 interface Tenant {
   id: number;
@@ -26,7 +26,7 @@ export default function AddRoom() {
     floor: "1",
     hasAttachedBathroom: false,
     hasAC: false,
-    tenantId: null as number | null,
+    tenantIds: [] as number[],
     amenities: [] as string[],
   });
 
@@ -54,6 +54,16 @@ export default function AddRoom() {
     setError("");
   };
 
+  const addTenant = (tenantId: number) => {
+    if (!formData.tenantIds.includes(tenantId)) {
+      handleInputChange("tenantIds", [...formData.tenantIds, tenantId]);
+    }
+  };
+
+  const removeTenant = (tenantId: number) => {
+    handleInputChange("tenantIds", formData.tenantIds.filter(id => id !== tenantId));
+  };
+
   const toggleAmenity = (amenity: string) => {
     setFormData(prev => ({
       ...prev,
@@ -71,6 +81,12 @@ export default function AddRoom() {
       return;
     }
 
+    const sharingNum = parseInt(formData.sharing);
+    if (formData.tenantIds.length > sharingNum) {
+      setError(`Cannot assign more than ${sharingNum} tenants to this room`);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await fetch("/api/rooms", {
@@ -79,11 +95,11 @@ export default function AddRoom() {
         body: JSON.stringify({
           roomNumber: formData.roomNumber,
           monthlyRent: formData.monthlyRent,
-          sharing: parseInt(formData.sharing),
+          sharing: sharingNum,
           floor: parseInt(formData.floor),
           hasAttachedBathroom: formData.hasAttachedBathroom,
           hasAC: formData.hasAC,
-          tenantId: formData.tenantId,
+          tenantIds: formData.tenantIds.length > 0 ? formData.tenantIds : null,
           amenities: formData.amenities,
         }),
       });
@@ -99,6 +115,11 @@ export default function AddRoom() {
       setIsLoading(false);
     }
   };
+
+  const selectedTenants = formData.tenantIds.map(id => tenants.find(t => t.id === id)).filter(Boolean) as Tenant[];
+  const availableTenants = tenants.filter(t => !formData.tenantIds.includes(t.id));
+  const sharingNum = parseInt(formData.sharing);
+  const canAddMore = formData.tenantIds.length < sharingNum;
 
   return (
     <MobileLayout title="Add Room" showNav={false}>
@@ -179,39 +200,6 @@ export default function AddRoom() {
             </div>
           </div>
 
-          {/* Tenant Assignment Section */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="w-5 h-5 text-orange-600" />
-              <h2 className="text-lg font-semibold text-slate-900">Assign Tenant</h2>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tenantId" className="text-slate-700 font-medium">Select Tenant (Optional)</Label>
-              <select
-                id="tenantId"
-                value={formData.tenantId || ""}
-                onChange={(e) => handleInputChange("tenantId", e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full px-3 py-3 border border-slate-300 rounded-lg bg-white text-slate-900 h-11"
-                data-testid="select-tenant"
-              >
-                <option value="">No Tenant (Vacant)</option>
-                {isFetchingTenants ? (
-                  <option disabled>Loading tenants...</option>
-                ) : tenants.length === 0 ? (
-                  <option disabled>No available tenants</option>
-                ) : (
-                  tenants.map((tenant) => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.name} ({tenant.phone})
-                    </option>
-                  ))
-                )}
-              </select>
-              <p className="text-xs text-slate-500">Only shows tenants not already assigned to other rooms</p>
-            </div>
-          </div>
-
           {/* Room Configuration Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
             <div className="flex items-center gap-2 mb-4">
@@ -222,29 +210,103 @@ export default function AddRoom() {
             {/* Sharing Type */}
             <div className="space-y-3">
               <Label htmlFor="sharing" className="text-slate-700 font-medium">Number of Sharing *</Label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { value: "1", label: "Single", icon: "👤" },
-                  { value: "2", label: "Double", icon: "👥" },
-                  { value: "3", label: "Triple", icon: "👫" }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange("sharing", option.value)}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      formData.sharing === option.value
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-slate-200 bg-slate-50 hover:border-slate-300"
-                    }`}
-                    data-testid={`button-sharing-${option.value}`}
-                  >
-                    <div className="text-2xl mb-1">{option.icon}</div>
-                    <div className="text-sm font-medium text-slate-700">{option.label}</div>
-                  </button>
+              <select
+                id="sharing"
+                value={formData.sharing}
+                onChange={(e) => handleInputChange("sharing", e.target.value)}
+                className="w-full px-3 py-3 border border-slate-300 rounded-lg bg-white text-slate-900 h-11 font-medium"
+                data-testid="select-sharing"
+              >
+                {[1, 2, 3, 4, 5, 6].map(num => (
+                  <option key={num} value={num}>{num}-Sharing</option>
                 ))}
-              </div>
+              </select>
+              <p className="text-xs text-slate-500">Can add up to {sharingNum} tenants to this room</p>
             </div>
+          </div>
+
+          {/* Tenant Assignment Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-5 h-5 text-orange-600" />
+              <h2 className="text-lg font-semibold text-slate-900">Assign Tenants</h2>
+            </div>
+
+            {/* Selected Tenants */}
+            {selectedTenants.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-slate-700 font-medium">Assigned Tenants ({selectedTenants.length}/{sharingNum})</Label>
+                <div className="space-y-2">
+                  {selectedTenants.map((tenant) => (
+                    <div key={tenant.id} className="p-3 bg-green-50 rounded-lg border border-green-200 flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-slate-900">{tenant.name}</p>
+                        <p className="text-sm text-slate-600">{tenant.phone}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeTenant(tenant.id)}
+                        className="text-red-600 hover:bg-red-50"
+                        data-testid={`button-remove-tenant-${tenant.id}`}
+                      >
+                        <X className="w-5 h-5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add Tenant */}
+            {canAddMore && availableTenants.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-slate-700 font-medium">Add Tenant</Label>
+                <div className="flex gap-2">
+                  <select
+                    id="tenantSelect"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 h-10"
+                    defaultValue=""
+                    data-testid="select-available-tenant"
+                  >
+                    <option value="">Select a tenant...</option>
+                    {availableTenants.map((tenant) => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.name} ({tenant.phone})
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const select = document.getElementById("tenantSelect") as HTMLSelectElement;
+                      if (select.value) {
+                        addTenant(parseInt(select.value));
+                        select.value = "";
+                      }
+                    }}
+                    className="gap-1 bg-green-600 hover:bg-green-700"
+                    data-testid="button-add-tenant"
+                  >
+                    <Plus className="w-4 h-4" /> Add
+                  </Button>
+                </div>
+                <p className="text-xs text-slate-500">Only shows tenants not already assigned to other rooms</p>
+              </div>
+            )}
+
+            {!canAddMore && (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-700">✓ All {sharingNum} slots are filled</p>
+              </div>
+            )}
+
+            {availableTenants.length === 0 && selectedTenants.length === 0 && (
+              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-sm text-yellow-700">No available tenants (optional - you can leave this room vacant)</p>
+              </div>
+            )}
           </div>
 
           {/* Amenities Section */}

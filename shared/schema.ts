@@ -110,8 +110,8 @@ export const rooms = pgTable("rooms", {
   ownerId: integer("owner_id").notNull().references(() => users.id),
   roomNumber: text("room_number").notNull(),
   monthlyRent: decimal("monthly_rent", { precision: 10, scale: 2 }).notNull(),
-  tenantId: integer("tenant_id").references(() => tenants.id),
-  sharing: integer("sharing").default(1), // 1 for single, 2 for 2-sharing, 3 for 3-sharing
+  tenantIds: integer("tenant_ids").array().default([]), // Array of tenant IDs
+  sharing: integer("sharing").default(1), // 1-6 for number of people sharing
   floor: integer("floor").default(1), // Floor number
   hasAttachedBathroom: boolean("has_attached_bathroom").default(false), // true for attached, false for common
   hasAC: boolean("has_ac").default(false), // true if AC, false if no AC

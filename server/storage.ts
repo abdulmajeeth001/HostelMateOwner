@@ -144,15 +144,16 @@ export class DatabaseStorage implements IStorage {
 
   async getAvailableTenants(ownerId: number): Promise<Tenant[]> {
     // Get all tenants for this owner that are not currently assigned to any room
-    const assignedTenantIds = await db.select({ tenantId: rooms.tenantId }).from(rooms).where(eq(rooms.ownerId, ownerId));
-    const assignedIds = assignedTenantIds.map(r => r.tenantId).filter(Boolean);
-    
-    if (assignedIds.length === 0) {
-      return await db.select().from(tenants).where(eq(tenants.ownerId, ownerId)).orderBy(desc(tenants.createdAt));
-    }
+    const allRooms = await db.select({ tenantIds: rooms.tenantIds }).from(rooms).where(eq(rooms.ownerId, ownerId));
+    const assignedIds: number[] = [];
+    allRooms.forEach(room => {
+      if (room.tenantIds && Array.isArray(room.tenantIds)) {
+        assignedIds.push(...room.tenantIds);
+      }
+    });
     
     const result = await db.select().from(tenants)
-      .where(and(eq(tenants.ownerId, ownerId)))
+      .where(eq(tenants.ownerId, ownerId))
       .orderBy(desc(tenants.createdAt));
     
     return result.filter(t => !assignedIds.includes(t.id));
@@ -253,11 +254,14 @@ export class DatabaseStorage implements IStorage {
       // Fetch tenant data for each room
       const roomsWithTenants = await Promise.all(
         result.map(async (room) => {
-          let tenant = null;
-          if (room.tenantId) {
-            tenant = await this.getTenant(room.tenantId);
+          let tenants: any[] = [];
+          if (room.tenantIds && Array.isArray(room.tenantIds) && room.tenantIds.length > 0) {
+            tenants = await Promise.all(
+              room.tenantIds.map(id => this.getTenant(id))
+            );
+            tenants = tenants.filter(Boolean);
           }
-          return { room, tenant };
+          return { room, tenants };
         })
       );
       
@@ -270,27 +274,27 @@ export class DatabaseStorage implements IStorage {
 
   async seedInitialRooms(ownerId: number): Promise<void> {
     const seedData = [
-      { roomNumber: "101", monthlyRent: "5000", sharing: 1, floor: 1, hasAttachedBathroom: true, hasAC: true, tenantName: "Rahul Kumar", tenantPhone: "98765 43210", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
-      { roomNumber: "102", monthlyRent: "6500", sharing: 2, floor: 1, hasAttachedBathroom: false, hasAC: false, tenantName: "Amit Singh", tenantPhone: "98765 43211", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
-      { roomNumber: "201", monthlyRent: "7000", sharing: 3, floor: 2, hasAttachedBathroom: false, hasAC: false, tenantName: "Priya Sharma", tenantPhone: "98765 43212", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
-      { roomNumber: "202", monthlyRent: "5500", sharing: 2, floor: 2, hasAttachedBathroom: true, hasAC: false, tenantName: null, tenantPhone: null, status: "vacant", amenities: ["WiFi", "Water", "Power"] },
-      { roomNumber: "301", monthlyRent: "8000", sharing: 1, floor: 3, hasAttachedBathroom: true, hasAC: true, tenantName: "Sneha Gupta", tenantPhone: "98765 43213", status: "occupied", amenities: ["WiFi", "Water", "Power"] },
-      { roomNumber: "302", monthlyRent: "8000", sharing: 3, floor: 3, hasAttachedBathroom: false, hasAC: false, tenantName: null, tenantPhone: null, status: "vacant", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "101", monthlyRent: "5000", sharing: 1, floor: 1, hasAttachedBathroom: true, hasAC: true, tenantNames: ["Rahul Kumar"], tenantPhones: ["98765 43210"], status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "102", monthlyRent: "6500", sharing: 2, floor: 1, hasAttachedBathroom: false, hasAC: false, tenantNames: ["Amit Singh"], tenantPhones: ["98765 43211"], status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "201", monthlyRent: "7000", sharing: 3, floor: 2, hasAttachedBathroom: false, hasAC: false, tenantNames: ["Priya Sharma"], tenantPhones: ["98765 43212"], status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "202", monthlyRent: "5500", sharing: 2, floor: 2, hasAttachedBathroom: true, hasAC: false, tenantNames: [], tenantPhones: [], status: "vacant", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "301", monthlyRent: "8000", sharing: 1, floor: 3, hasAttachedBathroom: true, hasAC: true, tenantNames: ["Sneha Gupta"], tenantPhones: ["98765 43213"], status: "occupied", amenities: ["WiFi", "Water", "Power"] },
+      { roomNumber: "302", monthlyRent: "8000", sharing: 3, floor: 3, hasAttachedBathroom: false, hasAC: false, tenantNames: [], tenantPhones: [], status: "vacant", amenities: ["WiFi", "Water", "Power"] },
     ];
 
     for (const data of seedData) {
-      let tenantId: number | null = null;
+      const tenantIds: number[] = [];
 
-      // Create tenant if room is occupied
-      if (data.tenantName && data.tenantPhone) {
+      // Create tenants if room is occupied
+      for (let i = 0; i < data.tenantNames.length; i++) {
         const createdTenant = await this.createTenant({
           ownerId,
-          name: data.tenantName,
-          phone: data.tenantPhone,
+          name: data.tenantNames[i],
+          phone: data.tenantPhones[i],
           roomNumber: data.roomNumber,
           monthlyRent: data.monthlyRent,
         });
-        tenantId = createdTenant.id;
+        tenantIds.push(createdTenant.id);
       }
 
       // Create room
@@ -298,7 +302,7 @@ export class DatabaseStorage implements IStorage {
         ownerId,
         roomNumber: data.roomNumber,
         monthlyRent: data.monthlyRent,
-        tenantId,
+        tenantIds: tenantIds.length > 0 ? tenantIds : null as any,
         sharing: data.sharing,
         floor: data.floor,
         hasAttachedBathroom: data.hasAttachedBathroom,
