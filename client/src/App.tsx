@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
+import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
@@ -23,7 +24,8 @@ import Settings from "@/pages/Settings";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Login} />
+      <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/subscription" component={SubscriptionPlan} />
       <Route path="/dashboard" component={Dashboard} />
