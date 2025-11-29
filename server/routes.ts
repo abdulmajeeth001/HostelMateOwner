@@ -34,7 +34,6 @@ const loginSchema = z.object({
 });
 
 const createTenantSchema = z.object({
-  ownerId: z.number(),
   name: z.string().min(2),
   phone: z.string().min(10),
   roomNumber: z.string(),
