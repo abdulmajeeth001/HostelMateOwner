@@ -203,6 +203,34 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/tenants/:id", async (req, res) => {
+    try {
+      const body = createTenantSchema.parse(req.body);
+      const tenant = await storage.updateTenant(parseInt(req.params.id), {
+        name: body.name,
+        phone: body.phone,
+        roomNumber: body.roomNumber,
+        monthlyRent: body.monthlyRent.toString(),
+      });
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+      res.json({ success: true, tenant });
+    } catch (error) {
+      console.error("Tenant update error:", error);
+      res.status(400).json({ error: "Failed to update tenant", details: (error as any).message });
+    }
+  });
+
+  app.delete("/api/tenants/:id", async (req, res) => {
+    try {
+      await storage.deleteTenant(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to delete tenant" });
+    }
+  });
+
   // PAYMENTS ROUTES
   app.get("/api/payments", async (req, res) => {
     try {
