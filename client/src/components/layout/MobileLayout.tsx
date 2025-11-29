@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Users, CreditCard, Bell, LogOut } from "lucide-react";
+import { Home, Users, CreditCard, Bell, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -22,7 +22,8 @@ export default function MobileLayout({
     { icon: Home, label: "Home", path: "/dashboard" },
     { icon: Users, label: "Tenants", path: "/tenants" },
     { icon: CreditCard, label: "Payments", path: "/payments" },
-    { icon: Bell, label: "Notifs", path: "/notifications" },
+    { icon: Bell, label: "Alerts", path: "/notifications" },
+    { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
   return (
@@ -45,7 +46,7 @@ export default function MobileLayout({
       {/* Bottom Navigation */}
       {showNav && (
         <nav className="bg-card border-t border-border fixed bottom-0 w-full max-w-md z-50 pb-safe-area-inset-bottom">
-          <div className="flex items-center justify-around h-16 px-2">
+          <div className="flex items-center justify-around h-16 px-1 overflow-x-auto">
             {navItems.map(({ icon: Icon, label, path }) => {
               const isActive = location === path || (path !== "/dashboard" && location.startsWith(path));
               
