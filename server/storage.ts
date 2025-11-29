@@ -243,6 +243,13 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getRoomByNumber(ownerId: number, roomNumber: string): Promise<Room | undefined> {
+    const result = await db.select().from(rooms)
+      .where(and(eq(rooms.ownerId, ownerId), eq(rooms.roomNumber, roomNumber)))
+      .limit(1);
+    return result[0];
+  }
+
   async getAllRoomsWithTenants(ownerId: number): Promise<any[]> {
     try {
       const result = await db

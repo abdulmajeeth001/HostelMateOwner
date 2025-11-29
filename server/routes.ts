@@ -280,6 +280,12 @@ export async function registerRoutes(
       const userId = (req.session && req.session.userId) || 1;
       const body = insertRoomSchema.parse(req.body);
       
+      // Check if room number already exists for this owner
+      const existingRoom = await storage.getRoomByNumber(userId, body.roomNumber);
+      if (existingRoom) {
+        return res.status(400).json({ error: `Room number ${body.roomNumber} already exists` });
+      }
+      
       const room = await storage.createRoom({
         ...body,
         ownerId: userId,
@@ -327,8 +333,19 @@ export async function registerRoutes(
 
   app.put("/api/rooms/:id", async (req, res) => {
     try {
+      const roomId = parseInt(req.params.id);
+      const userId = (req.session && req.session.userId) || 1;
       const body = insertRoomSchema.partial().parse(req.body);
-      const room = await storage.updateRoom(parseInt(req.params.id), body);
+      
+      // If updating room number, check for duplicates (excluding current room)
+      if (body.roomNumber) {
+        const existingRoom = await storage.getRoomByNumber(userId, body.roomNumber);
+        if (existingRoom && existingRoom.id !== roomId) {
+          return res.status(400).json({ error: `Room number ${body.roomNumber} already exists` });
+        }
+      }
+      
+      const room = await storage.updateRoom(roomId, body);
       if (!room) {
         return res.status(404).json({ error: "Room not found" });
       }
