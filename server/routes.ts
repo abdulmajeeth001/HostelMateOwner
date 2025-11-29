@@ -1,16 +1,237 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotificationSchema } from "@shared/schema";
+import { z } from "zod";
+
+declare global {
+  namespace Express {
+    interface Session {
+      userId?: number;
+      registrationData?: any;
+    }
+  }
+}
+
+// Validation schemas
+const registrationSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  mobile: z.string().min(10),
+  password: z.string().min(8),
+  pgAddress: z.string(),
+  pgLocation: z.string(),
+});
+
+const otpVerificationSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+});
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
+});
+
+const createTenantSchema = z.object({
+  ownerId: z.number(),
+  name: z.string().min(2),
+  phone: z.string().min(10),
+  roomNumber: z.string(),
+  monthlyRent: z.string().or(z.number()),
+});
+
+// Helper function to generate OTP
+function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  // AUTH ROUTES
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const body = registrationSchema.parse(req.body);
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+      // Check if user exists
+      const existingUser = await storage.getUserByEmail(body.email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Email already registered" });
+      }
+
+      // Generate OTP
+      const otp = generateOTP();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Store OTP (in real app, send via SMS/Email)
+      await storage.createOtp({
+        email: body.email,
+        mobile: body.mobile,
+        code: otp,
+        expiresAt,
+      });
+
+      // Store registration data in session for later use
+      req.session!.registrationData = body;
+
+      // TODO: Send OTP via Twilio and SendGrid
+      console.log(`OTP for ${body.email}: ${otp}`);
+
+      res.json({ 
+        success: true, 
+        message: "OTP sent to email and mobile",
+        // FOR TESTING: Return OTP (remove in production)
+        otp: process.env.NODE_ENV === "development" ? otp : undefined
+      });
+    } catch (error) {
+      res.status(400).json({ error: "Invalid registration data" });
+    }
+  });
+
+  app.post("/api/auth/verify-otp", async (req, res) => {
+    try {
+      const body = otpVerificationSchema.parse(req.body);
+      const registrationData = req.session!.registrationData;
+
+      if (!registrationData) {
+        return res.status(400).json({ error: "Registration session expired" });
+      }
+
+      // Verify OTP
+      const validOtp = await storage.getValidOtp(body.email, body.code);
+      if (!validOtp) {
+        return res.status(400).json({ error: "Invalid or expired OTP" });
+      }
+
+      // Create user
+      const user = await storage.createUser({
+        ...registrationData,
+        isVerified: true,
+      });
+
+      // Delete used OTP
+      await storage.deleteOtp(validOtp.id);
+      delete req.session!.registrationData;
+
+      // Set session
+      req.session!.userId = user.id;
+
+      res.json({ success: true, user: { id: user.id, email: user.email, name: user.name } });
+    } catch (error) {
+      res.status(400).json({ error: "Invalid OTP" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const body = loginSchema.parse(req.body);
+
+      const user = await storage.verifyPassword(body.email, body.password);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      if (!user.isVerified) {
+        return res.status(401).json({ error: "Email not verified" });
+      }
+
+      req.session!.userId = user.id;
+      res.json({ success: true, user: { id: user.id, email: user.email, name: user.name } });
+    } catch (error) {
+      res.status(400).json({ error: "Invalid login data" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
+    req.session!.destroy((err: any) => {
+      if (err) return res.status(500).json({ error: "Logout failed" });
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/auth/me", (req, res) => {
+    if (!req.session!.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    res.json({ userId: req.session!.userId });
+  });
+
+  // TENANT ROUTES
+  app.post("/api/tenants", async (req, res) => {
+    try {
+      if (!req.session!.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const body = createTenantSchema.parse(req.body);
+      const tenant = await storage.createTenant({
+        ownerId: req.session!.userId,
+        name: body.name,
+        phone: body.phone,
+        roomNumber: body.roomNumber,
+        monthlyRent: body.monthlyRent.toString(),
+      });
+
+      res.json({ success: true, tenant });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to create tenant" });
+    }
+  });
+
+  app.get("/api/tenants", async (req, res) => {
+    try {
+      if (!req.session!.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const tenants = await storage.getTenants(req.session!.userId);
+      res.json(tenants);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch tenants" });
+    }
+  });
+
+  app.get("/api/tenants/:id", async (req, res) => {
+    try {
+      const tenant = await storage.getTenant(parseInt(req.params.id));
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+      res.json(tenant);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch tenant" });
+    }
+  });
+
+  // PAYMENTS ROUTES
+  app.get("/api/payments", async (req, res) => {
+    try {
+      if (!req.session!.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const payments = await storage.getPayments(req.session!.userId);
+      res.json(payments);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch payments" });
+    }
+  });
+
+  // NOTIFICATIONS ROUTES
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      if (!req.session!.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const notifications = await storage.getNotifications(req.session!.userId);
+      res.json(notifications);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch notifications" });
+    }
+  });
 
   return httpServer;
 }

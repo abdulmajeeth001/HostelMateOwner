@@ -6,19 +6,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { ChevronLeft, Upload } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function AddTenant() {
   const [, setLocation] = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    roomNumber: "",
+    monthlyRent: "",
+  });
+
+  const createTenantMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const response = await fetch("/api/tenants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data,
+          ownerId: 1, // TODO: Get from session/context
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to create tenant");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      setLocation("/tenants");
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setLocation("/tenants");
-    }, 1000);
+    createTenantMutation.mutate(formData);
   };
 
   return (
@@ -42,17 +64,32 @@ export default function AddTenant() {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
-            <Input id="name" placeholder="e.g. Rahul Kumar" required className="bg-card" />
+            <Input 
+              id="name" 
+              placeholder="e.g. Rahul Kumar" 
+              required 
+              className="bg-card"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" type="tel" placeholder="+91" required className="bg-card" />
+              <Input 
+                id="phone" 
+                type="tel" 
+                placeholder="+91" 
+                required 
+                className="bg-card"
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="room">Room No.</Label>
-              <Select>
+              <Select value={formData.roomNumber} onValueChange={(val) => setFormData({...formData, roomNumber: val})}>
                 <SelectTrigger className="bg-card">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
@@ -69,7 +106,14 @@ export default function AddTenant() {
             <Label htmlFor="rent">Monthly Rent</Label>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-muted-foreground">₹</span>
-              <Input id="rent" type="number" className="pl-7 bg-card" placeholder="5000" />
+              <Input 
+                id="rent" 
+                type="number" 
+                className="pl-7 bg-card" 
+                placeholder="5000"
+                value={formData.monthlyRent}
+                onChange={(e) => setFormData({...formData, monthlyRent: e.target.value})}
+              />
             </div>
           </div>
 
@@ -84,8 +128,8 @@ export default function AddTenant() {
         </div>
 
         <div className="pt-4">
-          <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
-            {isLoading ? "Adding..." : "Add Tenant"}
+          <Button type="submit" className="w-full h-12 text-base" disabled={createTenantMutation.isPending}>
+            {createTenantMutation.isPending ? "Adding..." : "Add Tenant"}
           </Button>
         </div>
       </form>
