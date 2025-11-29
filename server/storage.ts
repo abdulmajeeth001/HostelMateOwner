@@ -39,6 +39,7 @@ export interface IStorage {
   // Tenants
   getTenants(ownerId: number): Promise<Tenant[]>;
   getTenant(id: number): Promise<Tenant | undefined>;
+  getAvailableTenants(ownerId: number): Promise<Tenant[]>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, updates: Partial<Tenant>): Promise<Tenant | undefined>;
   deleteTenant(id: number): Promise<void>;
@@ -139,6 +140,22 @@ export class DatabaseStorage implements IStorage {
   async getTenant(id: number): Promise<Tenant | undefined> {
     const result = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
     return result[0];
+  }
+
+  async getAvailableTenants(ownerId: number): Promise<Tenant[]> {
+    // Get all tenants for this owner that are not currently assigned to any room
+    const assignedTenantIds = await db.select({ tenantId: rooms.tenantId }).from(rooms).where(eq(rooms.ownerId, ownerId));
+    const assignedIds = assignedTenantIds.map(r => r.tenantId).filter(Boolean);
+    
+    if (assignedIds.length === 0) {
+      return await db.select().from(tenants).where(eq(tenants.ownerId, ownerId)).orderBy(desc(tenants.createdAt));
+    }
+    
+    const result = await db.select().from(tenants)
+      .where(and(eq(tenants.ownerId, ownerId)))
+      .orderBy(desc(tenants.createdAt));
+    
+    return result.filter(t => !assignedIds.includes(t.id));
   }
 
   async createTenant(tenant: InsertTenant): Promise<Tenant> {

@@ -3,13 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, Wind, Bath, Users, MapPin } from "lucide-react";
+
+interface Tenant {
+  id: number;
+  name: string;
+  phone: string;
+}
 
 export default function AddRoom() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [isFetchingTenants, setIsFetchingTenants] = useState(true);
   
   const [formData, setFormData] = useState({
     roomNumber: "",
@@ -18,10 +26,28 @@ export default function AddRoom() {
     floor: "1",
     hasAttachedBathroom: false,
     hasAC: false,
+    tenantId: null as number | null,
     amenities: [] as string[],
   });
 
   const amenitiesOptions = ["WiFi", "Water", "Power"];
+
+  useEffect(() => {
+    const fetchTenants = async () => {
+      try {
+        const res = await fetch("/api/available-tenants");
+        if (res.ok) {
+          const data = await res.json();
+          setTenants(data);
+        }
+      } catch (err) {
+        console.error("Error fetching tenants:", err);
+      } finally {
+        setIsFetchingTenants(false);
+      }
+    };
+    fetchTenants();
+  }, []);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -57,6 +83,7 @@ export default function AddRoom() {
           floor: parseInt(formData.floor),
           hasAttachedBathroom: formData.hasAttachedBathroom,
           hasAC: formData.hasAC,
+          tenantId: formData.tenantId,
           amenities: formData.amenities,
         }),
       });
@@ -149,6 +176,39 @@ export default function AddRoom() {
                 data-testid="input-monthly-rent"
                 className="h-11 border-slate-300 rounded-lg text-lg font-semibold"
               />
+            </div>
+          </div>
+
+          {/* Tenant Assignment Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-5 h-5 text-orange-600" />
+              <h2 className="text-lg font-semibold text-slate-900">Assign Tenant</h2>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tenantId" className="text-slate-700 font-medium">Select Tenant (Optional)</Label>
+              <select
+                id="tenantId"
+                value={formData.tenantId || ""}
+                onChange={(e) => handleInputChange("tenantId", e.target.value ? parseInt(e.target.value) : null)}
+                className="w-full px-3 py-3 border border-slate-300 rounded-lg bg-white text-slate-900 h-11"
+                data-testid="select-tenant"
+              >
+                <option value="">No Tenant (Vacant)</option>
+                {isFetchingTenants ? (
+                  <option disabled>Loading tenants...</option>
+                ) : tenants.length === 0 ? (
+                  <option disabled>No available tenants</option>
+                ) : (
+                  tenants.map((tenant) => (
+                    <option key={tenant.id} value={tenant.id}>
+                      {tenant.name} ({tenant.phone})
+                    </option>
+                  ))
+                )}
+              </select>
+              <p className="text-xs text-slate-500">Only shows tenants not already assigned to other rooms</p>
             </div>
           </div>
 

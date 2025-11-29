@@ -4,7 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation, useParams } from "wouter";
 import { useState, useEffect } from "react";
-import { ChevronLeft, Wind, Bath, Users, MapPin, Trash2 } from "lucide-react";
+import { ChevronLeft, Wind, Bath, Users, MapPin, Trash2, X } from "lucide-react";
+
+interface Tenant {
+  id: number;
+  name: string;
+  phone: string;
+}
 
 export default function EditRoom() {
   const [, setLocation] = useLocation();
@@ -13,6 +19,8 @@ export default function EditRoom() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState("");
   const [isFetching, setIsFetching] = useState(true);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   
   const [formData, setFormData] = useState({
     roomNumber: "",
@@ -21,17 +29,22 @@ export default function EditRoom() {
     floor: "1",
     hasAttachedBathroom: false,
     hasAC: false,
+    tenantId: null as number | null,
     amenities: [] as string[],
   });
 
   const amenitiesOptions = ["WiFi", "Water", "Power"];
 
   useEffect(() => {
-    const fetchRoom = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`/api/rooms/${id}`);
-        if (res.ok) {
-          const data = await res.json();
+        const [roomRes, tenantsRes] = await Promise.all([
+          fetch(`/api/rooms/${id}`),
+          fetch("/api/available-tenants")
+        ]);
+
+        if (roomRes.ok) {
+          const data = await roomRes.json();
           setFormData({
             roomNumber: data.roomNumber,
             monthlyRent: data.monthlyRent,
@@ -39,16 +52,31 @@ export default function EditRoom() {
             floor: data.floor?.toString() || "1",
             hasAttachedBathroom: data.hasAttachedBathroom || false,
             hasAC: data.hasAC || false,
+            tenantId: data.tenantId || null,
             amenities: data.amenities || [],
           });
+
+          // If room has a tenant, fetch their details
+          if (data.tenantId) {
+            const tenantRes = await fetch(`/api/tenants/${data.tenantId}`);
+            if (tenantRes.ok) {
+              const tenantData = await tenantRes.json();
+              setCurrentTenant(tenantData);
+            }
+          }
+        }
+
+        if (tenantsRes.ok) {
+          const data = await tenantsRes.json();
+          setTenants(data);
         }
       } catch (err) {
-        console.error("Error fetching room:", err);
+        console.error("Error fetching data:", err);
       } finally {
         setIsFetching(false);
       }
     };
-    fetchRoom();
+    fetchData();
   }, [id]);
 
   const handleInputChange = (field: string, value: any) => {
@@ -63,6 +91,16 @@ export default function EditRoom() {
         ? prev.amenities.filter(a => a !== amenity)
         : [...prev.amenities, amenity]
     }));
+  };
+
+  const handleTenantChange = (tenantId: number | null) => {
+    handleInputChange("tenantId", tenantId);
+    if (tenantId) {
+      const tenant = tenants.find(t => t.id === tenantId);
+      setCurrentTenant(tenant || null);
+    } else {
+      setCurrentTenant(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,6 +123,7 @@ export default function EditRoom() {
           floor: parseInt(formData.floor),
           hasAttachedBathroom: formData.hasAttachedBathroom,
           hasAC: formData.hasAC,
+          tenantId: formData.tenantId,
           amenities: formData.amenities,
         }),
       });
@@ -207,6 +246,59 @@ export default function EditRoom() {
                 data-testid="input-monthly-rent"
                 className="h-11 border-slate-300 rounded-lg text-lg font-semibold"
               />
+            </div>
+          </div>
+
+          {/* Tenant Assignment Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-5 h-5 text-orange-600" />
+              <h2 className="text-lg font-semibold text-slate-900">Tenant Assignment</h2>
+            </div>
+
+            {currentTenant && (
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-blue-600 font-medium">Current Tenant</p>
+                  <p className="font-semibold text-slate-900">{currentTenant.name}</p>
+                  <p className="text-sm text-slate-600">{currentTenant.phone}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleTenantChange(null)}
+                  className="text-red-600 hover:bg-red-50"
+                  data-testid="button-remove-tenant"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="tenantId" className="text-slate-700 font-medium">
+                {currentTenant ? "Change Tenant" : "Assign Tenant"}
+              </Label>
+              <select
+                id="tenantId"
+                value={formData.tenantId || ""}
+                onChange={(e) => handleTenantChange(e.target.value ? parseInt(e.target.value) : null)}
+                className="w-full px-3 py-3 border border-slate-300 rounded-lg bg-white text-slate-900 h-11"
+                data-testid="select-tenant"
+              >
+                <option value="">No Tenant (Vacant)</option>
+                {tenants.length === 0 ? (
+                  <option disabled>No available tenants</option>
+                ) : (
+                  tenants.map((tenant) => (
+                    <option key={tenant.id} value={tenant.id}>
+                      {tenant.name} ({tenant.phone})
+                    </option>
+                  ))
+                )}
+              </select>
+              <p className="text-xs text-slate-500">Only shows tenants not already assigned to other rooms</p>
             </div>
           </div>
 

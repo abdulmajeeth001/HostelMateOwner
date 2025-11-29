@@ -259,6 +259,17 @@ export async function registerRoutes(
     }
   });
 
+  // AVAILABLE TENANTS ROUTE
+  app.get("/api/available-tenants", async (req, res) => {
+    try {
+      const userId = (req.session && req.session.userId) || 1;
+      const availableTenants = await storage.getAvailableTenants(userId);
+      res.json(availableTenants);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch available tenants" });
+    }
+  });
+
   // ROOMS ROUTES
   app.post("/api/rooms", async (req, res) => {
     try {
