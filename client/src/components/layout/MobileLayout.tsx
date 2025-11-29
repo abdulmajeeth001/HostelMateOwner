@@ -37,8 +37,8 @@ export default function MobileLayout({
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto scrollbar-hide pb-20">
-        <div className="p-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <main className="flex-1 overflow-y-auto scrollbar-hide">
+        <div className="p-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
           {children}
         </div>
       </main>
