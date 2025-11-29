@@ -27,10 +27,10 @@ export default function MobileLayout({
   ];
 
   return (
-    <div className="h-screen bg-background max-w-md mx-auto border-x border-border shadow-2xl relative flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-background max-w-md mx-auto border-x border-border shadow-2xl relative flex flex-col overflow-hidden">
       {/* Header */}
       {title && (
-        <header className="bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-50 px-4 h-16 flex items-center justify-between shrink-0">
+        <header className="bg-card/80 backdrop-blur-md border-b border-border px-4 h-16 flex items-center justify-between shrink-0">
           <h1 className="text-lg font-bold tracking-tight text-foreground">{title}</h1>
           {action}
         </header>
@@ -38,15 +38,15 @@ export default function MobileLayout({
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto scrollbar-hide">
-        <div className="p-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ paddingBottom: showNav ? '100px' : '24px' }}>
+        <div className="p-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {children}
         </div>
       </main>
 
       {/* Bottom Navigation */}
       {showNav && (
-        <nav className="bg-card border-t border-border fixed bottom-0 w-full max-w-md z-50 pb-safe-area-inset-bottom shrink-0">
-          <div className="flex items-center justify-around h-16 px-1 overflow-x-auto">
+        <nav className="bg-card border-t border-border shrink-0">
+          <div className="flex items-center justify-between h-16 px-2 overflow-x-auto">
             {navItems.map(({ icon: Icon, label, path }) => {
               const isActive = location === path || (path !== "/dashboard" && location.startsWith(path));
               
@@ -55,7 +55,7 @@ export default function MobileLayout({
                   key={path} 
                   href={path}
                   className={cn(
-                    "flex flex-col items-center justify-center w-16 h-full space-y-1 transition-colors duration-200 cursor-pointer no-underline",
+                    "flex flex-col items-center justify-center flex-1 h-16 space-y-1 transition-colors duration-200 cursor-pointer no-underline",
                     isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
