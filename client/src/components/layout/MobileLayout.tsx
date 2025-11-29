@@ -130,7 +130,7 @@ export default function MobileLayout({
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-scroll">
           <div className="p-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {children}
           </div>

@@ -26,7 +26,7 @@ export default function DesktopLayout({
         </header>
 
         {/* Desktop Main Content */}
-        <main className="hidden lg:flex flex-col overflow-y-auto h-[calc(100vh-4rem)]">
+        <main className="hidden lg:flex flex-col overflow-y-scroll h-[calc(100vh-4rem)]">
           <div className="p-8 space-y-6">
             {children}
           </div>
