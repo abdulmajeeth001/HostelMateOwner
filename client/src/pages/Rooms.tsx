@@ -40,7 +40,7 @@ export default function Rooms() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "occupied" | "vacant">("all");
+  const [filter, setFilter] = useState<"all" | "fully_occupied" | "partially_occupied" | "vacant">("all");
 
   useEffect(() => {
     fetchRooms();
@@ -78,20 +78,30 @@ export default function Rooms() {
   const filteredRooms = useMemo(() => {
     return roomsData.filter((item) => {
       const matchSearch = item.room.roomNumber.toLowerCase().includes(search.toLowerCase());
-      const matchFilter = filter === "all" || item.room.status === filter;
+      const occupancyStatus = getRoomOccupancyStatus(item.room);
+      const matchFilter = filter === "all" || occupancyStatus === filter;
       return matchSearch && matchFilter;
     });
   }, [roomsData, search, filter]);
 
+  const getRoomOccupancyStatus = (room: any) => {
+    const tenantCount = room.tenantIds?.length || 0;
+    if (tenantCount === 0) return "vacant";
+    if (tenantCount === room.sharing) return "fully_occupied";
+    return "partially_occupied";
+  };
+
   const stats = {
     total: roomsData.length,
-    occupied: roomsData.filter((item) => item.room.status === "occupied").length,
-    vacant: roomsData.filter((item) => item.room.status === "vacant").length,
+    fully_occupied: roomsData.filter((item) => getRoomOccupancyStatus(item.room) === "fully_occupied").length,
+    partially_occupied: roomsData.filter((item) => getRoomOccupancyStatus(item.room) === "partially_occupied").length,
+    vacant: roomsData.filter((item) => getRoomOccupancyStatus(item.room) === "vacant").length,
   };
 
   const filterTabs = [
     { label: "All", value: "all", count: stats.total },
-    { label: "Occupied", value: "occupied", count: stats.occupied },
+    { label: "Fully Occupied", value: "fully_occupied", count: stats.fully_occupied },
+    { label: "Partially Occupied", value: "partially_occupied", count: stats.partially_occupied },
     { label: "Vacant", value: "vacant", count: stats.vacant },
   ] as const;
 
@@ -149,18 +159,22 @@ export default function Rooms() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Rooms Overview</h2>
               </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg p-4">
-                  <p className="text-xs text-purple-600 font-medium mb-1">Total Rooms</p>
-                  <p className="text-3xl font-bold text-purple-900">{stats.total}</p>
+              <div className="grid grid-cols-4 gap-3">
+                <div className="bg-white rounded-lg p-3">
+                  <p className="text-xs text-purple-600 font-medium mb-1">Total</p>
+                  <p className="text-2xl font-bold text-purple-900">{stats.total}</p>
                 </div>
-                <div className="bg-white rounded-lg p-4">
-                  <p className="text-xs text-green-600 font-medium mb-1">Occupied</p>
-                  <p className="text-3xl font-bold text-green-900">{stats.occupied}</p>
+                <div className="bg-white rounded-lg p-3">
+                  <p className="text-xs text-green-600 font-medium mb-1">Fully Occupied</p>
+                  <p className="text-2xl font-bold text-green-900">{stats.fully_occupied}</p>
                 </div>
-                <div className="bg-white rounded-lg p-4">
+                <div className="bg-white rounded-lg p-3">
+                  <p className="text-xs text-yellow-600 font-medium mb-1">Partial</p>
+                  <p className="text-2xl font-bold text-yellow-900">{stats.partially_occupied}</p>
+                </div>
+                <div className="bg-white rounded-lg p-3">
                   <p className="text-xs text-orange-600 font-medium mb-1">Vacant</p>
-                  <p className="text-3xl font-bold text-orange-900">{stats.vacant}</p>
+                  <p className="text-2xl font-bold text-orange-900">{stats.vacant}</p>
                 </div>
               </div>
             </div>
