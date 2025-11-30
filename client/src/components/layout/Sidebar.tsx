@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,28 +27,29 @@ const tenantNavItems = [
 ];
 
 export default function Sidebar() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user } = useUser();
   const { pg } = usePG();
 
   const navItems = user?.userType === "tenant" ? tenantNavItems : ownerNavItems;
   const pgName = user?.userType === "owner" ? (pg?.pgName || "PG Management") : "PG Management";
-  
-  console.log("Sidebar render - user:", user?.userType, "pg:", pg);
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-card border-r border-border h-screen sticky top-0 overflow-y-auto">
       {/* Header */}
       <div className="p-6 border-b border-border">
-        <Link href="/dashboard" className="flex items-center gap-3 cursor-pointer">
+        <div 
+          onClick={() => navigate("/dashboard")}
+          className="flex items-center gap-3 cursor-pointer rounded-lg hover:bg-secondary/50 transition-colors p-2 -m-2"
+        >
           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
             <img src={appIcon} alt="HostelMate" className="w-full h-full object-cover rounded-lg" />
           </div>
           <div>
             <h1 className="font-bold text-lg text-foreground">HostelMate</h1>
-            <p className="text-xs text-muted-foreground truncate">{pgName}</p>
+            <p className="text-sm text-foreground truncate font-semibold">{pgName}</p>
           </div>
-        </Link>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -57,16 +58,20 @@ export default function Sidebar() {
           const isActive = location === path || (path !== "/dashboard" && location.startsWith(path));
           
           return (
-            <Link key={path} href={path} className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200",
-              isActive 
-                ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" 
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-            )}>
+            <div
+              key={path}
+              onClick={() => navigate(path)}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer",
+                isActive 
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" 
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
+            >
               <Icon className="w-5 h-5" />
               <span className="font-medium">{label}</span>
               {isActive && <div className="ml-auto w-2 h-2 bg-primary-foreground rounded-full" />}
-            </Link>
+            </div>
           );
         })}
       </nav>
