@@ -3,6 +3,7 @@ import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle,
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
+import { usePG } from "@/hooks/use-pg";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
 
 const ownerNavItems = [
@@ -28,8 +29,10 @@ const tenantNavItems = [
 export default function Sidebar() {
   const [location] = useLocation();
   const { user } = useUser();
+  const { pg } = usePG();
 
   const navItems = user?.userType === "tenant" ? tenantNavItems : ownerNavItems;
+  const pgName = user?.userType === "owner" ? (pg?.pgName || "PG Management") : "PG Management";
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-card border-r border-border h-screen sticky top-0 overflow-y-auto">
@@ -42,7 +45,7 @@ export default function Sidebar() {
             </div>
             <div>
               <h1 className="font-bold text-lg text-foreground">HostelMate</h1>
-              <p className="text-xs text-muted-foreground">PG Management</p>
+              <p className="text-xs text-muted-foreground truncate">{pgName}</p>
             </div>
           </a>
         </Link>
