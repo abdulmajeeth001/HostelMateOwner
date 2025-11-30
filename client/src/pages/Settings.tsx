@@ -37,7 +37,7 @@ export default function Settings() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userRes = await fetch("/api/users/profile");
+        const userRes = await fetch("/api/users/profile", { credentials: 'include' });
         
         if (userRes.ok) {
           const userData = await userRes.json();
@@ -53,7 +53,7 @@ export default function Settings() {
           }
         }
         
-        const pgRes = await fetch("/api/pg");
+        const pgRes = await fetch("/api/pg", { credentials: 'include' });
         if (pgRes.ok) {
           const pgData = await pgRes.json();
           if (pgData && pgData.id) {
@@ -92,6 +92,7 @@ export default function Settings() {
       const res = await fetch("/api/users/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(profileForm),
       });
       
@@ -126,6 +127,7 @@ export default function Settings() {
       const res = await fetch("/api/pg", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(pgForm),
       });
       
@@ -150,6 +152,7 @@ export default function Settings() {
     try {
       const res = await fetch("/api/auth/logout", {
         method: "POST",
+        credentials: 'include',
       });
       
       if (res.ok) {

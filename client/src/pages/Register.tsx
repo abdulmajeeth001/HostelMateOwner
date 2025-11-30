@@ -62,6 +62,7 @@ export default function Register() {
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: 'include',
           body: JSON.stringify({
             name: formData.name,
             email: formData.email,
@@ -96,6 +97,7 @@ export default function Register() {
         const res = await fetch("/api/auth/verify-otp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: 'include',
           body: JSON.stringify({
             email: formData.email,
             code: otpCode,

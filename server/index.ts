@@ -28,8 +28,13 @@ app.use(
   session({
     secret: "dev-secret-key-change-in-production",
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false, httpOnly: true },
+    saveUninitialized: false,
+    cookie: { 
+      secure: false, 
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    },
   }),
 );
 
