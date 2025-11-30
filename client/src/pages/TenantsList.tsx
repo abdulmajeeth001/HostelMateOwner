@@ -88,15 +88,14 @@ export default function TenantsList() {
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold">Tenants</h1>
-            <Link href="/tenants/add">
-              <Button 
-                size="icon" 
-                className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg"
-                data-testid="button-add-tenant"
-              >
-                <UserPlus className="h-5 w-5" />
-              </Button>
-            </Link>
+            <Button 
+              size="icon" 
+              onClick={() => navigate("/tenants/add")}
+              className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg"
+              data-testid="button-add-tenant"
+            >
+              <UserPlus className="h-5 w-5" />
+            </Button>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white rounded-lg p-3">
@@ -161,12 +160,10 @@ export default function TenantsList() {
                 {tenants.length === 0 ? "Add your first tenant to get started" : "Try adjusting your search filters"}
               </p>
               {tenants.length === 0 && (
-                <Link href="/tenants/add">
-                  <Button className="gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Add Tenant
-                  </Button>
-                </Link>
+                <Button onClick={() => navigate("/tenants/add")} className="gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Add Tenant
+                </Button>
               )}
             </div>
           ) : (
@@ -213,18 +210,20 @@ export default function TenantsList() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <Link href={`/tenants/view/${tenant.id}`}>
-                        <DropdownMenuItem data-testid={`button-view-tenant-${tenant.id}`}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                      </Link>
-                      <Link href={`/tenants/edit/${tenant.id}`}>
-                        <DropdownMenuItem data-testid={`button-edit-tenant-${tenant.id}`}>
-                          <Edit2 className="h-4 w-4 mr-2" />
-                          Edit Tenant
-                        </DropdownMenuItem>
-                      </Link>
+                      <DropdownMenuItem 
+                        onClick={() => navigate(`/tenants/view/${tenant.id}`)}
+                        data-testid={`button-view-tenant-${tenant.id}`}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => navigate(`/tenants/edit/${tenant.id}`)}
+                        data-testid={`button-edit-tenant-${tenant.id}`}
+                      >
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Edit Tenant
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive focus:bg-red-50 focus:text-red-600"
                         onClick={() => setDeletingTenantId(tenant.id)}

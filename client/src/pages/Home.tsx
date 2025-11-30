@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
 import { Users, Building2, TrendingUp, Lock } from "lucide-react";
 
 export default function Home() {
+  const [, navigate] = useLocation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-primary/5">
       {/* Navigation */}
@@ -16,16 +17,12 @@ export default function Home() {
             <h1 className="text-xl font-bold text-foreground">HostelMate</h1>
           </div>
           <div className="flex gap-3">
-            <Link href="/login">
-              <Button asChild variant="outline" data-testid="button-nav-login">
-                <span>Login</span>
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button asChild data-testid="button-nav-register">
-                <span>Register</span>
-              </Button>
-            </Link>
+            <Button onClick={() => navigate("/login")} variant="outline" data-testid="button-nav-login">
+              Login
+            </Button>
+            <Button onClick={() => navigate("/register")} data-testid="button-nav-register">
+              Register
+            </Button>
           </div>
         </div>
       </nav>
@@ -45,16 +42,12 @@ export default function Home() {
             </div>
 
             <div className="flex gap-4 pt-4">
-              <Link href="/register">
-                <Button asChild size="lg" className="text-lg px-8" data-testid="button-hero-register">
-                  <span>Get Started</span>
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button asChild size="lg" variant="outline" className="text-lg px-8" data-testid="button-hero-login">
-                  <span>Login</span>
-                </Button>
-              </Link>
+              <Button onClick={() => navigate("/register")} size="lg" className="text-lg px-8" data-testid="button-hero-register">
+                Get Started
+              </Button>
+              <Button onClick={() => navigate("/login")} size="lg" variant="outline" className="text-lg px-8" data-testid="button-hero-login">
+                Login
+              </Button>
             </div>
           </div>
 
@@ -124,11 +117,9 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
           <h2 className="text-4xl font-bold text-foreground mb-4">Ready to Simplify Your PG Management?</h2>
           <p className="text-lg text-muted-foreground mb-8">Join thousands of PG owners using HostelMate to manage their properties efficiently</p>
-          <Link href="/register">
-            <Button asChild size="lg" className="text-lg px-12" data-testid="button-cta-register">
-              <span>Start Your Free Trial</span>
-            </Button>
-          </Link>
+          <Button onClick={() => navigate("/register")} size="lg" className="text-lg px-12" data-testid="button-cta-register">
+            Start Your Free Trial
+          </Button>
         </div>
       </div>
 
