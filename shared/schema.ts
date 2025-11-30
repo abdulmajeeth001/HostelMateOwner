@@ -79,6 +79,9 @@ export const tenants = pgTable("tenants", {
   aadharCard: text("aadhar_card"), // Base64 encoded Aadhar/ID document
   photoUrl: text("photo_url"),
   idProofUrl: text("id_proof_url"),
+  emergencyContactName: text("emergency_contact_name"),
+  emergencyContactPhone: text("emergency_contact_phone"),
+  relationship: text("relationship"), // Father, Mother, Brother, Sister, Spouse, Other
   status: text("status").default("active"), // active, inactive
   createdAt: timestamp("created_at").defaultNow(),
 });

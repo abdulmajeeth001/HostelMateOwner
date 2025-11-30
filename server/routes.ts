@@ -46,6 +46,9 @@ const createTenantSchema = z.object({
   monthlyRent: z.string().or(z.number()),
   tenantImage: z.string().optional(),
   aadharCard: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  relationship: z.string().optional(),
 });
 
 // Helper function to generate OTP

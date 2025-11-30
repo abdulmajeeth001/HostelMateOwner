@@ -17,6 +17,23 @@ interface Room {
   status: string;
 }
 
+const RELATIONSHIPS = [
+  { label: "Father", value: "Father" },
+  { label: "Mother", value: "Mother" },
+  { label: "Brother", value: "Brother" },
+  { label: "Sister", value: "Sister" },
+  { label: "Spouse", value: "Spouse" },
+  { label: "Son", value: "Son" },
+  { label: "Daughter", value: "Daughter" },
+  { label: "Grandfather", value: "Grandfather" },
+  { label: "Grandmother", value: "Grandmother" },
+  { label: "Uncle", value: "Uncle" },
+  { label: "Aunt", value: "Aunt" },
+  { label: "Cousin", value: "Cousin" },
+  { label: "Friend", value: "Friend" },
+  { label: "Other", value: "Other" },
+];
+
 export default function EditTenant() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/tenants/edit/:id");
@@ -29,6 +46,9 @@ export default function EditTenant() {
     monthlyRent: "",
     tenantImage: "",
     aadharCard: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    relationship: "",
   });
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const [aadharPreview, setAadharPreview] = useState<string>("");
@@ -67,6 +87,9 @@ export default function EditTenant() {
         monthlyRent: tenant.monthlyRent || "",
         tenantImage: tenant.tenantImage || "",
         aadharCard: tenant.aadharCard || "",
+        emergencyContactName: tenant.emergencyContactName || "",
+        emergencyContactPhone: tenant.emergencyContactPhone || "",
+        relationship: tenant.relationship || "",
       });
       if (tenant.tenantImage) {
         setPhotoPreview(tenant.tenantImage);
@@ -325,6 +348,54 @@ export default function EditTenant() {
               </Card>
               <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleAadharUpload} className="hidden" data-testid="input-edit-aadhar" />
             </label>
+          </div>
+
+          {/* Emergency Contact Section */}
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-4">
+            <h3 className="font-semibold text-orange-900">Emergency Contact Information</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="emergency-name">Contact Person Name</Label>
+              <Input 
+                id="emergency-name" 
+                placeholder="e.g. John Doe" 
+                required 
+                className="bg-white"
+                value={formData.emergencyContactName}
+                onChange={(e) => setFormData({...formData, emergencyContactName: e.target.value})}
+                data-testid="input-edit-emergency-name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="emergency-phone">Contact Phone</Label>
+              <Input 
+                id="emergency-phone" 
+                type="tel" 
+                placeholder="+91" 
+                required 
+                className="bg-white"
+                value={formData.emergencyContactPhone}
+                onChange={(e) => setFormData({...formData, emergencyContactPhone: e.target.value})}
+                data-testid="input-edit-emergency-phone"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="relationship">Relationship</Label>
+              <Select value={formData.relationship} onValueChange={(val) => setFormData({...formData, relationship: val})}>
+                <SelectTrigger className="bg-white" data-testid="select-edit-relationship">
+                  <SelectValue placeholder="Select relationship" />
+                </SelectTrigger>
+                <SelectContent>
+                  {RELATIONSHIPS.map((rel) => (
+                    <SelectItem key={rel.value} value={rel.value}>
+                      {rel.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 

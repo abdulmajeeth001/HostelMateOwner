@@ -66,7 +66,7 @@ export default function ViewTenant() {
       
       // Detect MIME type from decompressed data
       // Check if it's a PDF (starts with %PDF)
-      const isPDF = decompressed[0] === 37 && decompressed[1] === 80 && decompressed[2] === 68 && decompressed[3] === 70; // "%PDF"
+      const isPDF = decompressed[0] === 37 && decompressed[1] === 80 && decompressed[2] === 68 && decompressed[3] === 70;
       
       if (isPDF) {
         console.log("Decompressed PDF document successfully");
@@ -250,6 +250,31 @@ export default function ViewTenant() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Emergency Contact Information */}
+        {(tenant.emergencyContactName || tenant.emergencyContactPhone) && (
+          <Card className="border-l-4 border-l-red-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Emergency Contact</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="text-muted-foreground text-sm font-medium w-24">Name:</span>
+                <p className="font-medium" data-testid="text-emergency-name">{tenant.emergencyContactName || "N/A"}</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-muted-foreground text-sm font-medium w-24">Phone:</span>
+                <p className="font-medium" data-testid="text-emergency-phone">{tenant.emergencyContactPhone || "N/A"}</p>
+              </div>
+              {tenant.relationship && (
+                <div className="flex items-start gap-3">
+                  <span className="text-muted-foreground text-sm font-medium w-24">Relationship:</span>
+                  <p className="font-medium" data-testid="text-relationship">{tenant.relationship}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Aadhar/ID Card Section */}
         {tenant.aadharCard && (
