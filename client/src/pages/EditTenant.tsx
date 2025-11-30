@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useRoute } from "wouter";
-import { ChevronLeft, Upload, FileText } from "lucide-react";
+import { ChevronLeft, Upload, FileText, Trash2, Plus } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import pako from "pako";
@@ -15,6 +15,13 @@ interface Room {
   roomNumber: string;
   monthlyRent: string;
   status: string;
+}
+
+interface EmergencyContact {
+  id: number;
+  name: string;
+  phone: string;
+  relationship: string;
 }
 
 const RELATIONSHIPS = [
@@ -52,6 +59,9 @@ export default function EditTenant() {
   });
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const [aadharPreview, setAadharPreview] = useState<string>("");
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
+  const [newContact, setNewContact] = useState({ name: "", phone: "", relationship: "" });
+  const [showAddContact, setShowAddContact] = useState(false);
 
   const tenantId = params?.id ? parseInt(params.id) : null;
 
@@ -66,6 +76,17 @@ export default function EditTenant() {
     enabled: !!tenantId,
   });
 
+  // Fetch emergency contacts
+  const { data: fetchedContacts = [] } = useQuery<EmergencyContact[]>({
+    queryKey: ["emergencyContacts", tenantId],
+    queryFn: async () => {
+      const res = await fetch(`/api/tenants/${tenantId}/emergency-contacts`);
+      if (!res.ok) throw new Error("Failed to fetch emergency contacts");
+      return res.json();
+    },
+    enabled: !!tenantId,
+  });
+
   // Fetch active rooms
   const { data: rooms = [] } = useQuery<Room[]>({
     queryKey: ["active-rooms"],
@@ -75,6 +96,13 @@ export default function EditTenant() {
       return res.json();
     },
   });
+
+  // Update emergency contacts when fetched
+  useEffect(() => {
+    if (fetchedContacts && fetchedContacts.length > 0) {
+      setEmergencyContacts(fetchedContacts);
+    }
+  }, [fetchedContacts]);
 
   // Populate form when tenant data loads
   useEffect(() => {
@@ -215,6 +243,55 @@ export default function EditTenant() {
       console.error("Mutation error:", error);
     },
   });
+
+  const addEmergencyContactMutation = useMutation({
+    mutationFn: async (contact: typeof newContact) => {
+      if (!contact.name || !contact.phone || !contact.relationship) {
+        throw new Error("All fields are required");
+      }
+      const response = await fetch(`/api/tenants/${tenantId}/emergency-contacts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(contact),
+      });
+      if (!response.ok) throw new Error("Failed to add contact");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setEmergencyContacts([...emergencyContacts, data.contact]);
+      setNewContact({ name: "", phone: "", relationship: "" });
+      setShowAddContact(false);
+    },
+  });
+
+  const deleteEmergencyContactMutation = useMutation({
+    mutationFn: async (contactId: number) => {
+      const response = await fetch(`/api/emergency-contacts/${contactId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete contact");
+      return response.json();
+    },
+    onSuccess: (_, contactId) => {
+      setEmergencyContacts(emergencyContacts.filter(c => c.id !== contactId));
+    },
+  });
+
+  const handleAddContact = () => {
+    addEmergencyContactMutation.mutate(newContact);
+  };
+
+  const handleDeleteContact = (contactId: number) => {
+    if (confirm("Are you sure you want to delete this emergency contact?")) {
+      deleteEmergencyContactMutation.mutate(contactId);
+    }
+  };
+
+  const handleUpdateContact = (contactId: number, field: string, value: string) => {
+    setEmergencyContacts(emergencyContacts.map(c => 
+      c.id === contactId ? { ...c, [field]: value } : c
+    ));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -365,52 +442,119 @@ export default function EditTenant() {
             </label>
           </div>
 
-          {/* Emergency Contact Section */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-4">
-            <h3 className="font-semibold text-orange-900">Emergency Contact Information</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="emergency-name">Contact Person Name</Label>
-              <Input 
-                id="emergency-name" 
-                placeholder="e.g. John Doe" 
-                required 
-                className="bg-white"
-                value={formData.emergencyContactName}
-                onChange={(e) => setFormData({...formData, emergencyContactName: e.target.value})}
-                data-testid="input-edit-emergency-name"
-              />
+          {/* Emergency Contacts Section */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold text-red-900">Emergency Contacts ({emergencyContacts.length})</h3>
+              {!showAddContact && (
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => setShowAddContact(true)}
+                  className="gap-1"
+                  data-testid="button-add-emergency-contact"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add
+                </Button>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="emergency-phone">Contact Phone</Label>
-              <Input 
-                id="emergency-phone" 
-                type="tel" 
-                placeholder="+91" 
-                required 
-                className="bg-white"
-                value={formData.emergencyContactPhone}
-                onChange={(e) => setFormData({...formData, emergencyContactPhone: e.target.value})}
-                data-testid="input-edit-emergency-phone"
-              />
-            </div>
+            {/* Existing Contacts - Scrollable List */}
+            {emergencyContacts.length > 0 && (
+              <div className="space-y-3 max-h-60 overflow-y-auto border-t pt-4">
+                {emergencyContacts.map((contact, index) => (
+                  <div key={contact.id} className="border border-red-200 rounded-lg p-3 bg-white space-y-2">
+                    <div className="flex justify-between items-start">
+                      <p className="font-semibold text-sm text-red-900">Contact {index + 1}</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteContact(contact.id)}
+                        disabled={deleteEmergencyContactMutation.isPending}
+                        data-testid={`button-delete-contact-${contact.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="font-medium text-gray-600">Name:</span> {contact.name}</p>
+                      <p><span className="font-medium text-gray-600">Phone:</span> {contact.phone}</p>
+                      <p><span className="font-medium text-gray-600">Relationship:</span> {contact.relationship}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="relationship">Relationship</Label>
-              <Select value={formData.relationship} onValueChange={(val) => setFormData({...formData, relationship: val})}>
-                <SelectTrigger className="bg-white" data-testid="select-edit-relationship">
-                  <SelectValue placeholder="Select relationship" />
-                </SelectTrigger>
-                <SelectContent className="max-h-48">
-                  {RELATIONSHIPS.map((rel) => (
-                    <SelectItem key={rel.value} value={rel.value}>
-                      {rel.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Add New Contact Form */}
+            {showAddContact && (
+              <div className="border-t pt-4 space-y-3 bg-white rounded p-3">
+                <p className="text-sm font-semibold text-red-900">Add New Emergency Contact</p>
+                <div className="space-y-2">
+                  <Label className="text-xs">Name</Label>
+                  <Input 
+                    placeholder="Contact name" 
+                    className="bg-white text-sm"
+                    value={newContact.name}
+                    onChange={(e) => setNewContact({...newContact, name: e.target.value})}
+                    data-testid="input-new-emergency-name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Phone</Label>
+                  <Input 
+                    type="tel" 
+                    placeholder="+91" 
+                    className="bg-white text-sm"
+                    value={newContact.phone}
+                    onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
+                    data-testid="input-new-emergency-phone"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Relationship</Label>
+                  <Select value={newContact.relationship} onValueChange={(val) => setNewContact({...newContact, relationship: val})}>
+                    <SelectTrigger className="bg-white text-sm" data-testid="select-new-relationship">
+                      <SelectValue placeholder="Select relationship" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-40">
+                      {RELATIONSHIPS.map((rel) => (
+                        <SelectItem key={rel.value} value={rel.value}>
+                          {rel.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    onClick={handleAddContact}
+                    disabled={addEmergencyContactMutation.isPending}
+                    className="flex-1"
+                    data-testid="button-confirm-add-contact"
+                  >
+                    {addEmergencyContactMutation.isPending ? "Adding..." : "Add Contact"}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddContact(false);
+                      setNewContact({ name: "", phone: "", relationship: "" });
+                    }}
+                    data-testid="button-cancel-add-contact"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
