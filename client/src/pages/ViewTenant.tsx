@@ -227,18 +227,18 @@ export default function ViewTenant() {
               {showAadharPreview && decompressedDocument && (
                 <div className="mt-4 border rounded-lg p-3 bg-gray-50">
                   <p className="text-xs text-muted-foreground mb-2">Document Preview:</p>
-                  <div className="bg-white rounded border p-2 max-h-96 overflow-auto">
+                  <div className="bg-white rounded border p-2 max-h-96 overflow-auto flex items-center justify-center">
                     {isImage ? (
-                      <img src={decompressedDocument} alt="Aadhar Card" className="w-full" data-testid="img-aadhar-preview" />
+                      <img src={decompressedDocument} alt="Aadhar Card" className="w-full max-h-96 object-contain" data-testid="img-aadhar-preview" />
                     ) : isPdf ? (
-                      <iframe
+                      <embed
                         src={decompressedDocument}
-                        className="w-full h-80 border-0 rounded"
-                        data-testid="iframe-pdf-preview"
-                        title="PDF Preview"
+                        type="application/pdf"
+                        className="w-full h-80"
+                        data-testid="embed-pdf-preview"
                       />
                     ) : (
-                      <div className="text-center py-8 text-muted-foreground">
+                      <div className="text-center py-8 text-muted-foreground w-full">
                         <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
                         <p>Document type not supported for preview</p>
                         <p className="text-xs mt-2">Click download to view the full document</p>
