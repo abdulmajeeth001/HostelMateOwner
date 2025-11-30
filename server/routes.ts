@@ -782,13 +782,18 @@ export async function registerRoutes(
   // EMERGENCY CONTACTS ROUTES
   app.get("/api/tenants/:tenantId/emergency-contacts", async (req, res) => {
     try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       const tenantId = parseInt(req.params.tenantId);
       const tenant = await storage.getTenant(tenantId);
       if (!tenant) {
         return res.status(404).json({ error: "Tenant not found" });
       }
       
-      if (tenant.ownerId !== req.session!.userId) {
+      if (tenant.ownerId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
