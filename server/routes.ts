@@ -665,10 +665,21 @@ export async function registerRoutes(
 
   app.get("/api/tenants/:id", async (req, res) => {
     try {
+      const ownerId = req.session!.userId;
+      if (!ownerId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       const tenant = await storage.getTenant(parseInt(req.params.id));
       if (!tenant) {
         return res.status(404).json({ error: "Tenant not found" });
       }
+
+      // Verify tenant belongs to this owner
+      if (tenant.ownerId !== ownerId) {
+        return res.status(403).json({ error: "Not authorized to view this tenant" });
+      }
+
       res.json(tenant);
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch tenant" });
@@ -677,6 +688,21 @@ export async function registerRoutes(
 
   app.put("/api/tenants/:id", async (req, res) => {
     try {
+      const ownerId = req.session!.userId;
+      if (!ownerId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const existingTenant = await storage.getTenant(parseInt(req.params.id));
+      if (!existingTenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      // Verify tenant belongs to this owner
+      if (existingTenant.ownerId !== ownerId) {
+        return res.status(403).json({ error: "Not authorized to edit this tenant" });
+      }
+
       const body = createTenantSchema.parse(req.body);
       const tenant = await storage.updateTenant(parseInt(req.params.id), {
         name: body.name,
@@ -696,6 +722,21 @@ export async function registerRoutes(
 
   app.delete("/api/tenants/:id", async (req, res) => {
     try {
+      const ownerId = req.session!.userId;
+      if (!ownerId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const tenant = await storage.getTenant(parseInt(req.params.id));
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      // Verify tenant belongs to this owner
+      if (tenant.ownerId !== ownerId) {
+        return res.status(403).json({ error: "Not authorized to delete this tenant" });
+      }
+
       await storage.deleteTenant(parseInt(req.params.id));
       res.json({ success: true });
     } catch (error) {
