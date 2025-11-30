@@ -247,12 +247,21 @@ export async function registerRoutes(
   // TENANT ROUTES
   app.post("/api/tenants", async (req, res) => {
     try {
-      // For development: allow testing without auth, use hardcoded userId
-      const userId = (req.session && req.session.userId) || 1;
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Get owner's PG
+      const pg = await storage.getPgByOwnerId(userId);
+      if (!pg) {
+        return res.status(400).json({ error: "Please create a PG first" });
+      }
 
       const body = createTenantSchema.parse(req.body);
       const tenant = await storage.createTenant({
         ownerId: userId,
+        pgId: pg.id,
         name: body.name,
         phone: body.phone,
         roomNumber: body.roomNumber,
@@ -268,8 +277,10 @@ export async function registerRoutes(
 
   app.get("/api/tenants", async (req, res) => {
     try {
-      // For development: allow testing without auth, use hardcoded userId
-      const userId = (req.session && req.session.userId) || 1;
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
 
       const tenants = await storage.getTenants(userId);
       res.json(tenants);
@@ -349,7 +360,10 @@ export async function registerRoutes(
   // AVAILABLE TENANTS ROUTE
   app.get("/api/available-tenants", async (req, res) => {
     try {
-      const userId = (req.session && req.session.userId) || 1;
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const availableTenants = await storage.getAvailableTenants(userId);
       res.json(availableTenants);
     } catch (error) {
@@ -360,7 +374,10 @@ export async function registerRoutes(
   // ACTIVE ROOMS ROUTE (for tenant add/edit screens - only rooms with available slots)
   app.get("/api/active-rooms", async (req, res) => {
     try {
-      const userId = (req.session && req.session.userId) || 1;
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const rooms = await storage.getRooms(userId);
       // Return only rooms that have available slots (not fully occupied)
       const activeRooms = rooms
@@ -385,7 +402,17 @@ export async function registerRoutes(
   // ROOMS ROUTES
   app.post("/api/rooms", async (req, res) => {
     try {
-      const userId = (req.session && req.session.userId) || 1;
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Get owner's PG
+      const pg = await storage.getPgByOwnerId(userId);
+      if (!pg) {
+        return res.status(400).json({ error: "Please create a PG first" });
+      }
+
       const body = insertRoomSchema.parse(req.body);
       
       // Check if room number already exists for this owner
@@ -397,6 +424,7 @@ export async function registerRoutes(
       const room = await storage.createRoom({
         ...body,
         ownerId: userId,
+        pgId: pg.id,
       });
 
       res.json({ success: true, room });
@@ -408,7 +436,10 @@ export async function registerRoutes(
 
   app.get("/api/rooms", async (req, res) => {
     try {
-      const userId = (req.session && req.session.userId) || 1;
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const roomsWithTenants = await storage.getAllRoomsWithTenants(userId);
       res.json(roomsWithTenants);
     } catch (error) {
