@@ -531,13 +531,6 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/auth/me", (req, res) => {
-    if (!req.session!.userId) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    res.json({ userId: req.session!.userId });
-  });
-
   // User profile update
   app.post("/api/users/profile", async (req, res) => {
     try {
