@@ -351,7 +351,7 @@ export default function AddTenant() {
                 <SelectTrigger className="bg-white" data-testid="select-add-relationship">
                   <SelectValue placeholder="Select relationship" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-48">
                   {RELATIONSHIPS.map((rel) => (
                     <SelectItem key={rel.value} value={rel.value}>
                       {rel.label}

@@ -402,7 +402,7 @@ export default function EditTenant() {
                 <SelectTrigger className="bg-white" data-testid="select-edit-relationship">
                   <SelectValue placeholder="Select relationship" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-48">
                   {RELATIONSHIPS.map((rel) => (
                     <SelectItem key={rel.value} value={rel.value}>
                       {rel.label}
