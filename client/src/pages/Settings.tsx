@@ -246,7 +246,8 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* PG Settings */}
+        {/* PG Settings - Only for Owners */}
+        {user?.userType === "owner" && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -340,6 +341,7 @@ export default function Settings() {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Notification Settings */}
         <Card>
