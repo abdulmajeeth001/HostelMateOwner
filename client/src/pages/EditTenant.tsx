@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useRoute } from "wouter";
 import { ChevronLeft, Upload, FileText } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import pako from "pako";
 
@@ -103,12 +103,27 @@ export default function EditTenant() {
   // Update monthlyRent when room is changed
   useEffect(() => {
     if (formData.roomNumber) {
-      const selectedRoom = rooms.find(r => r.roomNumber === formData.roomNumber);
+      const selectedRoom = rooms.find(r => String(r.roomNumber) === String(formData.roomNumber));
       if (selectedRoom) {
         setFormData(prev => ({ ...prev, monthlyRent: selectedRoom.monthlyRent }));
       }
     }
   }, [formData.roomNumber, rooms]);
+
+  // Combine tenant's current room with available rooms for the dropdown
+  const roomsWithCurrent = useMemo(() => {
+    if (!formData.roomNumber || !rooms) return rooms;
+    const currentRoomExists = rooms.some(r => String(r.roomNumber) === String(formData.roomNumber));
+    if (currentRoomExists) return rooms;
+    
+    // Add tenant's current room if not in the list
+    return [{
+      id: -1,
+      roomNumber: formData.roomNumber,
+      monthlyRent: formData.monthlyRent,
+      status: "occupied"
+    }, ...rooms];
+  }, [formData.roomNumber, formData.monthlyRent, rooms]);
 
   const compressImage = (base64: string, quality: number = 0.8): Promise<string> => {
     return new Promise((resolve) => {
@@ -304,7 +319,7 @@ export default function EditTenant() {
                   <SelectValue placeholder="Select room" />
                 </SelectTrigger>
                 <SelectContent>
-                  {rooms.map((room) => (
+                  {roomsWithCurrent.map((room) => (
                     <SelectItem key={room.id} value={String(room.roomNumber)}>
                       {room.roomNumber}
                     </SelectItem>
