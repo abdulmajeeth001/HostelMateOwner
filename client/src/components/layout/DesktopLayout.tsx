@@ -1,5 +1,6 @@
 import Sidebar from "./Sidebar";
 import MobileLayout from "./MobileLayout";
+import { usePG } from "@/hooks/use-pg";
 
 interface DesktopLayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,8 @@ export default function DesktopLayout({
   action,
   showNav = true
 }: DesktopLayoutProps) {
+  const { pg } = usePG();
+  
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
@@ -22,7 +25,14 @@ export default function DesktopLayout({
         {/* Desktop Header */}
         <header className="hidden lg:flex bg-card border-b border-border h-16 items-center justify-between px-8 sticky top-0 z-40">
           <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-          {action}
+          <div className="flex items-center gap-4">
+            {pg?.pgName && (
+              <div className="px-3 py-1 bg-primary/10 rounded-lg border border-primary/20">
+                <p className="text-sm font-semibold text-foreground">{pg.pgName}</p>
+              </div>
+            )}
+            {action}
+          </div>
         </header>
 
         {/* Desktop Main Content */}
