@@ -23,53 +23,61 @@ export default function ViewTenant() {
     enabled: !!tenantId,
   });
 
-  // Decompress and decode document
+  // Check if document is compressed (gzip)
+  const isCompressed = useMemo(() => {
+    if (!tenant?.aadharCard) return false;
+    return tenant.aadharCard.includes("application/gzip");
+  }, [tenant?.aadharCard]);
+
+  // Decompress document if needed
   const decompressedDocument = useMemo(() => {
     if (!tenant?.aadharCard) return null;
     
     try {
       const aadharCard = tenant.aadharCard;
       
-      // If not gzip, return as-is
+      // If not compressed, return as-is
       if (!aadharCard.includes("application/gzip")) {
         return aadharCard;
       }
       
-      // Extract base64 part
-      const dataPart = aadharCard.split(",")[1];
-      if (!dataPart) return null;
+      // Extract base64 part after the comma
+      const parts = aadharCard.split(",");
+      if (parts.length < 2) {
+        console.error("Invalid data URI format");
+        return null;
+      }
       
-      // Decode base64
+      const dataPart = parts[1];
+      
+      // Decode base64 to binary
       const binaryString = atob(dataPart);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
       
-      // Decompress
+      // Decompress using pako
       const decompressed = pako.inflate(bytes);
       const decompressedString = new TextDecoder().decode(decompressed);
       
-      // Return as data URI
-      return decompressedString.startsWith("data:")
-        ? decompressedString
-        : `data:application/octet-stream;base64,${btoa(decompressedString)}`;
+      console.log("Document decompressed successfully");
+      return decompressedString;
     } catch (err) {
       console.error("Decompression failed:", err);
       return null;
     }
   }, [tenant?.aadharCard]);
 
-  // Detect if document is PDF or image
+  // Detect document type
   const isImage = useMemo(() => {
     if (!decompressedDocument) return false;
-    return decompressedDocument.startsWith("data:image");
+    return decompressedDocument.startsWith("data:image/");
   }, [decompressedDocument]);
 
   const isPdf = useMemo(() => {
     if (!decompressedDocument) return false;
-    return decompressedDocument.includes("pdf") || 
-           decompressedDocument.includes("octet-stream");
+    return decompressedDocument.startsWith("data:application/pdf");
   }, [decompressedDocument]);
 
   const downloadDocument = () => {
@@ -201,7 +209,7 @@ export default function ViewTenant() {
             <CardContent className="space-y-3">
               <div className="bg-purple-50 rounded-lg p-3 flex items-center justify-between">
                 <span className="text-sm text-purple-700 font-medium">
-                  {isPdf ? "PDF Document" : "Image Document"} uploaded
+                  {isCompressed ? "Compressed Document" : "Document"} uploaded
                 </span>
                 <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -215,33 +223,41 @@ export default function ViewTenant() {
                 <Download className="w-4 h-4" />
                 Download Document
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowAadharPreview(!showAadharPreview)}
-                className="w-full"
-                data-testid="button-preview-aadhar"
-              >
-                {showAadharPreview ? "Hide Preview" : "View Preview"}
-              </Button>
+              {decompressedDocument && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAadharPreview(!showAadharPreview)}
+                  className="w-full"
+                  data-testid="button-preview-aadhar"
+                >
+                  {showAadharPreview ? "Hide Preview" : "View Preview"}
+                </Button>
+              )}
               
               {showAadharPreview && decompressedDocument && (
                 <div className="mt-4 border rounded-lg p-3 bg-gray-50">
                   <p className="text-xs text-muted-foreground mb-2">Document Preview:</p>
-                  <div className="bg-white rounded border p-2 max-h-96 overflow-auto flex items-center justify-center">
+                  <div className="bg-white rounded border min-h-96 flex items-center justify-center">
                     {isImage ? (
-                      <img src={decompressedDocument} alt="Aadhar Card" className="w-full max-h-96 object-contain" data-testid="img-aadhar-preview" />
+                      <img src={decompressedDocument} alt="Aadhar Card" className="w-full h-auto max-h-96 object-contain" data-testid="img-aadhar-preview" />
                     ) : isPdf ? (
-                      <embed
-                        src={decompressedDocument}
+                      <object
+                        data={decompressedDocument}
                         type="application/pdf"
-                        className="w-full h-80"
-                        data-testid="embed-pdf-preview"
-                      />
+                        className="w-full h-full min-h-96"
+                        data-testid="object-pdf-preview"
+                      >
+                        <div className="text-center py-8 text-muted-foreground w-full">
+                          <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">PDF preview not available</p>
+                          <p className="text-xs mt-2">Click download to view the document</p>
+                        </div>
+                      </object>
                     ) : (
-                      <div className="text-center py-8 text-muted-foreground w-full">
+                      <div className="text-center py-8 text-muted-foreground">
                         <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
                         <p>Document type not supported for preview</p>
-                        <p className="text-xs mt-2">Click download to view the full document</p>
+                        <p className="text-xs mt-2">Click download to view the document</p>
                       </div>
                     )}
                   </div>
