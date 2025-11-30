@@ -95,6 +95,17 @@ export default function ViewTenant() {
     }
   }, [tenant?.aadharCard]);
 
+  // Detect document type
+  const isImage = useMemo(() => {
+    if (!decompressedDocument) return false;
+    return decompressedDocument.startsWith("data:image/");
+  }, [decompressedDocument]);
+
+  const isPdf = useMemo(() => {
+    if (!decompressedDocument) return false;
+    return decompressedDocument.startsWith("data:application/pdf");
+  }, [decompressedDocument]);
+
   // Create blob URL for PDF to bypass Chrome restrictions
   useEffect(() => {
     if (isPdf && decompressedDocument && showAadharPreview) {
@@ -122,17 +133,6 @@ export default function ViewTenant() {
       setPdfBlobUrl(null);
     }
   }, [isPdf, decompressedDocument, showAadharPreview]);
-
-  // Detect document type
-  const isImage = useMemo(() => {
-    if (!decompressedDocument) return false;
-    return decompressedDocument.startsWith("data:image/");
-  }, [decompressedDocument]);
-
-  const isPdf = useMemo(() => {
-    if (!decompressedDocument) return false;
-    return decompressedDocument.startsWith("data:application/pdf");
-  }, [decompressedDocument]);
 
   const downloadDocument = () => {
     if (!tenant?.aadharCard) return;
