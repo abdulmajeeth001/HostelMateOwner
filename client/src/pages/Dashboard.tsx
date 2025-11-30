@@ -3,7 +3,7 @@ import MobileLayout from "@/components/layout/MobileLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Users, Wallet, AlertCircle, TrendingUp, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 
 export default function Dashboard() {
   return (
@@ -73,6 +73,8 @@ function DashboardDesktop() {
 }
 
 function DashboardMobile() {
+  const [, navigate] = useLocation();
+  
   const stats = [
     { label: "Total Tenants", value: "42", icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
     { label: "Revenue (Nov)", value: "₹84,500", icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-100" },
@@ -97,11 +99,9 @@ function DashboardMobile() {
     >
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <Link href="/tenants/add">
-          <Button className="w-full h-12 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
-            <UserPlus className="mr-2 w-4 h-4" /> Add Tenant
-          </Button>
-        </Link>
+        <Button onClick={() => navigate("/tenants/add")} className="w-full h-12 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
+          <UserPlus className="mr-2 w-4 h-4" /> Add Tenant
+        </Button>
         <Button variant="outline" className="w-full h-12 border-primary/20 text-primary hover:bg-primary/5">
           View Reports
         </Button>
