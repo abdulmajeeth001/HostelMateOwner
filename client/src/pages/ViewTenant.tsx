@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation, useRoute } from "wouter";
 import { ChevronLeft, Download, FileText, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import pako from "pako";
 
 export default function ViewTenant() {
   const [, setLocation] = useLocation();
@@ -21,6 +22,43 @@ export default function ViewTenant() {
     },
     enabled: !!tenantId,
   });
+
+  // Decompress and decode document
+  const decompressedDocument = useMemo(() => {
+    if (!tenant?.aadharCard) return null;
+    
+    try {
+      const aadharCard = tenant.aadharCard;
+      
+      // If not gzip, return as-is
+      if (!aadharCard.includes("application/gzip")) {
+        return aadharCard;
+      }
+      
+      // Extract base64 part
+      const dataPart = aadharCard.split(",")[1];
+      if (!dataPart) return null;
+      
+      // Decode base64
+      const binaryString = atob(dataPart);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      // Decompress
+      const decompressed = pako.inflate(bytes);
+      const decompressedString = new TextDecoder().decode(decompressed);
+      
+      // Return as data URI
+      return decompressedString.startsWith("data:")
+        ? decompressedString
+        : `data:application/octet-stream;base64,${btoa(decompressedString)}`;
+    } catch (err) {
+      console.error("Decompression failed:", err);
+      return null;
+    }
+  }, [tenant?.aadharCard]);
 
   const downloadDocument = () => {
     if (!tenant?.aadharCard) return;
@@ -172,12 +210,12 @@ export default function ViewTenant() {
                 {showAadharPreview ? "Hide Preview" : "View Preview"}
               </Button>
               
-              {showAadharPreview && tenant.aadharCard && (
+              {showAadharPreview && decompressedDocument && (
                 <div className="mt-4 border rounded-lg p-3 bg-gray-50">
                   <p className="text-xs text-muted-foreground mb-2">Document Preview:</p>
                   <div className="bg-white rounded border p-2 max-h-96 overflow-auto">
-                    {tenant.aadharCard.startsWith("data:image") ? (
-                      <img src={tenant.aadharCard} alt="Aadhar Card" className="w-full" data-testid="img-aadhar-preview" />
+                    {decompressedDocument.startsWith("data:image") ? (
+                      <img src={decompressedDocument} alt="Aadhar Card" className="w-full" data-testid="img-aadhar-preview" />
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
