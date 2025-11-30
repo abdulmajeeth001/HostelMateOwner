@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/hooks/use-user";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
 
 interface MobileLayoutProps {
@@ -21,13 +22,15 @@ export default function MobileLayout({
 }: MobileLayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useUser();
 
   // Close sidebar when location changes
   useEffect(() => {
     setSidebarOpen(false);
   }, [location]);
 
-  const sideNavItems = [
+  // Owner navigation items
+  const ownerSideNavItems = [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
     { icon: DoorOpen, label: "Rooms", path: "/rooms" },
     { icon: Users, label: "Tenants", path: "/tenants" },
@@ -39,13 +42,33 @@ export default function MobileLayout({
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
-  const bottomNavItems = [
+  // Tenant navigation items
+  const tenantSideNavItems = [
+    { icon: Home, label: "Dashboard", path: "/tenant-dashboard" },
+    { icon: DoorOpen, label: "Room", path: "/tenant-room" },
+    { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
+    { icon: Bell, label: "Notifications", path: "/notifications" },
+    { icon: Settings, label: "Settings", path: "/settings" },
+  ];
+
+  const ownerBottomNavItems = [
     { icon: Home, label: "Home", path: "/dashboard" },
     { icon: Users, label: "Tenants", path: "/tenants" },
     { icon: CreditCard, label: "Payments", path: "/payments" },
     { icon: Bell, label: "Alerts", path: "/notifications" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
+
+  const tenantBottomNavItems = [
+    { icon: Home, label: "Home", path: "/tenant-dashboard" },
+    { icon: DoorOpen, label: "Room", path: "/tenant-room" },
+    { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
+    { icon: Bell, label: "Alerts", path: "/notifications" },
+    { icon: Settings, label: "Settings", path: "/settings" },
+  ];
+
+  const sideNavItems = user?.userType === "tenant" ? tenantSideNavItems : ownerSideNavItems;
+  const bottomNavItems = user?.userType === "tenant" ? tenantBottomNavItems : ownerBottomNavItems;
 
   return (
     <div className="min-h-screen bg-background max-w-4xl mx-auto border-x border-border shadow-2xl relative flex overflow-hidden">

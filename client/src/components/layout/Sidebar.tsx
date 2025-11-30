@@ -2,9 +2,10 @@ import { Link, useLocation } from "wouter";
 import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/hooks/use-user";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
 
-const navItems = [
+const ownerNavItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
   { icon: DoorOpen, label: "Rooms", path: "/rooms" },
   { icon: Users, label: "Tenants", path: "/tenants" },
@@ -16,8 +17,19 @@ const navItems = [
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
+const tenantNavItems = [
+  { icon: Home, label: "Dashboard", path: "/tenant-dashboard" },
+  { icon: DoorOpen, label: "Room", path: "/tenant-room" },
+  { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
+  { icon: Bell, label: "Notifications", path: "/notifications" },
+  { icon: Settings, label: "Settings", path: "/settings" },
+];
+
 export default function Sidebar() {
   const [location] = useLocation();
+  const { user } = useUser();
+
+  const navItems = user?.userType === "tenant" ? tenantNavItems : ownerNavItems;
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-card border-r border-border h-screen sticky top-0 overflow-y-auto">
