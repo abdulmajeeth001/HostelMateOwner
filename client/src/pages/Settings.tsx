@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LocationPicker from "@/components/LocationPicker";
-import { Bell, Lock, User, Building, LogOut } from "lucide-react";
+import { Bell, Lock, User, Building, LogOut, Edit2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import {
@@ -23,11 +23,16 @@ export default function Settings() {
   const [user, setUser] = useState<any>(null);
   const [pg, setPg] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editingPg, setEditingPg] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [pgSaveLoading, setPgSaveLoading] = useState(false);
 
   const [profileForm, setProfileForm] = useState({ name: "", email: "", mobile: "" });
   const [pgForm, setPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", totalRooms: 0 });
+  const [originalProfileForm, setOriginalProfileForm] = useState({ name: "", email: "", mobile: "" });
+  const [originalPgForm, setOriginalPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", totalRooms: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,11 +43,13 @@ export default function Settings() {
           const userData = await userRes.json();
           if (userData && userData.id) {
             setUser(userData);
-            setProfileForm({ 
+            const profileData = { 
               name: userData.name || "", 
               email: userData.email || "", 
               mobile: userData.mobile || "" 
-            });
+            };
+            setProfileForm(profileData);
+            setOriginalProfileForm(profileData);
           }
         }
         
@@ -51,12 +58,14 @@ export default function Settings() {
           const pgData = await pgRes.json();
           if (pgData && pgData.id) {
             setPg(pgData);
-            setPgForm({ 
+            const pgData2 = { 
               pgName: pgData.pgName || "", 
               pgAddress: pgData.pgAddress || "", 
               pgLocation: pgData.pgLocation || "", 
               totalRooms: pgData.totalRooms || 0 
-            });
+            };
+            setPgForm(pgData2);
+            setOriginalPgForm(pgData2);
           }
         }
       } catch (error) {
@@ -68,6 +77,15 @@ export default function Settings() {
     fetchData();
   }, []);
 
+  const handleEditProfile = () => {
+    setEditingProfile(true);
+  };
+
+  const handleCancelProfile = () => {
+    setEditingProfile(false);
+    setProfileForm(originalProfileForm);
+  };
+
   const handleSaveProfile = async () => {
     setSaveLoading(true);
     try {
@@ -78,13 +96,11 @@ export default function Settings() {
       });
       
       if (res.ok) {
-        try {
-          const data = await res.json();
-          setUser(data.user || data);
-          alert("Profile updated successfully");
-        } catch (e) {
-          alert("Profile updated successfully");
-        }
+        const data = await res.json();
+        setUser(data);
+        setOriginalProfileForm(profileForm);
+        setEditingProfile(false);
+        alert("Profile updated successfully");
       } else {
         alert("Failed to update profile");
       }
@@ -93,6 +109,15 @@ export default function Settings() {
     } finally {
       setSaveLoading(false);
     }
+  };
+
+  const handleEditPg = () => {
+    setEditingPg(true);
+  };
+
+  const handleCancelPg = () => {
+    setEditingPg(false);
+    setPgForm(originalPgForm);
   };
 
   const handleSavePg = async () => {
@@ -105,13 +130,11 @@ export default function Settings() {
       });
       
       if (res.ok) {
-        try {
-          const data = await res.json();
-          setPg(data.pg || data);
-          alert("PG details updated successfully");
-        } catch (e) {
-          alert("PG details updated successfully");
-        }
+        const data = await res.json();
+        setPg(data);
+        setOriginalPgForm(pgForm);
+        setEditingPg(false);
+        alert("PG details updated successfully");
       } else {
         alert("Failed to update PG details");
       }
@@ -139,7 +162,7 @@ export default function Settings() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div className="p-8">Loading...</div>;
 
   return (
     <DesktopLayout title="Settings" showNav={true}>
@@ -147,11 +170,26 @@ export default function Settings() {
         {/* Profile Settings */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
-              <CardTitle>Profile Settings</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-primary" />
+                <div>
+                  <CardTitle>Profile Settings</CardTitle>
+                  <CardDescription>Manage your personal information</CardDescription>
+                </div>
+              </div>
+              {!editingProfile && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleEditProfile}
+                  data-testid="button-edit-profile"
+                >
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
             </div>
-            <CardDescription>Manage your personal information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -160,7 +198,9 @@ export default function Settings() {
                 <Input 
                   value={profileForm.name} 
                   onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                  disabled={!editingProfile}
                   data-testid="input-settings-name" 
+                  className={!editingProfile ? "bg-muted" : ""}
                 />
               </div>
               <div className="space-y-2">
@@ -169,7 +209,9 @@ export default function Settings() {
                   type="email" 
                   value={profileForm.email}
                   onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                  data-testid="input-settings-email" 
+                  disabled={!editingProfile}
+                  data-testid="input-settings-email"
+                  className={!editingProfile ? "bg-muted" : ""}
                 />
               </div>
               <div className="space-y-2">
@@ -177,24 +219,56 @@ export default function Settings() {
                 <Input 
                   value={profileForm.mobile}
                   onChange={(e) => setProfileForm({ ...profileForm, mobile: e.target.value })}
-                  data-testid="input-settings-mobile" 
+                  disabled={!editingProfile}
+                  data-testid="input-settings-mobile"
+                  className={!editingProfile ? "bg-muted" : ""}
                 />
               </div>
             </div>
-            <Button onClick={handleSaveProfile} disabled={saveLoading} data-testid="button-save-profile">
-              {saveLoading ? "Saving..." : "Save Changes"}
-            </Button>
+            {editingProfile && (
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleSaveProfile} 
+                  disabled={saveLoading} 
+                  data-testid="button-save-profile"
+                >
+                  {saveLoading ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancelProfile}
+                  data-testid="button-cancel-profile"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* PG Settings */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <Building className="w-5 h-5 text-primary" />
-              <CardTitle>PG Details</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Building className="w-5 h-5 text-primary" />
+                <div>
+                  <CardTitle>PG Details</CardTitle>
+                  <CardDescription>Update your property information</CardDescription>
+                </div>
+              </div>
+              {!editingPg && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleEditPg}
+                  data-testid="button-edit-pg"
+                >
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
             </div>
-            <CardDescription>Update your property information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -202,7 +276,9 @@ export default function Settings() {
               <Input 
                 value={pgForm.pgName}
                 onChange={(e) => setPgForm({ ...pgForm, pgName: e.target.value })}
-                data-testid="input-settings-pgname" 
+                disabled={!editingPg}
+                data-testid="input-settings-pgname"
+                className={!editingPg ? "bg-muted" : ""}
               />
             </div>
             <div className="space-y-2">
@@ -210,37 +286,58 @@ export default function Settings() {
               <Input 
                 value={pgForm.pgAddress}
                 onChange={(e) => setPgForm({ ...pgForm, pgAddress: e.target.value })}
-                data-testid="input-settings-pgaddress" 
+                disabled={!editingPg}
+                data-testid="input-settings-pgaddress"
+                className={!editingPg ? "bg-muted" : ""}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Pick Location</Label>
-              <LocationPicker 
-                onLocationSelect={(location) => {
-                  setPgForm(prev => ({
-                    ...prev,
-                    pgAddress: location.address,
-                    pgLocation: location.city
-                  }));
-                }}
-                selectedLocation={{
-                  address: pgForm.pgAddress,
-                  city: pgForm.pgLocation
-                }}
-              />
-            </div>
+            {editingPg && (
+              <div className="space-y-2">
+                <Label>Pick Location</Label>
+                <LocationPicker 
+                  onLocationSelect={(location) => {
+                    setPgForm(prev => ({
+                      ...prev,
+                      pgAddress: location.address,
+                      pgLocation: location.city
+                    }));
+                  }}
+                  selectedLocation={{
+                    address: pgForm.pgAddress,
+                    city: pgForm.pgLocation
+                  }}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Total Rooms</Label>
               <Input 
                 type="number" 
                 value={pgForm.totalRooms || 0}
                 onChange={(e) => setPgForm({ ...pgForm, totalRooms: parseInt(e.target.value) || 0 })}
-                data-testid="input-settings-rooms" 
+                disabled={!editingPg}
+                data-testid="input-settings-rooms"
+                className={!editingPg ? "bg-muted" : ""}
               />
             </div>
-            <Button onClick={handleSavePg} disabled={pgSaveLoading} data-testid="button-save-pg">
-              {pgSaveLoading ? "Updating..." : "Update PG Info"}
-            </Button>
+            {editingPg && (
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleSavePg} 
+                  disabled={pgSaveLoading} 
+                  data-testid="button-save-pg"
+                >
+                  {pgSaveLoading ? "Updating..." : "Update PG Info"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancelPg}
+                  data-testid="button-cancel-pg"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -249,9 +346,11 @@ export default function Settings() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Bell className="w-5 h-5 text-primary" />
-              <CardTitle>Notifications</CardTitle>
+              <div>
+                <CardTitle>Notifications</CardTitle>
+                <CardDescription>Manage your notification preferences</CardDescription>
+              </div>
             </div>
-            <CardDescription>Manage your notification preferences</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
