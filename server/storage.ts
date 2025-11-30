@@ -336,7 +336,18 @@ export class DatabaseStorage implements IStorage {
             );
             tenants = tenants.filter(Boolean);
           }
-          return { room, tenants };
+          
+          // Calculate status dynamically based on actual tenant count
+          let status = "vacant";
+          if (tenants.length > 0) {
+            if (tenants.length >= room.sharing) {
+              status = "occupied";
+            } else {
+              status = "partially_occupied";
+            }
+          }
+          
+          return { room: { ...room, status }, tenants };
         })
       );
       

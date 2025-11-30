@@ -123,9 +123,13 @@ export default function Rooms() {
                     </div>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    room.status === 'occupied' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                    room.status === 'occupied' ? 'bg-green-100 text-green-700' : 
+                    room.status === 'partially_occupied' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-700'
                   }`} data-testid={`status-room-${room.id}`}>
-                    {room.status === 'occupied' ? 'Occupied' : 'Vacant'}
+                    {room.status === 'occupied' ? 'Occupied' : 
+                     room.status === 'partially_occupied' ? 'Partial' :
+                     'Vacant'}
                   </span>
                 </div>
               </CardHeader>
