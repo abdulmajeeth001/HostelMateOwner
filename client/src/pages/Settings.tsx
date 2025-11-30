@@ -38,11 +38,13 @@ export default function Settings() {
         if (userRes.ok) {
           const userData = await userRes.json();
           setUser(userData);
-          setProfileForm({ name: userData.name, email: userData.email, mobile: userData.mobile });
+          if (userData?.name) {
+            setProfileForm({ name: userData.name, email: userData.email, mobile: userData.mobile });
+          }
         }
         if (pgRes.ok) {
           const pgData = await pgRes.json();
-          if (pgData) {
+          if (pgData?.pgName) {
             setPg(pgData);
             setPgForm({ pgName: pgData.pgName, pgAddress: pgData.pgAddress, pgLocation: pgData.pgLocation, totalRooms: pgData.totalRooms });
           }
@@ -66,9 +68,15 @@ export default function Settings() {
       });
       
       if (res.ok) {
-        const updated = await res.json();
-        setUser(updated);
-        alert("Profile updated successfully");
+        try {
+          const data = await res.json();
+          setUser(data.user || data);
+          alert("Profile updated successfully");
+        } catch (e) {
+          alert("Profile updated successfully");
+        }
+      } else {
+        alert("Failed to update profile");
       }
     } catch (error) {
       alert("Failed to update profile");
@@ -87,9 +95,15 @@ export default function Settings() {
       });
       
       if (res.ok) {
-        const { pg: updated } = await res.json();
-        setPg(updated);
-        alert("PG details updated successfully");
+        try {
+          const data = await res.json();
+          setPg(data.pg || data);
+          alert("PG details updated successfully");
+        } catch (e) {
+          alert("PG details updated successfully");
+        }
+      } else {
+        alert("Failed to update PG details");
       }
     } catch (error) {
       alert("Failed to update PG details");

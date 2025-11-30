@@ -118,10 +118,10 @@ export default function LocationPicker({ onLocationSelect, selectedLocation }: L
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 relative">
       <Label>PG Location</Label>
       
-      <div className="space-y-2">
+      <div className="space-y-2 relative">
         <div className="relative">
           <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
           <Input
@@ -145,11 +145,11 @@ export default function LocationPicker({ onLocationSelect, selectedLocation }: L
         )}
 
         {showResults && results.length > 0 && (
-          <div className="absolute z-50 w-full bg-card border border-border rounded-md shadow-lg mt-1">
+          <div className="w-full bg-card border border-border rounded-md shadow-lg">
             <div className="max-h-48 overflow-y-auto">
-              {results.map((result) => (
+              {results.map((result, idx) => (
                 <button
-                  key={result.id}
+                  key={`${result.id}-${idx}`}
                   onClick={() => handleLocationSelect(result)}
                   className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors border-b border-border last:border-b-0"
                   type="button"

@@ -176,8 +176,9 @@ export async function registerRoutes(
       const userId = req.session!.userId || 1;
       const { name, email, mobile } = req.body;
       const updated = await storage.updateUser(userId, { name, email, mobile });
-      res.json({ success: true, user: updated });
+      res.json(updated || {});
     } catch (error) {
+      console.error("Profile update error:", error);
       res.status(400).json({ error: "Failed to update profile" });
     }
   });
