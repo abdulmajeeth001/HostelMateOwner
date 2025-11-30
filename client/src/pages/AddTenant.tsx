@@ -21,6 +21,7 @@ export default function AddTenant() {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: "",
+    email: "",
     phone: "",
     roomNumber: "",
     monthlyRent: "",
@@ -101,6 +102,21 @@ export default function AddTenant() {
               className="bg-card"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
+              data-testid="input-add-name"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="tenant@example.com" 
+              required 
+              className="bg-card"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              data-testid="input-add-email"
             />
           </div>
 
@@ -115,12 +131,13 @@ export default function AddTenant() {
                 className="bg-card"
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                data-testid="input-add-phone"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="room">Room No.</Label>
               <Select value={formData.roomNumber} onValueChange={(val) => setFormData({...formData, roomNumber: val})}>
-                <SelectTrigger className="bg-card">
+                <SelectTrigger className="bg-card" data-testid="select-add-room">
                   <SelectValue placeholder="Select room" />
                 </SelectTrigger>
                 <SelectContent>
@@ -145,6 +162,7 @@ export default function AddTenant() {
                 placeholder="5000"
                 value={formData.monthlyRent}
                 onChange={(e) => setFormData({...formData, monthlyRent: e.target.value})}
+                data-testid="input-add-rent"
               />
             </div>
           </div>
@@ -160,7 +178,7 @@ export default function AddTenant() {
         </div>
 
         <div className="pt-4">
-          <Button type="submit" className="w-full h-12 text-base" disabled={createTenantMutation.isPending}>
+          <Button type="submit" className="w-full h-12 text-base" disabled={createTenantMutation.isPending} data-testid="button-add-tenant">
             {createTenantMutation.isPending ? "Adding..." : "Add Tenant"}
           </Button>
         </div>

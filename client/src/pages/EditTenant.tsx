@@ -22,6 +22,7 @@ export default function EditTenant() {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: "",
+    email: "",
     phone: "",
     roomNumber: "",
     monthlyRent: "",
@@ -56,6 +57,7 @@ export default function EditTenant() {
     if (tenant) {
       setFormData({
         name: tenant.name || "",
+        email: tenant.email || "",
         phone: tenant.phone || "",
         roomNumber: tenant.roomNumber || "",
         monthlyRent: tenant.monthlyRent || "",
@@ -158,6 +160,20 @@ export default function EditTenant() {
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
               data-testid="input-edit-name"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="tenant@example.com" 
+              required 
+              className="bg-card"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              data-testid="input-edit-email"
             />
           </div>
 
