@@ -24,8 +24,8 @@ const registrationSchema = z.object({
   mobile: z.string().min(10),
   userType: z.enum(["owner", "tenant", "admin"]).default("owner"),
   password: z.string().min(8),
-  pgAddress: z.string(),
-  pgLocation: z.string(),
+  pgAddress: z.string().optional(),
+  pgLocation: z.string().optional(),
 });
 
 const otpVerificationSchema = z.object({
