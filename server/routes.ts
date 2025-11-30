@@ -40,6 +40,7 @@ const loginSchema = z.object({
 
 const createTenantSchema = z.object({
   name: z.string().min(2),
+  email: z.string().email(),
   phone: z.string().min(10),
   roomNumber: z.string(),
   monthlyRent: z.string().or(z.number()),
@@ -48,6 +49,11 @@ const createTenantSchema = z.object({
 // Helper function to generate OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Helper function to generate default password
+function generateDefaultPassword(): string {
+  return Math.random().toString(36).slice(-8) + Math.floor(Math.random() * 1000);
 }
 
 export async function registerRoutes(
@@ -159,6 +165,16 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Email not verified. Please verify your email to login." });
       }
 
+      // Check if user needs password reset (for newly invited tenants)
+      if (user.requiresPasswordReset) {
+        req.session!.userId = user.id;
+        return res.json({ 
+          success: true, 
+          user: { id: user.id, email: user.email, name: user.name },
+          requiresPasswordReset: true 
+        });
+      }
+
       req.session!.userId = user.id;
       res.json({ success: true, user: { id: user.id, email: user.email, name: user.name } });
     } catch (error) {
@@ -172,6 +188,94 @@ export async function registerRoutes(
       if (err) return res.status(500).json({ error: "Logout failed" });
       res.json({ success: true });
     });
+  });
+
+  // STEP 2: Password Reset (for newly invited tenants)
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const resetSchema = z.object({
+        newPassword: z.string().min(8),
+        confirmPassword: z.string().min(8),
+      });
+
+      const body = resetSchema.parse(req.body);
+      if (body.newPassword !== body.confirmPassword) {
+        return res.status(400).json({ error: "Passwords do not match" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Generate OTP for verification
+      const otp = generateOTP();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      await storage.createOtp({
+        email: user.email,
+        mobile: user.mobile,
+        code: otp,
+        expiresAt,
+      });
+
+      console.log(`Password reset OTP for ${user.email}: ${otp}`);
+
+      res.json({
+        success: true,
+        message: "OTP sent to email and mobile",
+        otp: process.env.NODE_ENV === "development" ? otp : undefined
+      });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(400).json({ error: "Failed to initiate password reset", details: (error as any).message });
+    }
+  });
+
+  app.post("/api/auth/verify-password-reset", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const verifySchema = z.object({
+        newPassword: z.string().min(8),
+        otp: z.string().length(6),
+      });
+
+      const body = verifySchema.parse(req.body);
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Verify OTP
+      const validOtp = await storage.getValidOtp(user.email, body.otp);
+      if (!validOtp) {
+        return res.status(400).json({ error: "Invalid or expired OTP" });
+      }
+
+      // Update password and clear requiresPasswordReset flag
+      await storage.updateUser(userId, {
+        password: body.newPassword, // Will be hashed by storage layer
+        requiresPasswordReset: false,
+      });
+
+      // Delete used OTP
+      await storage.deleteOtp(validOtp.id);
+
+      res.json({ success: true, message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Password reset verification error:", error);
+      res.status(400).json({ error: "Failed to reset password", details: (error as any).message });
+    }
   });
 
   app.get("/api/auth/me", (req, res) => {
@@ -259,10 +363,32 @@ export async function registerRoutes(
       }
 
       const body = createTenantSchema.parse(req.body);
+      
+      // Check if user already exists with this email
+      let tenantUser = await storage.getUserByEmail(body.email);
+      
+      if (!tenantUser) {
+        // Create new tenant user account with default password
+        const defaultPassword = generateDefaultPassword();
+        tenantUser = await storage.createUser({
+          name: body.name,
+          email: body.email,
+          mobile: body.phone,
+          userType: "tenant",
+          password: defaultPassword,
+          isVerified: true, // Email already provided by owner
+          requiresPasswordReset: true, // Force password reset on first login
+        });
+        
+        console.log(`Tenant user created with email: ${body.email}, default password: ${defaultPassword}`);
+      }
+      
       const tenant = await storage.createTenant({
         ownerId: userId,
         pgId: pg.id,
+        userId: tenantUser.id,
         name: body.name,
+        email: body.email,
         phone: body.phone,
         roomNumber: body.roomNumber,
         monthlyRent: body.monthlyRent.toString(),

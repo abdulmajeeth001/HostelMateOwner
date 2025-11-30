@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   pgAddress: text("pg_address"),
   pgLocation: text("pg_location"),
   isVerified: boolean("is_verified").default(false),
+  requiresPasswordReset: boolean("requires_password_reset").default(false), // For first-time login after invitation
   googleId: text("google_id"),
   subscriptionTier: text("subscription_tier").default("none"), // none, starter, pro, enterprise
   subscriptionExpiresAt: timestamp("subscription_expires_at"),
@@ -68,7 +69,9 @@ export const tenants = pgTable("tenants", {
   id: serial("id").primaryKey(),
   ownerId: integer("owner_id").notNull().references(() => users.id),
   pgId: integer("pg_id").references(() => pgMaster.id),
+  userId: integer("user_id").references(() => users.id), // Link to tenant user account
   name: text("name").notNull(),
+  email: text("email").default(""), // Email of tenant (when added by owner)
   phone: text("phone").notNull(),
   roomNumber: text("room_number").notNull(),
   monthlyRent: decimal("monthly_rent", { precision: 10, scale: 2 }).notNull(),
