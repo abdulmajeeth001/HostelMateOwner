@@ -261,6 +261,8 @@ export default function EditTenant() {
       setEmergencyContacts([...emergencyContacts, data.contact]);
       setNewContact({ name: "", phone: "", relationship: "" });
       setShowAddContact(false);
+      // Invalidate cache so ViewTenant shows updated contacts
+      queryClient.invalidateQueries({ queryKey: ["emergencyContacts", tenantId] });
     },
   });
 
@@ -274,6 +276,8 @@ export default function EditTenant() {
     },
     onSuccess: (_, contactId) => {
       setEmergencyContacts(emergencyContacts.filter(c => c.id !== contactId));
+      // Invalidate cache so ViewTenant shows updated contacts
+      queryClient.invalidateQueries({ queryKey: ["emergencyContacts", tenantId] });
     },
   });
 
