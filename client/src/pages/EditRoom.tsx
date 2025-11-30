@@ -188,20 +188,8 @@ export default function EditRoom() {
             </Button>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-slate-900">Edit Room</h1>
-              <p className="text-sm text-slate-500">{isEditing ? "Update room details" : "View room details"}</p>
+              <p className="text-sm text-slate-500">Manage room details and tenants</p>
             </div>
-            {!isEditing && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                className="gap-2"
-                data-testid="button-enter-edit-mode"
-              >
-                <Edit2 className="w-4 h-4" /> Edit
-              </Button>
-            )}
           </div>
 
           {error && (
@@ -214,9 +202,23 @@ export default function EditRoom() {
         <form onSubmit={handleSubmit} className="max-w-2xl mx-auto p-4 space-y-6">
           {/* Basic Information Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
-            <div className="flex items-center gap-2 mb-4">
-              <MapPin className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-slate-900">Basic Information</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-semibold text-slate-900">Basic Information</h2>
+              </div>
+              {!isEditing && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="gap-2"
+                  data-testid="button-enter-edit-mode"
+                >
+                  <Edit2 className="w-4 h-4" /> Edit
+                </Button>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
