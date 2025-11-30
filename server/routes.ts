@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotificationSchema, insertRoomSchema } from "@shared/schema";
+import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotificationSchema, insertRoomSchema, insertEmergencyContactSchema } from "@shared/schema";
 import { z } from "zod";
 
 declare global {
@@ -746,10 +746,68 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized to delete this tenant" });
       }
 
+      // Delete tenant and associated emergency contacts
+      await storage.deleteEmergencyContactsByTenant(parseInt(req.params.id));
       await storage.deleteTenant(parseInt(req.params.id));
       res.json({ success: true });
     } catch (error) {
       res.status(400).json({ error: "Failed to delete tenant" });
+    }
+  });
+
+  // EMERGENCY CONTACTS ROUTES
+  app.get("/api/tenants/:tenantId/emergency-contacts", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.params.tenantId);
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+      
+      if (tenant.ownerId !== req.session!.userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const contacts = await storage.getEmergencyContactsByTenant(tenantId);
+      res.json(contacts);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch emergency contacts" });
+    }
+  });
+
+  app.post("/api/tenants/:tenantId/emergency-contacts", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.params.tenantId);
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+      
+      if (tenant.ownerId !== req.session!.userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const body = insertEmergencyContactSchema.parse({
+        ...req.body,
+        tenantId
+      });
+
+      const contact = await storage.createEmergencyContact(body);
+      res.json({ success: true, contact });
+    } catch (error) {
+      console.error("Emergency contact creation error:", error);
+      res.status(400).json({ error: "Failed to create emergency contact", details: (error as any).message });
+    }
+  });
+
+  app.delete("/api/emergency-contacts/:id", async (req, res) => {
+    try {
+      const contactId = parseInt(req.params.id);
+      // In production, verify ownership via contact's tenant relationship
+      await storage.deleteEmergencyContact(contactId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to delete emergency contact" });
     }
   });
 

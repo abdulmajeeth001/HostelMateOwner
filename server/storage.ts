@@ -13,13 +13,16 @@ import {
   type InsertRoom,
   type PgMaster,
   type InsertPgMaster,
+  type EmergencyContact,
+  type InsertEmergencyContact,
   users,
   otpCodes,
   tenants,
   payments,
   notifications,
   rooms,
-  pgMaster
+  pgMaster,
+  emergencyContacts
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte } from "drizzle-orm";
@@ -74,6 +77,12 @@ export interface IStorage {
   getPgById(pgId: number): Promise<PgMaster | undefined>;
   createPgMaster(pg: InsertPgMaster): Promise<PgMaster>;
   updatePgMaster(ownerId: number, updates: Partial<PgMaster>): Promise<PgMaster | undefined>;
+
+  // Emergency Contacts
+  getEmergencyContactsByTenant(tenantId: number): Promise<EmergencyContact[]>;
+  createEmergencyContact(contact: InsertEmergencyContact): Promise<EmergencyContact>;
+  deleteEmergencyContact(id: number): Promise<void>;
+  deleteEmergencyContactsByTenant(tenantId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -419,6 +428,24 @@ export class DatabaseStorage implements IStorage {
   async updatePgMaster(ownerId: number, updates: Partial<PgMaster>): Promise<PgMaster | undefined> {
     const result = await db.update(pgMaster).set(updates).where(eq(pgMaster.ownerId, ownerId)).returning();
     return result[0];
+  }
+
+  // Emergency Contacts
+  async getEmergencyContactsByTenant(tenantId: number): Promise<EmergencyContact[]> {
+    return await db.select().from(emergencyContacts).where(eq(emergencyContacts.tenantId, tenantId)).orderBy(desc(emergencyContacts.createdAt));
+  }
+
+  async createEmergencyContact(contact: InsertEmergencyContact): Promise<EmergencyContact> {
+    const result = await db.insert(emergencyContacts).values(contact).returning();
+    return result[0];
+  }
+
+  async deleteEmergencyContact(id: number): Promise<void> {
+    await db.delete(emergencyContacts).where(eq(emergencyContacts.id, id));
+  }
+
+  async deleteEmergencyContactsByTenant(tenantId: number): Promise<void> {
+    await db.delete(emergencyContacts).where(eq(emergencyContacts.tenantId, tenantId));
   }
 }
 

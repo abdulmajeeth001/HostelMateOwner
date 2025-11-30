@@ -93,6 +93,23 @@ export const insertTenantSchema = createInsertSchema(tenants).omit({
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 
+// Emergency Contacts table (one-to-many relationship with tenants)
+export const emergencyContacts = pgTable("emergency_contacts", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  relationship: text("relationship").notNull(), // Father, Mother, Brother, Sister, Spouse, Other
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEmergencyContactSchema = createInsertSchema(emergencyContacts).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertEmergencyContact = z.infer<typeof insertEmergencyContactSchema>;
+export type EmergencyContact = typeof emergencyContacts.$inferSelect;
+
 // Payments table
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
