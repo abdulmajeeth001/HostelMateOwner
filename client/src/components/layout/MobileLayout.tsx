@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -20,7 +20,7 @@ export default function MobileLayout({
   title,
   action
 }: MobileLayoutProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useUser();
 
@@ -79,17 +79,18 @@ export default function MobileLayout({
       )}>
         {/* Header */}
         <div className="p-6 border-b border-border">
-          <Link href="/dashboard">
-            <a className="flex items-center gap-3 cursor-pointer no-underline">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                <img src={appIcon} alt="HostelMate" className="w-full h-full object-cover rounded-lg" />
-              </div>
-              <div>
-                <h1 className="font-bold text-lg text-foreground">HostelMate</h1>
-                <p className="text-xs text-muted-foreground">PG Management</p>
-              </div>
-            </a>
-          </Link>
+          <div 
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-3 cursor-pointer"
+          >
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+              <img src={appIcon} alt="HostelMate" className="w-full h-full object-cover rounded-lg" />
+            </div>
+            <div>
+              <h1 className="font-bold text-lg text-foreground">HostelMate</h1>
+              <p className="text-xs text-muted-foreground">PG Management</p>
+            </div>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -98,18 +99,20 @@ export default function MobileLayout({
             const isActive = location === path || (path !== "/dashboard" && location.startsWith(path));
             
             return (
-              <Link key={path} href={path}>
-                <a className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 no-underline",
+              <div
+                key={path}
+                onClick={() => navigate(path)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer",
                   isActive 
                     ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" 
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                )}>
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{label}</span>
-                  {isActive && <div className="ml-auto w-2 h-2 bg-primary-foreground rounded-full" />}
-                </a>
-              </Link>
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{label}</span>
+                {isActive && <div className="ml-auto w-2 h-2 bg-primary-foreground rounded-full" />}
+              </div>
             );
           })}
         </nav>
@@ -167,11 +170,11 @@ export default function MobileLayout({
                 const isActive = location === path || (path !== "/dashboard" && location.startsWith(path));
                 
                 return (
-                  <Link 
-                    key={path} 
-                    href={path}
+                  <div
+                    key={path}
+                    onClick={() => navigate(path)}
                     className={cn(
-                      "flex flex-col items-center justify-center flex-1 h-16 space-y-1 transition-colors duration-200 cursor-pointer no-underline",
+                      "flex flex-col items-center justify-center flex-1 h-16 space-y-1 transition-colors duration-200 cursor-pointer",
                       isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
@@ -182,7 +185,7 @@ export default function MobileLayout({
                       <Icon className={cn("w-6 h-6", isActive && "fill-current")} strokeWidth={isActive ? 2.5 : 2} />
                     </motion.div>
                     <span className="text-[10px] font-medium">{label}</span>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
