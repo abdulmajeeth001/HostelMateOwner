@@ -173,7 +173,10 @@ export async function registerRoutes(
   // User profile update
   app.post("/api/users/profile", async (req, res) => {
     try {
-      const userId = req.session!.userId || 1;
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const { name, email, mobile } = req.body;
       const updated = await storage.updateUser(userId, { name, email, mobile });
       res.json(updated || {});
@@ -185,7 +188,10 @@ export async function registerRoutes(
 
   app.get("/api/users/profile", async (req, res) => {
     try {
-      const userId = req.session!.userId || 1;
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const user = await storage.getUser(userId);
       res.json(user || {});
     } catch (error) {
@@ -196,7 +202,10 @@ export async function registerRoutes(
   // PG Master endpoints
   app.get("/api/pg", async (req, res) => {
     try {
-      const userId = req.session!.userId || 1;
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const pg = await storage.getPgByOwnerId(userId);
       res.json(pg);
     } catch (error) {
@@ -206,15 +215,18 @@ export async function registerRoutes(
 
   app.post("/api/pg", async (req, res) => {
     try {
-      const userId = req.session!.userId || 1;
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
       const existing = await storage.getPgByOwnerId(userId);
       
       if (existing) {
         const updated = await storage.updatePgMaster(userId, req.body);
-        res.json({ success: true, pg: updated });
+        res.json(updated || {});
       } else {
         const pg = await storage.createPgMaster({ ownerId: userId, ...req.body });
-        res.json({ success: true, pg });
+        res.json(pg || {});
       }
     } catch (error) {
       res.status(400).json({ error: "Failed to save PG details" });
