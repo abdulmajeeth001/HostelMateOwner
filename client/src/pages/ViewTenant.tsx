@@ -2,33 +2,15 @@ import MobileLayout from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation, useRoute } from "wouter";
-import { ChevronLeft, Download, FileText, User, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronLeft, Download, FileText, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import pako from "pako";
-import * as pdfjsLib from "pdfjs-dist";
-
-// Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-
-interface PDFRenderState {
-  isLoading: boolean;
-  numPages: number;
-  error: string | null;
-  currentPage: number;
-}
 
 export default function ViewTenant() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/tenants/view/:id");
   const [showAadharPreview, setShowAadharPreview] = useState(false);
-  const [pdfState, setPdfState] = useState<PDFRenderState>({
-    isLoading: false,
-    numPages: 0,
-    error: null,
-    currentPage: 1,
-  });
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const tenantId = params?.id ? parseInt(params.id) : null;
 
   const { data: tenant, isLoading, error } = useQuery({
@@ -89,58 +71,6 @@ export default function ViewTenant() {
     return decompressedDocument.includes("pdf") || 
            decompressedDocument.includes("octet-stream");
   }, [decompressedDocument]);
-
-  // Render PDF page
-  useEffect(() => {
-    if (!isPdf || !decompressedDocument || !canvasRef.current || !showAadharPreview) {
-      return;
-    }
-
-    const renderPdf = async () => {
-      try {
-        setPdfState(prev => ({ ...prev, isLoading: true, error: null }));
-
-        // Extract PDF data
-        const pdfData = decompressedDocument.includes("base64,")
-          ? decompressedDocument.split("base64,")[1]
-          : decompressedDocument;
-
-        const pdfBytes = Uint8Array.from(atob(pdfData), c => c.charCodeAt(0));
-
-        // Load PDF
-        const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-        setPdfState(prev => ({ ...prev, numPages: pdf.numPages }));
-
-        // Render first page
-        const page = await pdf.getPage(1);
-        const viewport = page.getViewport({ scale: 2 });
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-
-        const context = canvas.getContext("2d");
-        if (!context) return;
-
-        await page.render({
-          canvasContext: context,
-          viewport,
-        }).promise;
-
-        setPdfState(prev => ({ ...prev, isLoading: false, currentPage: 1 }));
-      } catch (err) {
-        console.error("PDF render error:", err);
-        setPdfState(prev => ({ 
-          ...prev, 
-          isLoading: false, 
-          error: "Failed to render PDF" 
-        }));
-      }
-    };
-
-    renderPdf();
-  }, [isPdf, decompressedDocument, showAadharPreview]);
 
   const downloadDocument = () => {
     if (!tenant?.aadharCard) return;
@@ -301,27 +231,12 @@ export default function ViewTenant() {
                     {isImage ? (
                       <img src={decompressedDocument} alt="Aadhar Card" className="w-full" data-testid="img-aadhar-preview" />
                     ) : isPdf ? (
-                      <div className="space-y-2">
-                        {pdfState.isLoading && (
-                          <div className="text-center py-4 text-muted-foreground">Loading PDF...</div>
-                        )}
-                        {pdfState.error && (
-                          <div className="text-center py-4 text-destructive text-sm">{pdfState.error}</div>
-                        )}
-                        <canvas
-                          ref={canvasRef}
-                          className="w-full border rounded"
-                          style={{ display: pdfState.isLoading ? "none" : "block" }}
-                          data-testid="canvas-pdf-preview"
-                        />
-                        {pdfState.numPages > 0 && (
-                          <div className="flex items-center justify-center gap-2 pt-2">
-                            <p className="text-xs text-muted-foreground">
-                              Page {pdfState.currentPage} of {pdfState.numPages}
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                      <iframe
+                        src={decompressedDocument}
+                        className="w-full h-80 border-0 rounded"
+                        data-testid="iframe-pdf-preview"
+                        title="PDF Preview"
+                      />
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
