@@ -300,8 +300,13 @@ export async function registerRoutes(
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-      // Save OTP to database
-      await storage.createOtp({ email, code: otp, expiresAt });
+      // Save OTP to database with user's mobile number
+      await storage.createOtp({ 
+        email, 
+        mobile: user.mobile || "N/A",
+        code: otp, 
+        expiresAt 
+      });
 
       // In production, send OTP via email and SMS
       console.log(`[FORGOT PASSWORD] OTP for ${email}: ${otp}`);
