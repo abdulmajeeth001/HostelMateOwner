@@ -45,10 +45,29 @@ export const insertOtpSchema = createInsertSchema(otpCodes).omit({
 export type InsertOtp = z.infer<typeof insertOtpSchema>;
 export type OtpCode = typeof otpCodes.$inferSelect;
 
+// PG Master table (defined before tenants and rooms to satisfy foreign key references)
+export const pgMaster = pgTable("pg_master", {
+  id: serial("id").primaryKey(),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  pgName: text("pg_name").notNull(),
+  pgAddress: text("pg_address").notNull(),
+  pgLocation: text("pg_location").notNull(),
+  totalRooms: integer("total_rooms").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPgMasterSchema = createInsertSchema(pgMaster).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertPgMaster = z.infer<typeof insertPgMasterSchema>;
+export type PgMaster = typeof pgMaster.$inferSelect;
+
 // Tenants table
 export const tenants = pgTable("tenants", {
   id: serial("id").primaryKey(),
   ownerId: integer("owner_id").notNull().references(() => users.id),
+  pgId: integer("pg_id").references(() => pgMaster.id),
   name: text("name").notNull(),
   phone: text("phone").notNull(),
   roomNumber: text("room_number").notNull(),
@@ -109,6 +128,7 @@ export type Notification = typeof notifications.$inferSelect;
 export const rooms = pgTable("rooms", {
   id: serial("id").primaryKey(),
   ownerId: integer("owner_id").notNull().references(() => users.id),
+  pgId: integer("pg_id").references(() => pgMaster.id),
   roomNumber: text("room_number").notNull(),
   monthlyRent: decimal("monthly_rent", { precision: 10, scale: 2 }).notNull(),
   tenantIds: integer("tenant_ids").array().default([]), // Array of tenant IDs
@@ -127,21 +147,3 @@ export const insertRoomSchema = createInsertSchema(rooms).omit({
 });
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type Room = typeof rooms.$inferSelect;
-
-// PG Master table
-export const pgMaster = pgTable("pg_master", {
-  id: serial("id").primaryKey(),
-  ownerId: integer("owner_id").notNull().references(() => users.id),
-  pgName: text("pg_name").notNull(),
-  pgAddress: text("pg_address").notNull(),
-  pgLocation: text("pg_location").notNull(),
-  totalRooms: integer("total_rooms").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const insertPgMasterSchema = createInsertSchema(pgMaster).omit({ 
-  id: true, 
-  createdAt: true 
-});
-export type InsertPgMaster = z.infer<typeof insertPgMasterSchema>;
-export type PgMaster = typeof pgMaster.$inferSelect;
