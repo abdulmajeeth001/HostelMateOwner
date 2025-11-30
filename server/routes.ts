@@ -649,6 +649,16 @@ export async function registerRoutes(
         aadharCard: body.aadharCard,
       });
 
+      // Save emergency contact if provided
+      if (body.emergencyContactName && body.emergencyContactPhone && body.relationship) {
+        await storage.createEmergencyContact({
+          tenantId: tenant.id,
+          name: body.emergencyContactName,
+          phone: body.emergencyContactPhone,
+          relationship: body.relationship,
+        });
+      }
+
       res.json({ success: true, tenant });
     } catch (error) {
       console.error("Tenant creation error:", error);
@@ -722,6 +732,20 @@ export async function registerRoutes(
       if (!tenant) {
         return res.status(404).json({ error: "Tenant not found" });
       }
+
+      // Update emergency contact if provided
+      if (body.emergencyContactName && body.emergencyContactPhone && body.relationship) {
+        // Delete existing emergency contacts for this tenant
+        await storage.deleteEmergencyContactsByTenant(parseInt(req.params.id));
+        // Create new emergency contact
+        await storage.createEmergencyContact({
+          tenantId: parseInt(req.params.id),
+          name: body.emergencyContactName,
+          phone: body.emergencyContactPhone,
+          relationship: body.relationship,
+        });
+      }
+
       res.json({ success: true, tenant });
     } catch (error) {
       console.error("Tenant update error:", error);

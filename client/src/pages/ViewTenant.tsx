@@ -24,6 +24,16 @@ export default function ViewTenant() {
     enabled: !!tenantId,
   });
 
+  const { data: emergencyContacts = [] } = useQuery({
+    queryKey: ["emergencyContacts", tenantId],
+    queryFn: async () => {
+      const res = await fetch(`/api/tenants/${tenantId}/emergency-contacts`);
+      if (!res.ok) throw new Error("Failed to fetch emergency contacts");
+      return res.json();
+    },
+    enabled: !!tenantId,
+  });
+
   // Check if document is compressed (gzip)
   const isCompressed = useMemo(() => {
     if (!tenant?.aadharCard) return false;
@@ -251,29 +261,32 @@ export default function ViewTenant() {
           </CardContent>
         </Card>
 
-        {/* Emergency Contact Information */}
-        {(tenant.emergencyContactName || tenant.emergencyContactPhone) && (
-          <Card className="border-l-4 border-l-red-500">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Emergency Contact</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-start gap-3">
-                <span className="text-muted-foreground text-sm font-medium w-24">Name:</span>
-                <p className="font-medium" data-testid="text-emergency-name">{tenant.emergencyContactName || "N/A"}</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="text-muted-foreground text-sm font-medium w-24">Phone:</span>
-                <p className="font-medium" data-testid="text-emergency-phone">{tenant.emergencyContactPhone || "N/A"}</p>
-              </div>
-              {tenant.relationship && (
-                <div className="flex items-start gap-3">
-                  <span className="text-muted-foreground text-sm font-medium w-24">Relationship:</span>
-                  <p className="font-medium" data-testid="text-relationship">{tenant.relationship}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {/* Emergency Contacts Section */}
+        {emergencyContacts && emergencyContacts.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="font-semibold text-red-900 px-1">Emergency Contacts ({emergencyContacts.length})</h3>
+            {emergencyContacts.map((contact, index) => (
+              <Card key={contact.id} className="border-l-4 border-l-red-500">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Contact {index + 1}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="text-muted-foreground text-sm font-medium w-24">Name:</span>
+                    <p className="font-medium" data-testid={`text-emergency-name-${contact.id}`}>{contact.name}</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-muted-foreground text-sm font-medium w-24">Phone:</span>
+                    <p className="font-medium" data-testid={`text-emergency-phone-${contact.id}`}>{contact.phone}</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-muted-foreground text-sm font-medium w-24">Relationship:</span>
+                    <p className="font-medium" data-testid={`text-relationship-${contact.id}`}>{contact.relationship}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
 
         {/* Aadhar/ID Card Section */}
