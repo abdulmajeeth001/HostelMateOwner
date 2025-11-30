@@ -59,10 +59,35 @@ export default function ViewTenant() {
       
       // Decompress using pako
       const decompressed = pako.inflate(bytes);
-      const decompressedString = new TextDecoder().decode(decompressed);
       
-      console.log("Document decompressed successfully");
-      return decompressedString;
+      // Convert decompressed Uint8Array to base64
+      const decompressedBase64 = btoa(String.fromCharCode.apply(null, Array.from(decompressed)));
+      
+      // Detect MIME type from decompressed data
+      // Check if it's a PDF (starts with %PDF)
+      const isPDF = decompressed[0] === 37 && decompressed[1] === 80 && decompressed[2] === 68 && decompressed[3] === 70; // "%PDF"
+      
+      if (isPDF) {
+        console.log("Decompressed PDF document successfully");
+        return `data:application/pdf;base64,${decompressedBase64}`;
+      }
+      
+      // Try to detect image type
+      // JPEG: FF D8 FF
+      if (decompressed[0] === 0xFF && decompressed[1] === 0xD8 && decompressed[2] === 0xFF) {
+        console.log("Decompressed JPEG image successfully");
+        return `data:image/jpeg;base64,${decompressedBase64}`;
+      }
+      
+      // PNG: 89 50 4E 47
+      if (decompressed[0] === 0x89 && decompressed[1] === 0x50 && decompressed[2] === 0x4E && decompressed[3] === 0x47) {
+        console.log("Decompressed PNG image successfully");
+        return `data:image/png;base64,${decompressedBase64}`;
+      }
+      
+      // Default to octet-stream
+      console.log("Decompressed document successfully (unknown type)");
+      return `data:application/octet-stream;base64,${decompressedBase64}`;
     } catch (err) {
       console.error("Decompression failed:", err);
       return null;
@@ -241,18 +266,12 @@ export default function ViewTenant() {
                     {isImage ? (
                       <img src={decompressedDocument} alt="Aadhar Card" className="w-full h-auto max-h-96 object-contain" data-testid="img-aadhar-preview" />
                     ) : isPdf ? (
-                      <object
-                        data={decompressedDocument}
-                        type="application/pdf"
-                        className="w-full h-full min-h-96"
-                        data-testid="object-pdf-preview"
-                      >
-                        <div className="text-center py-8 text-muted-foreground w-full">
-                          <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">PDF preview not available</p>
-                          <p className="text-xs mt-2">Click download to view the document</p>
-                        </div>
-                      </object>
+                      <iframe
+                        src={decompressedDocument}
+                        title="PDF Preview"
+                        className="w-full h-96 border-0 rounded"
+                        data-testid="iframe-pdf-preview"
+                      />
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
