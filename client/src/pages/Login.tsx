@@ -122,7 +122,7 @@ export default function Login() {
                   </div>
                   <span className="text-muted-foreground">Remember me</span>
                 </label>
-                <a href="#" className="text-primary font-medium hover:underline">Forgot password?</a>
+                <Link href="/forgot-password" className="text-primary font-medium hover:underline" data-testid="link-forgot-password">Forgot password?</Link>
               </div>
               <Button type="submit" className="w-full h-12 text-base font-medium" disabled={isLoading} data-testid="button-login-submit">
                 {isLoading ? (

@@ -29,6 +29,7 @@ import TenantRoomDetails from "@/pages/TenantRoomDetails";
 import TenantPayments from "@/pages/TenantPayments";
 import TenantPgDetails from "@/pages/TenantPgDetails";
 import TenantPgFacilities from "@/pages/TenantPgFacilities";
+import ForgotPassword from "@/pages/ForgotPassword";
 
 function Router() {
   return (
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/tenant-payments" component={TenantPayments} />
       <Route path="/tenant-pg" component={TenantPgDetails} />
       <Route path="/tenant-facilities" component={TenantPgFacilities} />
+      <Route path="/forgot-password" component={ForgotPassword} />
       <Route component={NotFound} />
     </Switch>
   );

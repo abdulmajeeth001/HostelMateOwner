@@ -286,6 +286,69 @@ export async function registerRoutes(
     }
   });
 
+  // FORGOT PASSWORD ROUTES
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = z.object({ email: z.string().email() }).parse(req.body);
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found with this email" });
+      }
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      // Save OTP to database
+      await storage.createOtp({ email, code: otp, expiresAt });
+
+      // In production, send OTP via email and SMS
+      console.log(`[FORGOT PASSWORD] OTP for ${email}: ${otp}`);
+
+      res.json({ success: true, message: "OTP sent to your email and phone" });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(400).json({ error: "Failed to process forgot password", details: (error as any).message });
+    }
+  });
+
+  app.post("/api/auth/verify-forgot-password", async (req, res) => {
+    try {
+      const verifySchema = z.object({
+        email: z.string().email(),
+        otp: z.string().length(6),
+        newPassword: z.string().min(8),
+      });
+
+      const body = verifySchema.parse(req.body);
+
+      const user = await storage.getUserByEmail(body.email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Verify OTP
+      const validOtp = await storage.getValidOtp(body.email, body.otp);
+      if (!validOtp) {
+        return res.status(400).json({ error: "Invalid or expired OTP" });
+      }
+
+      // Update password
+      await storage.updateUser(user.id, {
+        password: body.newPassword, // Will be hashed by storage layer
+      });
+
+      // Delete used OTP
+      await storage.deleteOtp(validOtp.id);
+
+      res.json({ success: true, message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Forgot password verification error:", error);
+      res.status(400).json({ error: "Failed to reset password", details: (error as any).message });
+    }
+  });
+
   // TENANT DASHBOARD ROUTES
   app.get("/api/tenant/dashboard", async (req, res) => {
     try {
