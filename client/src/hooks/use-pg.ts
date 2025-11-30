@@ -16,7 +16,10 @@ export function usePG() {
   useEffect(() => {
     const fetchPG = async () => {
       try {
-        const res = await fetch("/api/pg", { credentials: "include" });
+        const res = await fetch("/api/pg", { 
+          credentials: "include",
+          cache: "no-store"
+        });
         if (!res.ok) {
           if (res.status === 401) {
             setPG(null);
@@ -25,9 +28,11 @@ export function usePG() {
           }
         } else {
           const data = await res.json();
+          console.log("PG data fetched:", data);
           setPG(data);
         }
       } catch (err) {
+        console.error("Error fetching PG:", err);
         setError((err as any).message);
         setPG(null);
       } finally {

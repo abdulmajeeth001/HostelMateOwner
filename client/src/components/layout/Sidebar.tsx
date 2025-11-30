@@ -33,6 +33,8 @@ export default function Sidebar() {
 
   const navItems = user?.userType === "tenant" ? tenantNavItems : ownerNavItems;
   const pgName = user?.userType === "owner" ? (pg?.pgName || "PG Management") : "PG Management";
+  
+  console.log("Sidebar render - user:", user?.userType, "pg:", pg);
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-card border-r border-border h-screen sticky top-0 overflow-y-auto">
