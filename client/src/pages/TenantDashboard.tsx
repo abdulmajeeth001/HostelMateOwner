@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 export default function TenantDashboard() {
+  const [, navigate] = useLocation();
   const [tenantData, setTenantData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -86,21 +87,21 @@ export default function TenantDashboard() {
       {/* Quick Menu */}
       <div className="grid grid-cols-2 gap-3">
         {menuItems.map((item) => (
-          <Link key={item.href} href={item.href}>
-            <a
-              className="block"
-              data-testid={`link-dashboard-${item.label.toLowerCase().replace(" ", "-")}`}
-            >
-              <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
-                <CardContent className="p-4 flex flex-col items-center justify-center gap-3">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${item.color}`}>
-                    <item.icon className="w-6 h-6" />
-                  </div>
-                  <p className="text-sm font-medium text-center">{item.label}</p>
-                </CardContent>
-              </Card>
-            </a>
-          </Link>
+          <div
+            key={item.href}
+            onClick={() => navigate(item.href)}
+            className="block cursor-pointer"
+            data-testid={`link-dashboard-${item.label.toLowerCase().replace(" ", "-")}`}
+          >
+            <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
+              <CardContent className="p-4 flex flex-col items-center justify-center gap-3">
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${item.color}`}>
+                  <item.icon className="w-6 h-6" />
+                </div>
+                <p className="text-sm font-medium text-center">{item.label}</p>
+              </CardContent>
+            </Card>
+          </div>
         ))}
       </div>
 
