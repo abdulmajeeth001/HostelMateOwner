@@ -36,7 +36,16 @@ export default function Login() {
       }
 
       const data = await res.json();
-      setLocation("/dashboard");
+      
+      // Check if password reset is required (newly created tenants)
+      if (data.requiresPasswordReset) {
+        setLocation("/tenant-reset-password");
+        return;
+      }
+
+      // Otherwise use redirect URL or default to dashboard
+      const redirectUrl = data.redirectUrl || "/dashboard";
+      setLocation(redirectUrl);
     } catch (err) {
       setError((err as any).message);
       setIsLoading(false);
