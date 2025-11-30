@@ -44,6 +44,8 @@ const createTenantSchema = z.object({
   phone: z.string().min(10),
   roomNumber: z.string(),
   monthlyRent: z.string().or(z.number()),
+  tenantImage: z.string().optional(),
+  aadharCard: z.string().optional(),
 });
 
 // Helper function to generate OTP
