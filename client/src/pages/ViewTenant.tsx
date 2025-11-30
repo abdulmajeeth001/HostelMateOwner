@@ -4,13 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation, useRoute } from "wouter";
 import { ChevronLeft, Download, FileText, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import pako from "pako";
 
 export default function ViewTenant() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/tenants/view/:id");
   const [showAadharPreview, setShowAadharPreview] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const tenantId = params?.id ? parseInt(params.id) : null;
 
   const { data: tenant, isLoading, error } = useQuery({
@@ -93,6 +94,34 @@ export default function ViewTenant() {
       return null;
     }
   }, [tenant?.aadharCard]);
+
+  // Create blob URL for PDF to bypass Chrome restrictions
+  useEffect(() => {
+    if (isPdf && decompressedDocument && showAadharPreview) {
+      try {
+        // Extract base64 from data URI
+        const base64 = decompressedDocument.split(",")[1];
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // Create blob and blob URL
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        setPdfBlobUrl(url);
+        
+        return () => {
+          URL.revokeObjectURL(url);
+        };
+      } catch (err) {
+        console.error("Failed to create blob URL:", err);
+      }
+    } else {
+      setPdfBlobUrl(null);
+    }
+  }, [isPdf, decompressedDocument, showAadharPreview]);
 
   // Detect document type
   const isImage = useMemo(() => {
@@ -265,13 +294,18 @@ export default function ViewTenant() {
                   <div className="bg-white rounded border min-h-96 flex items-center justify-center">
                     {isImage ? (
                       <img src={decompressedDocument} alt="Aadhar Card" className="w-full h-auto max-h-96 object-contain" data-testid="img-aadhar-preview" />
-                    ) : isPdf ? (
+                    ) : isPdf && pdfBlobUrl ? (
                       <iframe
-                        src={decompressedDocument}
+                        src={pdfBlobUrl}
                         title="PDF Preview"
                         className="w-full h-96 border-0 rounded"
                         data-testid="iframe-pdf-preview"
                       />
+                    ) : isPdf ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Loading PDF preview...</p>
+                      </div>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
