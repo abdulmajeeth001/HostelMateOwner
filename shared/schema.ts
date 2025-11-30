@@ -75,6 +75,8 @@ export const tenants = pgTable("tenants", {
   phone: text("phone").notNull(),
   roomNumber: text("room_number").notNull(),
   monthlyRent: decimal("monthly_rent", { precision: 10, scale: 2 }).notNull(),
+  tenantImage: text("tenant_image"), // Base64 encoded image
+  aadharCard: text("aadhar_card"), // Base64 encoded Aadhar/ID document
   photoUrl: text("photo_url"),
   idProofUrl: text("id_proof_url"),
   status: text("status").default("active"), // active, inactive

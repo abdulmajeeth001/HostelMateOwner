@@ -640,6 +640,8 @@ export async function registerRoutes(
         phone: body.phone,
         roomNumber: body.roomNumber,
         monthlyRent: body.monthlyRent.toString(),
+        tenantImage: body.tenantImage,
+        aadharCard: body.aadharCard,
       });
 
       res.json({ success: true, tenant });

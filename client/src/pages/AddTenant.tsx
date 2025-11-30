@@ -25,7 +25,11 @@ export default function AddTenant() {
     phone: "",
     roomNumber: "",
     monthlyRent: "",
+    tenantImage: "",
+    aadharCard: "",
   });
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [aadharPreview, setAadharPreview] = useState<string | null>(null);
 
   // Fetch active rooms
   const { data: rooms = [] } = useQuery<Room[]>({
@@ -69,8 +73,42 @@ export default function AddTenant() {
     },
   });
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setFormData({...formData, tenantImage: base64});
+        setPhotoPreview(base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAadharUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setFormData({...formData, aadharCard: base64});
+        setAadharPreview(file.name);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.tenantImage) {
+      alert("Please upload tenant photo");
+      return;
+    }
+    if (!formData.aadharCard) {
+      alert("Please upload Aadhar card");
+      return;
+    }
     createTenantMutation.mutate(formData);
   };
 
@@ -86,10 +124,23 @@ export default function AddTenant() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Photo Upload */}
         <div className="flex justify-center">
-          <div className="w-24 h-24 rounded-full bg-secondary border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground cursor-pointer hover:bg-secondary/80 transition-colors">
-            <Upload className="w-6 h-6 mb-1" />
-            <span className="text-[10px]">Upload Photo</span>
-          </div>
+          <label className="w-24 h-24 rounded-full bg-secondary border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground cursor-pointer hover:bg-secondary/80 transition-colors">
+            {photoPreview ? (
+              <img src={photoPreview} alt="Preview" className="w-full h-full rounded-full object-cover" />
+            ) : (
+              <>
+                <Upload className="w-6 h-6 mb-1" />
+                <span className="text-[10px]">Upload Photo</span>
+              </>
+            )}
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handlePhotoUpload} 
+              className="hidden"
+              data-testid="input-upload-photo"
+            />
+          </label>
         </div>
 
         <div className="space-y-4">
@@ -168,12 +219,26 @@ export default function AddTenant() {
           </div>
 
           <div className="space-y-2">
-            <Label>ID Proof (Aadhar/PAN)</Label>
-            <Card className="bg-card border-dashed">
-              <CardContent className="flex items-center justify-center py-8 text-muted-foreground text-sm cursor-pointer hover:bg-secondary/50">
-                Click to upload document
-              </CardContent>
-            </Card>
+            <Label htmlFor="aadhar">ID Proof (Aadhar/PAN)</Label>
+            <label htmlFor="aadhar" className="block">
+              <Card className="bg-card border-dashed cursor-pointer hover:bg-secondary/50 transition-colors">
+                <CardContent className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+                  {aadharPreview ? (
+                    <span className="text-foreground font-medium">{aadharPreview}</span>
+                  ) : (
+                    "Click to upload document"
+                  )}
+                </CardContent>
+              </Card>
+              <input 
+                id="aadhar"
+                type="file" 
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleAadharUpload} 
+                className="hidden"
+                data-testid="input-upload-aadhar"
+              />
+            </label>
           </div>
         </div>
 
