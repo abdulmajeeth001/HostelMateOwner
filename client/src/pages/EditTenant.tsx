@@ -83,8 +83,8 @@ export default function EditTenant() {
         name: tenant.name || "",
         email: tenant.email || "",
         phone: tenant.phone || "",
-        roomNumber: tenant.roomNumber || "",
-        monthlyRent: tenant.monthlyRent || "",
+        roomNumber: String(tenant.roomNumber || ""),
+        monthlyRent: String(tenant.monthlyRent || ""),
         tenantImage: tenant.tenantImage || "",
         aadharCard: tenant.aadharCard || "",
         emergencyContactName: tenant.emergencyContactName || "",
@@ -299,13 +299,13 @@ export default function EditTenant() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="room">Room No.</Label>
-              <Select value={formData.roomNumber} onValueChange={(val) => setFormData({...formData, roomNumber: val})}>
+              <Select value={formData.roomNumber || ""} onValueChange={(val) => setFormData({...formData, roomNumber: val})}>
                 <SelectTrigger className="bg-card" data-testid="select-edit-room">
                   <SelectValue placeholder="Select room" />
                 </SelectTrigger>
                 <SelectContent>
                   {rooms.map((room) => (
-                    <SelectItem key={room.id} value={room.roomNumber}>
+                    <SelectItem key={room.id} value={String(room.roomNumber)}>
                       {room.roomNumber}
                     </SelectItem>
                   ))}
