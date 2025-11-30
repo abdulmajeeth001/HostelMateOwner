@@ -1,5 +1,5 @@
 import MobileLayout from "@/components/layout/MobileLayout";
-import { Search, UserPlus, Edit2, Trash2 } from "lucide-react";
+import { Search, UserPlus, Edit2, Trash2, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -52,7 +52,7 @@ export default function TenantsList() {
     rent: `₹${t.monthlyRent}`,
     phone: t.phone,
     status: "Active",
-    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name)}&background=random`
+    avatar: t.tenantImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name)}&background=random`
   }));
 
   return (
@@ -102,6 +102,16 @@ export default function TenantsList() {
               </div>
 
               <div className="flex gap-1">
+                <Link href={`/tenants/view/${tenant.id}`}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 rounded-full hover:bg-green-100 hover:text-green-600"
+                    data-testid={`button-view-tenant-${tenant.id}`}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <Link href={`/tenants/edit/${tenant.id}`}>
                   <Button 
                     variant="ghost" 

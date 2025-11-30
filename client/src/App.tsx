@@ -13,6 +13,7 @@ import SubscriptionPlan from "@/pages/SubscriptionPlan";
 import TenantsList from "@/pages/TenantsList";
 import AddTenant from "@/pages/AddTenant";
 import EditTenant from "@/pages/EditTenant";
+import ViewTenant from "@/pages/ViewTenant";
 import Payments from "@/pages/Payments";
 import Notifications from "@/pages/Notifications";
 import Rooms from "@/pages/Rooms";
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/tenants" component={TenantsList} />
       <Route path="/tenants/add" component={AddTenant} />
+      <Route path="/tenants/view/:id" component={ViewTenant} />
       <Route path="/tenants/edit/:id" component={EditTenant} />
       <Route path="/payments" component={Payments} />
       <Route path="/notifications" component={Notifications} />
