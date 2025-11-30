@@ -42,6 +42,13 @@ export default function Rooms() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "fully_occupied" | "partially_occupied" | "vacant">("all");
 
+  const getRoomOccupancyStatus = (room: any) => {
+    const tenantCount = room.tenantIds?.length || 0;
+    if (tenantCount === 0) return "vacant";
+    if (tenantCount === room.sharing) return "fully_occupied";
+    return "partially_occupied";
+  };
+
   useEffect(() => {
     fetchRooms();
   }, []);
@@ -83,13 +90,6 @@ export default function Rooms() {
       return matchSearch && matchFilter;
     });
   }, [roomsData, search, filter]);
-
-  const getRoomOccupancyStatus = (room: any) => {
-    const tenantCount = room.tenantIds?.length || 0;
-    if (tenantCount === 0) return "vacant";
-    if (tenantCount === room.sharing) return "fully_occupied";
-    return "partially_occupied";
-  };
 
   const stats = {
     total: roomsData.length,
