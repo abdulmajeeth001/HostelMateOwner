@@ -127,3 +127,21 @@ export const insertRoomSchema = createInsertSchema(rooms).omit({
 });
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type Room = typeof rooms.$inferSelect;
+
+// PG Master table
+export const pgMaster = pgTable("pg_master", {
+  id: serial("id").primaryKey(),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  pgName: text("pg_name").notNull(),
+  pgAddress: text("pg_address").notNull(),
+  pgLocation: text("pg_location").notNull(),
+  totalRooms: integer("total_rooms").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPgMasterSchema = createInsertSchema(pgMaster).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertPgMaster = z.infer<typeof insertPgMasterSchema>;
+export type PgMaster = typeof pgMaster.$inferSelect;

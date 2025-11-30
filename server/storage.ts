@@ -11,12 +11,15 @@ import {
   type InsertNotification,
   type Room,
   type InsertRoom,
+  type PgMaster,
+  type InsertPgMaster,
   users,
   otpCodes,
   tenants,
   payments,
   notifications,
-  rooms
+  rooms,
+  pgMaster
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte } from "drizzle-orm";
@@ -64,6 +67,11 @@ export interface IStorage {
   getRoomWithTenant(roomId: number): Promise<any>;
   getAllRoomsWithTenants(ownerId: number): Promise<any[]>;
   seedInitialRooms(ownerId: number): Promise<void>;
+
+  // PG Master
+  getPgByOwnerId(ownerId: number): Promise<PgMaster | undefined>;
+  createPgMaster(pg: InsertPgMaster): Promise<PgMaster>;
+  updatePgMaster(ownerId: number, updates: Partial<PgMaster>): Promise<PgMaster | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -367,6 +375,22 @@ export class DatabaseStorage implements IStorage {
         amenities: data.amenities,
       });
     }
+  }
+
+  // PG Master
+  async getPgByOwnerId(ownerId: number): Promise<PgMaster | undefined> {
+    const result = await db.select().from(pgMaster).where(eq(pgMaster.ownerId, ownerId)).limit(1);
+    return result[0];
+  }
+
+  async createPgMaster(pg: InsertPgMaster): Promise<PgMaster> {
+    const result = await db.insert(pgMaster).values(pg).returning();
+    return result[0];
+  }
+
+  async updatePgMaster(ownerId: number, updates: Partial<PgMaster>): Promise<PgMaster | undefined> {
+    const result = await db.update(pgMaster).set(updates).where(eq(pgMaster.ownerId, ownerId)).returning();
+    return result[0];
   }
 }
 

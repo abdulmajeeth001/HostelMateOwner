@@ -170,6 +170,60 @@ export async function registerRoutes(
     res.json({ userId: req.session!.userId });
   });
 
+  // User profile update
+  app.post("/api/users/profile", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const { name, email, mobile } = req.body;
+      const updated = await storage.updateUser(userId, { name, email, mobile });
+      res.json({ success: true, user: updated });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update profile" });
+    }
+  });
+
+  app.get("/api/users/profile", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch profile" });
+    }
+  });
+
+  // PG Master endpoints
+  app.get("/api/pg", async (req, res) => {
+    try {
+      const userId = req.session!.userId || 1;
+      const pg = await storage.getPgByOwnerId(userId);
+      res.json(pg);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch PG details" });
+    }
+  });
+
+  app.post("/api/pg", async (req, res) => {
+    try {
+      const userId = req.session!.userId || 1;
+      const existing = await storage.getPgByOwnerId(userId);
+      
+      if (existing) {
+        const updated = await storage.updatePgMaster(userId, req.body);
+        res.json({ success: true, pg: updated });
+      } else {
+        const pg = await storage.createPgMaster({ ownerId: userId, ...req.body });
+        res.json({ success: true, pg });
+      }
+    } catch (error) {
+      res.status(400).json({ error: "Failed to save PG details" });
+    }
+  });
+
   // TENANT ROUTES
   app.post("/api/tenants", async (req, res) => {
     try {
