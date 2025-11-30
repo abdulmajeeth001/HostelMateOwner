@@ -33,20 +33,30 @@ export default function Settings() {
     const fetchData = async () => {
       try {
         const userRes = await fetch("/api/users/profile");
-        const pgRes = await fetch("/api/pg");
         
         if (userRes.ok) {
           const userData = await userRes.json();
-          setUser(userData);
-          if (userData?.name) {
-            setProfileForm({ name: userData.name, email: userData.email, mobile: userData.mobile });
+          if (userData && userData.id) {
+            setUser(userData);
+            setProfileForm({ 
+              name: userData.name || "", 
+              email: userData.email || "", 
+              mobile: userData.mobile || "" 
+            });
           }
         }
+        
+        const pgRes = await fetch("/api/pg");
         if (pgRes.ok) {
           const pgData = await pgRes.json();
-          if (pgData?.pgName) {
+          if (pgData && pgData.id) {
             setPg(pgData);
-            setPgForm({ pgName: pgData.pgName, pgAddress: pgData.pgAddress, pgLocation: pgData.pgLocation, totalRooms: pgData.totalRooms });
+            setPgForm({ 
+              pgName: pgData.pgName || "", 
+              pgAddress: pgData.pgAddress || "", 
+              pgLocation: pgData.pgLocation || "", 
+              totalRooms: pgData.totalRooms || 0 
+            });
           }
         }
       } catch (error) {
@@ -223,8 +233,8 @@ export default function Settings() {
               <Label>Total Rooms</Label>
               <Input 
                 type="number" 
-                value={pgForm.totalRooms}
-                onChange={(e) => setPgForm({ ...pgForm, totalRooms: parseInt(e.target.value) })}
+                value={pgForm.totalRooms || 0}
+                onChange={(e) => setPgForm({ ...pgForm, totalRooms: parseInt(e.target.value) || 0 })}
                 data-testid="input-settings-rooms" 
               />
             </div>
