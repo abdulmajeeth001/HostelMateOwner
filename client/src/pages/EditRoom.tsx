@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation, useParams } from "wouter";
 import { useState, useEffect } from "react";
-import { ChevronLeft, Wind, Bath, Users, MapPin, Trash2, X, Plus } from "lucide-react";
+import { ChevronLeft, Wind, Bath, Users, MapPin, Trash2, X, Plus, Edit2 } from "lucide-react";
 
 interface Tenant {
   id: number;
@@ -17,6 +17,7 @@ export default function EditRoom() {
   const { id } = useParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState("");
   const [isFetching, setIsFetching] = useState(true);
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -185,10 +186,22 @@ export default function EditRoom() {
             >
               <ChevronLeft className="w-6 h-6" />
             </Button>
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold text-slate-900">Edit Room</h1>
-              <p className="text-sm text-slate-500">Update room details and settings</p>
+              <p className="text-sm text-slate-500">{isEditing ? "Update room details" : "View room details"}</p>
             </div>
+            {!isEditing && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="gap-2"
+                data-testid="button-enter-edit-mode"
+              >
+                <Edit2 className="w-4 h-4" /> Edit
+              </Button>
+            )}
           </div>
 
           {error && (
@@ -214,9 +227,10 @@ export default function EditRoom() {
                   placeholder="e.g., 101"
                   value={formData.roomNumber}
                   onChange={(e) => handleInputChange("roomNumber", e.target.value)}
+                  disabled={!isEditing}
                   required
                   data-testid="input-room-number"
-                  className="h-11 border-slate-300 rounded-lg"
+                  className="h-11 border-slate-300 rounded-lg disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -228,9 +242,10 @@ export default function EditRoom() {
                   placeholder="e.g., 1"
                   value={formData.floor}
                   onChange={(e) => handleInputChange("floor", e.target.value)}
+                  disabled={!isEditing}
                   required
                   data-testid="input-floor"
-                  className="h-11 border-slate-300 rounded-lg"
+                  className="h-11 border-slate-300 rounded-lg disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -243,9 +258,10 @@ export default function EditRoom() {
                 placeholder="e.g., 5000"
                 value={formData.monthlyRent}
                 onChange={(e) => handleInputChange("monthlyRent", e.target.value)}
+                disabled={!isEditing}
                 required
                 data-testid="input-monthly-rent"
-                className="h-11 border-slate-300 rounded-lg text-lg font-semibold"
+                className="h-11 border-slate-300 rounded-lg text-lg font-semibold disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -263,7 +279,8 @@ export default function EditRoom() {
                 id="sharing"
                 value={formData.sharing}
                 onChange={(e) => handleInputChange("sharing", e.target.value)}
-                className="w-full px-3 py-3 border border-slate-300 rounded-lg bg-white text-slate-900 h-11 font-medium"
+                disabled={!isEditing}
+                className="w-full px-3 py-3 border border-slate-300 rounded-lg bg-white text-slate-900 h-11 font-medium disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
                 data-testid="select-sharing"
               >
                 {[1, 2, 3, 4, 5, 6].map(num => (
@@ -431,34 +448,57 @@ export default function EditRoom() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pb-6">
-            <Button 
-              type="button"
-              variant="outline" 
-              className="h-12 rounded-lg"
-              onClick={() => setLocation("/rooms")}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              className="flex-1 h-12 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
-              disabled={isLoading} 
-              data-testid="button-edit-room-submit"
-            >
-              {isLoading ? "Updating Room..." : "Update Room"}
-            </Button>
-            <Button 
-              type="button"
-              variant="outline" 
-              className="h-12 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              data-testid="button-delete-room"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
+          {isEditing ? (
+            <div className="flex gap-3 pb-6">
+              <Button 
+                type="button"
+                variant="outline" 
+                className="h-12 rounded-lg"
+                onClick={() => setIsEditing(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="flex-1 h-12 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                disabled={isLoading} 
+                data-testid="button-edit-room-submit"
+              >
+                {isLoading ? "Updating Room..." : "Update Room"}
+              </Button>
+              <Button 
+                type="button"
+                variant="outline" 
+                className="h-12 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                data-testid="button-delete-room"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-3 pb-6">
+              <Button 
+                type="button"
+                variant="outline" 
+                className="flex-1 h-12 rounded-lg"
+                onClick={() => setLocation("/rooms")}
+              >
+                Back to Rooms
+              </Button>
+              <Button 
+                type="button"
+                variant="outline" 
+                className="h-12 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                data-testid="button-delete-room"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </form>
       </div>
     </MobileLayout>
