@@ -100,16 +100,16 @@ export default function TenantsList() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white bg-opacity-20 rounded-lg p-3">
-              <p className="text-xs text-blue-100 mb-1">Total</p>
-              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs text-white font-medium mb-1">Total</p>
+              <p className="text-2xl font-bold text-white">{stats.total}</p>
             </div>
             <div className="bg-white bg-opacity-20 rounded-lg p-3">
-              <p className="text-xs text-blue-100 mb-1">Active</p>
-              <p className="text-2xl font-bold text-green-300">{stats.active}</p>
+              <p className="text-xs text-white font-medium mb-1">Active</p>
+              <p className="text-2xl font-bold text-white">{stats.active}</p>
             </div>
             <div className="bg-white bg-opacity-20 rounded-lg p-3">
-              <p className="text-xs text-blue-100 mb-1">Inactive</p>
-              <p className="text-2xl font-bold text-yellow-300">{stats.inactive}</p>
+              <p className="text-xs text-white font-medium mb-1">Inactive</p>
+              <p className="text-2xl font-bold text-white">{stats.inactive}</p>
             </div>
           </div>
         </div>
