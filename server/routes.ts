@@ -713,6 +713,8 @@ export async function registerRoutes(
         phone: body.phone,
         roomNumber: body.roomNumber,
         monthlyRent: body.monthlyRent.toString(),
+        tenantImage: body.tenantImage,
+        aadharCard: body.aadharCard,
       });
       if (!tenant) {
         return res.status(404).json({ error: "Tenant not found" });

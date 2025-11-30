@@ -5,9 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useRoute } from "wouter";
-import { ChevronLeft, Upload } from "lucide-react";
+import { ChevronLeft, Upload, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import pako from "pako";
 
 interface Room {
   id: number;
@@ -26,8 +27,11 @@ export default function EditTenant() {
     phone: "",
     roomNumber: "",
     monthlyRent: "",
+    tenantImage: "",
+    aadharCard: "",
   });
   const [photoPreview, setPhotoPreview] = useState<string>("");
+  const [aadharPreview, setAadharPreview] = useState<string>("");
 
   const tenantId = params?.id ? parseInt(params.id) : null;
 
@@ -61,9 +65,14 @@ export default function EditTenant() {
         phone: tenant.phone || "",
         roomNumber: tenant.roomNumber || "",
         monthlyRent: tenant.monthlyRent || "",
+        tenantImage: tenant.tenantImage || "",
+        aadharCard: tenant.aadharCard || "",
       });
-      if (tenant.photoUrl) {
-        setPhotoPreview(tenant.photoUrl);
+      if (tenant.tenantImage) {
+        setPhotoPreview(tenant.tenantImage);
+      }
+      if (tenant.aadharCard) {
+        setAadharPreview("Document uploaded");
       }
     }
   }, [tenant]);
@@ -77,6 +86,74 @@ export default function EditTenant() {
       }
     }
   }, [formData.roomNumber, rooms]);
+
+  const compressImage = (base64: string, quality: number = 0.8): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          const compressed = canvas.toDataURL("image/jpeg", quality);
+          resolve(compressed);
+        }
+      };
+      img.src = base64;
+    });
+  };
+
+  const compressDocument = (base64: string): string => {
+    try {
+      const dataPart = base64.split(",")[1];
+      if (!dataPart) return base64;
+      
+      const binaryString = atob(dataPart);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const compressed = pako.deflate(bytes);
+      const compressedBinary = String.fromCharCode.apply(null, Array.from(compressed));
+      const compressedBase64 = btoa(compressedBinary);
+      
+      return `data:application/gzip;base64,${compressedBase64}`;
+    } catch (error) {
+      console.error("Compression failed:", error);
+      return base64;
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        const compressed = await compressImage(base64, 0.7);
+        setFormData({...formData, tenantImage: compressed});
+        setPhotoPreview(compressed);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAadharUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        const compressed = compressDocument(base64);
+        setFormData({...formData, aadharCard: compressed});
+        setAadharPreview(file.name);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const updateTenantMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -135,17 +212,23 @@ export default function EditTenant() {
         {/* Photo Upload */}
         <div className="flex justify-center">
           {photoPreview ? (
-            <div className="relative">
-              <img src={photoPreview} alt="Preview" className="w-24 h-24 rounded-full object-cover" />
-              <div className="absolute inset-0 w-24 h-24 rounded-full bg-black/20 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                <Upload className="w-6 h-6 text-white" />
+            <label className="cursor-pointer">
+              <div className="relative">
+                <img src={photoPreview} alt="Preview" className="w-24 h-24 rounded-full object-cover" data-testid="img-edit-tenant-preview" />
+                <div className="absolute inset-0 w-24 h-24 rounded-full bg-black/20 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                  <Upload className="w-6 h-6 text-white" />
+                </div>
               </div>
-            </div>
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" data-testid="input-edit-photo" />
+            </label>
           ) : (
-            <div className="w-24 h-24 rounded-full bg-secondary border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground cursor-pointer hover:bg-secondary/80 transition-colors">
-              <Upload className="w-6 h-6 mb-1" />
-              <span className="text-[10px]">Upload Photo</span>
-            </div>
+            <label className="cursor-pointer">
+              <div className="w-24 h-24 rounded-full bg-secondary border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground cursor-pointer hover:bg-secondary/80 transition-colors">
+                <Upload className="w-6 h-6 mb-1" />
+                <span className="text-[10px]">Upload Photo</span>
+              </div>
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" data-testid="input-edit-photo" />
+            </label>
           )}
         </div>
 
@@ -226,11 +309,22 @@ export default function EditTenant() {
 
           <div className="space-y-2">
             <Label>ID Proof (Aadhar/PAN)</Label>
-            <Card className="bg-card border-dashed">
-              <CardContent className="flex items-center justify-center py-8 text-muted-foreground text-sm cursor-pointer hover:bg-secondary/50">
-                Click to upload document
-              </CardContent>
-            </Card>
+            <label className="cursor-pointer">
+              <Card className="bg-card border-dashed hover:bg-secondary/30 transition-colors">
+                <CardContent className="flex items-center justify-center py-8">
+                  <div className="flex flex-col items-center gap-2">
+                    <FileText className="w-6 h-6 text-muted-foreground" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {aadharPreview ? aadharPreview : "Click to upload document"}
+                      </p>
+                      {aadharPreview && <p className="text-xs text-muted-foreground/70">Click to replace</p>}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleAadharUpload} className="hidden" data-testid="input-edit-aadhar" />
+            </label>
           </div>
         </div>
 
