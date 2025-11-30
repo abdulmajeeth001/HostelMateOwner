@@ -265,27 +265,29 @@ export default function ViewTenant() {
         {emergencyContacts && emergencyContacts.length > 0 && (
           <div className="space-y-3">
             <h3 className="font-semibold text-red-900 px-1">Emergency Contacts ({emergencyContacts.length})</h3>
-            {emergencyContacts.map((contact, index) => (
-              <Card key={contact.id} className="border-l-4 border-l-red-500">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Contact {index + 1}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <span className="text-muted-foreground text-sm font-medium w-24">Name:</span>
-                    <p className="font-medium" data-testid={`text-emergency-name-${contact.id}`}>{contact.name}</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-muted-foreground text-sm font-medium w-24">Phone:</span>
-                    <p className="font-medium" data-testid={`text-emergency-phone-${contact.id}`}>{contact.phone}</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-muted-foreground text-sm font-medium w-24">Relationship:</span>
-                    <p className="font-medium" data-testid={`text-relationship-${contact.id}`}>{contact.relationship}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            <div className="max-h-80 overflow-y-auto space-y-3 pr-2">
+              {emergencyContacts.map((contact, index) => (
+                <Card key={contact.id} className="border-l-4 border-l-red-500">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Contact {index + 1}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <span className="text-muted-foreground text-sm font-medium w-24">Name:</span>
+                      <p className="font-medium" data-testid={`text-emergency-name-${contact.id}`}>{contact.name}</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-muted-foreground text-sm font-medium w-24">Phone:</span>
+                      <p className="font-medium" data-testid={`text-emergency-phone-${contact.id}`}>{contact.phone}</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-muted-foreground text-sm font-medium w-24">Relationship:</span>
+                      <p className="font-medium" data-testid={`text-relationship-${contact.id}`}>{contact.relationship}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
 
