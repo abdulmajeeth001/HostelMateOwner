@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import LocationPicker from "@/components/LocationPicker";
 import { Bell, Lock, User, Building, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
@@ -188,24 +189,30 @@ export default function Settings() {
                 data-testid="input-settings-pgaddress" 
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Location/Area</Label>
-                <Input 
-                  value={pgForm.pgLocation}
-                  onChange={(e) => setPgForm({ ...pgForm, pgLocation: e.target.value })}
-                  data-testid="input-settings-pglocation" 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Total Rooms</Label>
-                <Input 
-                  type="number" 
-                  value={pgForm.totalRooms}
-                  onChange={(e) => setPgForm({ ...pgForm, totalRooms: parseInt(e.target.value) })}
-                  data-testid="input-settings-rooms" 
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Pick Location</Label>
+              <LocationPicker 
+                onLocationSelect={(location) => {
+                  setPgForm(prev => ({
+                    ...prev,
+                    pgAddress: location.address,
+                    pgLocation: location.city
+                  }));
+                }}
+                selectedLocation={{
+                  address: pgForm.pgAddress,
+                  city: pgForm.pgLocation
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Total Rooms</Label>
+              <Input 
+                type="number" 
+                value={pgForm.totalRooms}
+                onChange={(e) => setPgForm({ ...pgForm, totalRooms: parseInt(e.target.value) })}
+                data-testid="input-settings-rooms" 
+              />
             </div>
             <Button onClick={handleSavePg} disabled={pgSaveLoading} data-testid="button-save-pg">
               {pgSaveLoading ? "Updating..." : "Update PG Info"}
