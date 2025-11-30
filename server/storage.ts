@@ -42,6 +42,7 @@ export interface IStorage {
   // Tenants
   getTenants(ownerId: number): Promise<Tenant[]>;
   getTenant(id: number): Promise<Tenant | undefined>;
+  getTenantByUserId(userId: number): Promise<Tenant | undefined>;
   getAvailableTenants(ownerId: number): Promise<Tenant[]>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, updates: Partial<Tenant>): Promise<Tenant | undefined>;
@@ -70,6 +71,7 @@ export interface IStorage {
 
   // PG Master
   getPgByOwnerId(ownerId: number): Promise<PgMaster | undefined>;
+  getPgById(pgId: number): Promise<PgMaster | undefined>;
   createPgMaster(pg: InsertPgMaster): Promise<PgMaster>;
   updatePgMaster(ownerId: number, updates: Partial<PgMaster>): Promise<PgMaster | undefined>;
 }
@@ -147,6 +149,11 @@ export class DatabaseStorage implements IStorage {
 
   async getTenant(id: number): Promise<Tenant | undefined> {
     const result = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getTenantByUserId(userId: number): Promise<Tenant | undefined> {
+    const result = await db.select().from(tenants).where(eq(tenants.userId, userId)).limit(1);
     return result[0];
   }
 
@@ -380,6 +387,11 @@ export class DatabaseStorage implements IStorage {
   // PG Master
   async getPgByOwnerId(ownerId: number): Promise<PgMaster | undefined> {
     const result = await db.select().from(pgMaster).where(eq(pgMaster.ownerId, ownerId)).limit(1);
+    return result[0];
+  }
+
+  async getPgById(pgId: number): Promise<PgMaster | undefined> {
+    const result = await db.select().from(pgMaster).where(eq(pgMaster.id, pgId)).limit(1);
     return result[0];
   }
 

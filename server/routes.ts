@@ -171,12 +171,20 @@ export async function registerRoutes(
         return res.json({ 
           success: true, 
           user: { id: user.id, email: user.email, name: user.name },
-          requiresPasswordReset: true 
+          requiresPasswordReset: true,
+          redirectUrl: "/tenant-reset-password"
         });
       }
 
       req.session!.userId = user.id;
-      res.json({ success: true, user: { id: user.id, email: user.email, name: user.name } });
+      
+      // Redirect based on user type
+      let redirectUrl = "/dashboard";
+      if (user.userType === "tenant") {
+        redirectUrl = "/tenant-dashboard";
+      }
+      
+      res.json({ success: true, user: { id: user.id, email: user.email, name: user.name, userType: user.userType }, redirectUrl });
     } catch (error) {
       console.error("Login error:", error);
       res.status(400).json({ error: "Invalid login data" });
@@ -275,6 +283,153 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Password reset verification error:", error);
       res.status(400).json({ error: "Failed to reset password", details: (error as any).message });
+    }
+  });
+
+  // TENANT DASHBOARD ROUTES
+  app.get("/api/tenant/dashboard", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Get tenant record for this user
+      const tenant = await storage.getTenantByUserId(userId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant record not found" });
+      }
+
+      res.json({
+        name: tenant.name,
+        roomNumber: tenant.roomNumber,
+        monthlyRent: tenant.monthlyRent,
+      });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch dashboard data" });
+    }
+  });
+
+  app.get("/api/tenant/profile", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      res.json({
+        name: user.name,
+        email: user.email,
+        phone: user.mobile,
+        joinDate: user.createdAt,
+      });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch profile" });
+    }
+  });
+
+  app.get("/api/tenant/room", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const tenant = await storage.getTenantByUserId(userId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant record not found" });
+      }
+
+      const room = await storage.getRoomByNumber(tenant.ownerId, tenant.roomNumber);
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+
+      res.json(room);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch room details" });
+    }
+  });
+
+  app.get("/api/tenant/payments", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const tenant = await storage.getTenantByUserId(userId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant record not found" });
+      }
+
+      const payments = await storage.getPaymentsByTenant(tenant.id);
+      res.json(payments);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch payments" });
+    }
+  });
+
+  app.get("/api/tenant/pg", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const tenant = await storage.getTenantByUserId(userId);
+      if (!tenant || !tenant.pgId) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+
+      const pg = await storage.getPgById(tenant.pgId);
+      res.json(pg || {});
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch PG details" });
+    }
+  });
+
+  app.get("/api/tenant/facilities", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Return default facilities for now
+      res.json([
+        { name: "WiFi", available: true },
+        { name: "Water Supply", available: true },
+        { name: "Electricity", available: true },
+        { name: "Kitchen", available: true },
+      ]);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch facilities" });
     }
   });
 

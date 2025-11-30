@@ -22,6 +22,13 @@ import Complaints from "@/pages/Complaints";
 import Maintenance from "@/pages/Maintenance";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
+import TenantResetPassword from "@/pages/TenantResetPassword";
+import TenantDashboard from "@/pages/TenantDashboard";
+import TenantProfile from "@/pages/TenantProfile";
+import TenantRoomDetails from "@/pages/TenantRoomDetails";
+import TenantPayments from "@/pages/TenantPayments";
+import TenantPgDetails from "@/pages/TenantPgDetails";
+import TenantPgFacilities from "@/pages/TenantPgFacilities";
 
 function Router() {
   return (
@@ -43,6 +50,13 @@ function Router() {
       <Route path="/maintenance" component={Maintenance} />
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
+      <Route path="/tenant-reset-password" component={TenantResetPassword} />
+      <Route path="/tenant-dashboard" component={TenantDashboard} />
+      <Route path="/tenant-profile" component={TenantProfile} />
+      <Route path="/tenant-room" component={TenantRoomDetails} />
+      <Route path="/tenant-payments" component={TenantPayments} />
+      <Route path="/tenant-pg" component={TenantPgDetails} />
+      <Route path="/tenant-facilities" component={TenantPgFacilities} />
       <Route component={NotFound} />
     </Switch>
   );
