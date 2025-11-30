@@ -8,6 +8,7 @@ import { useLocation } from "wouter";
 import { ChevronLeft, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import pako from "pako";
 
 interface Room {
   id: number;
@@ -73,14 +74,61 @@ export default function AddTenant() {
     },
   });
 
+  const compressImage = (base64: string, quality: number = 0.8): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          const compressed = canvas.toDataURL("image/jpeg", quality);
+          resolve(compressed);
+        }
+      };
+      img.src = base64;
+    });
+  };
+
+  const compressDocument = (base64: string): string => {
+    try {
+      // Extract the actual data part (after "data:...;base64,")
+      const dataPart = base64.split(",")[1];
+      if (!dataPart) return base64;
+      
+      // Convert base64 to binary
+      const binaryString = atob(dataPart);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      // Compress using pako
+      const compressed = pako.deflate(bytes);
+      
+      // Convert compressed data to base64
+      const compressedBinary = String.fromCharCode.apply(null, Array.from(compressed));
+      const compressedBase64 = btoa(compressedBinary);
+      
+      // Return with metadata
+      return `data:application/gzip;base64,${compressedBase64}`;
+    } catch (error) {
+      console.error("Compression failed:", error);
+      return base64;
+    }
+  };
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const base64 = event.target?.result as string;
-        setFormData({...formData, tenantImage: base64});
-        setPhotoPreview(base64);
+        const compressed = await compressImage(base64, 0.7);
+        setFormData({...formData, tenantImage: compressed});
+        setPhotoPreview(compressed);
       };
       reader.readAsDataURL(file);
     }
@@ -92,7 +140,8 @@ export default function AddTenant() {
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
-        setFormData({...formData, aadharCard: base64});
+        const compressed = compressDocument(base64);
+        setFormData({...formData, aadharCard: compressed});
         setAadharPreview(file.name);
       };
       reader.readAsDataURL(file);
