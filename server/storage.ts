@@ -104,6 +104,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    // Hash password if it's being updated
+    if (updates.password) {
+      updates.password = await bcrypt.hash(updates.password, 10);
+    }
+    
     const result = await db.update(users).set(updates).where(eq(users.id, id)).returning();
     return result[0];
   }
