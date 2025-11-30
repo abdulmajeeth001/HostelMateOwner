@@ -115,6 +115,17 @@ export async function registerRoutes(
         isVerified: true,
       });
 
+      // Create PG record for owner users
+      if (registrationData.userType === "owner" && (registrationData.pgAddress || registrationData.pgLocation)) {
+        await storage.createPgMaster({
+          ownerId: user.id,
+          pgName: registrationData.pgAddress || "My PG",
+          pgAddress: registrationData.pgAddress || "",
+          pgLocation: registrationData.pgLocation || "",
+          totalRooms: 0,
+        });
+      }
+
       // Delete used OTP
       await storage.deleteOtp(validOtp.id);
       delete req.session!.registrationData;

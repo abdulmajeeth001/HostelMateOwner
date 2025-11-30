@@ -295,9 +295,9 @@ export default function Settings() {
                 className={!editingPg ? "bg-muted" : ""}
               />
             </div>
-            {editingPg && (
-              <div className="space-y-2">
-                <Label>Pick Location</Label>
+            <div className="space-y-2">
+              <Label>Pick Location</Label>
+              {editingPg ? (
                 <LocationPicker 
                   onLocationSelect={(location) => {
                     setPgForm(prev => ({
@@ -311,8 +311,15 @@ export default function Settings() {
                     city: pgForm.pgLocation
                   }}
                 />
-              </div>
-            )}
+              ) : (
+                <Input 
+                  value={pgForm.pgLocation}
+                  disabled={true}
+                  data-testid="input-settings-pglocation"
+                  className="bg-muted"
+                />
+              )}
+            </div>
             <div className="space-y-2">
               <Label>Total Rooms</Label>
               <Input 
