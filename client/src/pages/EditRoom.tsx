@@ -339,12 +339,19 @@ export default function EditRoom() {
                     <Plus className="w-4 h-4" /> Add
                   </Button>
                 </div>
+                <p className="text-xs text-slate-500">Only shows tenants not already assigned to other rooms</p>
               </div>
             )}
 
             {!canAddMore && (
               <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-sm text-blue-700">✓ All {sharingNum} slots are filled</p>
+              </div>
+            )}
+
+            {availableTenants.length === 0 && selectedTenants.length === 0 && (
+              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-sm text-yellow-700">No available tenants (optional - you can leave this room vacant). Add tenants and load them here.</p>
               </div>
             )}
           </div>
