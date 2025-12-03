@@ -108,8 +108,8 @@ export default function PGManagement() {
       toast.success("PG deleted successfully!");
       setIsDeleteDialogOpen(false);
       setSelectedPg(null);
-    } catch (error) {
-      toast.error("Failed to delete PG");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete PG");
     } finally {
       setIsSubmitting(false);
     }

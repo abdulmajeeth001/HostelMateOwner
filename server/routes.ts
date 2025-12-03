@@ -622,7 +622,15 @@ export async function registerRoutes(
       }
       
       (req.session as any).selectedPgId = pgId;
-      res.json({ success: true, pg });
+      
+      // Explicitly save session to ensure persistence
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ error: "Failed to save session" });
+        }
+        res.json({ success: true, pg });
+      });
     } catch (error) {
       res.status(400).json({ error: "Failed to select PG" });
     }
@@ -703,14 +711,35 @@ export async function registerRoutes(
         return res.status(404).json({ error: "PG not found" });
       }
       
-      await storage.deletePgMaster(pgId);
+      // Get all PGs before deletion to know if we need to auto-select another
+      const allPgs = await storage.getAllPgsByOwnerId(userId);
       
-      // If this was the selected PG, clear selection
-      if ((req.session as any).selectedPgId === pgId) {
-        delete (req.session as any).selectedPgId;
+      // Don't allow deleting the last PG
+      if (allPgs.length <= 1) {
+        return res.status(400).json({ error: "Cannot delete your only PG. Create another PG first." });
       }
       
-      res.json({ success: true });
+      await storage.deletePgMaster(pgId);
+      
+      let newActivePg = null;
+      
+      // If this was the selected PG, auto-select another one
+      if ((req.session as any).selectedPgId === pgId) {
+        // Find another PG to select
+        newActivePg = allPgs.find(p => p.id !== pgId);
+        if (newActivePg) {
+          (req.session as any).selectedPgId = newActivePg.id;
+        } else {
+          delete (req.session as any).selectedPgId;
+        }
+      }
+      
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+        }
+        res.json({ success: true, newActivePg });
+      });
     } catch (error) {
       res.status(400).json({ error: "Failed to delete PG" });
     }

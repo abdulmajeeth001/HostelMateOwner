@@ -161,13 +161,21 @@ export function usePG() {
       });
       
       if (!res.ok) {
-        throw new Error("Failed to delete PG");
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete PG");
+      }
+      
+      const data = await res.json();
+      
+      // If a new active PG was returned, update the current PG state
+      if (data.newActivePg) {
+        setPG(data.newActivePg);
       }
       
       await fetchAllPgs();
       
-      // If deleted the current PG, refresh the current PG
-      if (pg?.id === pgId) {
+      // If deleted the current PG and no newActivePg was returned, refresh
+      if (pg?.id === pgId && !data.newActivePg) {
         await fetchPG();
       }
       
