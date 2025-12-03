@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function TenantsList() {
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
   const [deletingTenantId, setDeletingTenantId] = useState<number | null>(null);
