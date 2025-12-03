@@ -25,6 +25,10 @@ const bulkRoomRowSchema = z.object({
   floor: z.coerce.number().int().min(0).default(1),
   sharing: z.coerce.number().int().min(1).max(10).default(1),
   monthlyRent: z.coerce.number().positive("Monthly rent must be positive"),
+  status: z.preprocess(
+    (val) => typeof val === 'string' && val.trim() !== '' ? val.trim().toLowerCase() : undefined,
+    z.enum(['vacant', 'partially_occupied', 'fully_occupied']).optional()
+  ),
   hasAttachedBathroom: z.preprocess(
     (val) => val === 'true' || val === 'yes' || val === '1' || val === true,
     z.boolean().default(false)
@@ -1209,6 +1213,7 @@ export async function registerRoutes(
             floor: row.floor || '1',
             sharing: row.sharing || row.sharingcapacity || row['sharing capacity'] || '1',
             monthlyRent: row.monthlyrent || row.monthly_rent || row['monthly rent'] || row.rent || '0',
+            status: row.status || '',
             hasAttachedBathroom: row.hasattachedbathroom || row.attached_bathroom || row['attached bathroom'] || 'false',
             hasAC: row.hasac || row.ac || row['has ac'] || 'false',
             amenities: row.amenities || '',
@@ -1273,10 +1278,17 @@ export async function registerRoutes(
             continue;
           }
 
-          // Determine room status based on occupancy
-          let status = 'vacant';
-          if (tenantIds.length > 0) {
-            status = tenantIds.length >= validatedRow.sharing ? 'fully_occupied' : 'partially_occupied';
+          // Determine room status: use CSV-specified status or compute from occupancy
+          let status = validatedRow.status;
+          if (!status) {
+            // Auto-compute status based on tenant count
+            if (tenantIds.length === 0) {
+              status = 'vacant';
+            } else if (tenantIds.length >= validatedRow.sharing) {
+              status = 'fully_occupied';
+            } else {
+              status = 'partially_occupied';
+            }
           }
 
           roomsToCreate.push({
@@ -1344,10 +1356,10 @@ export async function registerRoutes(
 
   // Download CSV template for bulk upload
   app.get("/api/rooms/bulk-upload-template", async (req, res) => {
-    const template = `roomNumber,floor,sharing,monthlyRent,hasAttachedBathroom,hasAC,amenities,tenantIdentifiers
-101,1,2,8000,true,false,WiFi;Water;Power,
-102,1,3,10000,false,true,WiFi;Power,tenant@email.com
-103,2,1,6000,true,true,WiFi;Water,`;
+    const template = `roomNumber,floor,sharing,monthlyRent,status,hasAttachedBathroom,hasAC,amenities,tenantIdentifiers
+101,1,2,8000,vacant,true,false,WiFi;Water;Power,
+102,1,3,10000,partially_occupied,false,true,WiFi;Power,tenant@email.com
+103,2,1,6000,,true,true,WiFi;Water,`;
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=room_bulk_upload_template.csv');
