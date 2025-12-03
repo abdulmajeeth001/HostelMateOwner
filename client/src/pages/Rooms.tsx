@@ -127,24 +127,25 @@ export default function Rooms() {
 
   return (
     <DesktopLayout 
-      title="Room Management" 
+      title="Rooms" 
       action={
-        <div className="flex gap-2">
+        <div className="flex gap-1 sm:gap-2">
           {roomsData.length === 0 && (
-            <Button onClick={handleSeedRooms} className="gap-2" data-testid="button-seed-rooms">
-              <Plus className="w-4 h-4" /> Seed Demo Rooms
+            <Button onClick={handleSeedRooms} className="gap-1 text-xs sm:text-sm px-2 sm:px-3" size="sm" data-testid="button-seed-rooms">
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Seed Demo</span>
             </Button>
           )}
           <Button 
             variant="outline" 
             onClick={() => setBulkUploadOpen(true)} 
-            className="gap-2"
+            className="gap-1 text-xs sm:text-sm px-2 sm:px-3"
+            size="sm"
             data-testid="button-bulk-upload"
           >
-            <Upload className="w-4 h-4" /> Bulk Upload
+            <Upload className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden xs:inline">Bulk</span>
           </Button>
-          <Button onClick={() => setLocation("/rooms/add")} className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800" data-testid="button-add-room">
-            <Plus className="w-4 h-4" /> Add Room
+          <Button onClick={() => setLocation("/rooms/add")} className="gap-1 text-xs sm:text-sm px-2 sm:px-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800" size="sm" data-testid="button-add-room">
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden xs:inline">Add</span>
           </Button>
         </div>
       }
@@ -163,48 +164,48 @@ export default function Rooms() {
         ) : (
           <>
             {/* Header with Stats */}
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-2xl p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Rooms Overview</h2>
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-2xl p-4 sm:p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h2 className="text-lg sm:text-2xl font-bold">Rooms Overview</h2>
               </div>
-              <div className="grid grid-cols-4 gap-3">
-                <div className="bg-white rounded-lg p-3">
-                  <p className="text-xs text-purple-600 font-medium mb-1">Total</p>
-                  <p className="text-2xl font-bold text-purple-900">{stats.total}</p>
+              <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                <div className="bg-white rounded-lg p-2 sm:p-3 text-center">
+                  <p className="text-[10px] sm:text-xs text-purple-600 font-medium mb-0.5 sm:mb-1">Total</p>
+                  <p className="text-xl sm:text-2xl font-bold text-purple-900">{stats.total}</p>
                 </div>
-                <div className="bg-white rounded-lg p-3">
-                  <p className="text-xs text-green-600 font-medium mb-1">Fully Occupied</p>
-                  <p className="text-2xl font-bold text-green-900">{stats.fully_occupied}</p>
+                <div className="bg-white rounded-lg p-2 sm:p-3 text-center">
+                  <p className="text-[10px] sm:text-xs text-green-600 font-medium mb-0.5 sm:mb-1">Full</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-900">{stats.fully_occupied}</p>
                 </div>
-                <div className="bg-white rounded-lg p-3">
-                  <p className="text-xs text-yellow-600 font-medium mb-1">Partial</p>
-                  <p className="text-2xl font-bold text-yellow-900">{stats.partially_occupied}</p>
+                <div className="bg-white rounded-lg p-2 sm:p-3 text-center">
+                  <p className="text-[10px] sm:text-xs text-yellow-600 font-medium mb-0.5 sm:mb-1">Partial</p>
+                  <p className="text-xl sm:text-2xl font-bold text-yellow-900">{stats.partially_occupied}</p>
                 </div>
-                <div className="bg-white rounded-lg p-3">
-                  <p className="text-xs text-orange-600 font-medium mb-1">Vacant</p>
-                  <p className="text-2xl font-bold text-orange-900">{stats.vacant}</p>
+                <div className="bg-white rounded-lg p-2 sm:p-3 text-center">
+                  <p className="text-[10px] sm:text-xs text-orange-600 font-medium mb-0.5 sm:mb-1">Vacant</p>
+                  <p className="text-xl sm:text-2xl font-bold text-orange-900">{stats.vacant}</p>
                 </div>
               </div>
             </div>
 
             {/* Search and Filters */}
-            <div className="flex gap-3">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <div className="space-y-3">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                 <Input 
-                  placeholder="Search by room number..." 
-                  className="pl-10 h-10 bg-secondary border border-border rounded-lg"
+                  placeholder="Search room..." 
+                  className="pl-9 sm:pl-10 h-9 sm:h-10 bg-secondary border border-border rounded-lg text-sm"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   data-testid="input-search-room"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
                 {filterTabs.map((tab) => (
                   <button
                     key={tab.value}
                     onClick={() => setFilter(tab.value)}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
                       filter === tab.value
                         ? "bg-purple-600 text-white shadow-md"
                         : "bg-secondary text-muted-foreground hover:bg-secondary/80"
@@ -218,7 +219,7 @@ export default function Rooms() {
             </div>
 
             {/* Rooms Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredRooms.length === 0 ? (
                 <div className="col-span-full text-center py-12 text-muted-foreground">
                   No rooms found matching your criteria
