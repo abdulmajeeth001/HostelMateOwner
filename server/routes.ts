@@ -79,6 +79,7 @@ const otpVerificationSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string(),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 const createTenantSchema = z.object({
@@ -211,6 +212,13 @@ export async function registerRoutes(
 
       if (!user.isVerified) {
         return res.status(401).json({ error: "Email not verified. Please verify your email to login." });
+      }
+
+      // Handle Remember Me - extend session to 30 days if checked
+      if (body.rememberMe) {
+        req.session!.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      } else {
+        req.session!.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours (default)
       }
 
       // Check if user needs password reset (for newly invited tenants)

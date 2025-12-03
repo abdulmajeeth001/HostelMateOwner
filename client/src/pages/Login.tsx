@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -27,7 +28,7 @@ export default function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
 
       if (!res.ok) {
@@ -116,9 +117,17 @@ export default function Login() {
                 </div>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <div className="w-4 h-4 border rounded border-muted-foreground/50 flex items-center justify-center">
-                    <CheckCircle2 className="w-3 h-3 text-primary hidden" />
+                <label 
+                  className="flex items-center gap-2 cursor-pointer select-none"
+                  onClick={() => setRememberMe(!rememberMe)}
+                  data-testid="label-remember-me"
+                >
+                  <div className={`w-4 h-4 border rounded flex items-center justify-center transition-colors ${
+                    rememberMe 
+                      ? 'bg-primary border-primary' 
+                      : 'border-muted-foreground/50 hover:border-primary/50'
+                  }`}>
+                    {rememberMe && <Check className="w-3 h-3 text-primary-foreground" />}
                   </div>
                   <span className="text-muted-foreground">Remember me</span>
                 </label>
