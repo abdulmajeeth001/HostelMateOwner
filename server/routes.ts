@@ -3,6 +3,45 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotificationSchema, insertRoomSchema, insertEmergencyContactSchema } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
+import Papa from "papaparse";
+
+// Configure multer for file upload (memory storage for CSV processing)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'));
+    }
+  }
+});
+
+// Schema for bulk room upload row
+const bulkRoomRowSchema = z.object({
+  roomNumber: z.string().min(1, "Room number is required"),
+  floor: z.coerce.number().int().min(0).default(1),
+  sharing: z.coerce.number().int().min(1).max(10).default(1),
+  monthlyRent: z.coerce.number().positive("Monthly rent must be positive"),
+  hasAttachedBathroom: z.preprocess(
+    (val) => val === 'true' || val === 'yes' || val === '1' || val === true,
+    z.boolean().default(false)
+  ),
+  hasAC: z.preprocess(
+    (val) => val === 'true' || val === 'yes' || val === '1' || val === true,
+    z.boolean().default(false)
+  ),
+  amenities: z.preprocess(
+    (val) => typeof val === 'string' ? val.split(';').map(s => s.trim()).filter(Boolean) : [],
+    z.array(z.string()).default([])
+  ),
+  tenantIdentifiers: z.preprocess(
+    (val) => typeof val === 'string' ? val.split(';').map(s => s.trim()).filter(Boolean) : [],
+    z.array(z.string()).default([])
+  ),
+});
 
 declare global {
   namespace Express {
@@ -1100,6 +1139,219 @@ export async function registerRoutes(
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch rooms" });
     }
+  });
+
+  // Bulk upload rooms from CSV
+  app.post("/api/rooms/bulk-upload", upload.single('file'), async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Get owner's current PG
+      const selectedPgId = (req.session as any).selectedPgId;
+      let pg;
+      if (selectedPgId) {
+        pg = await storage.getPgById(selectedPgId);
+        if (!pg || pg.ownerId !== userId) {
+          pg = await storage.getPgByOwnerId(userId);
+        }
+      } else {
+        pg = await storage.getPgByOwnerId(userId);
+      }
+      
+      if (!pg) {
+        return res.status(400).json({ error: "Please create a PG first" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const csvContent = req.file.buffer.toString('utf-8');
+      const dryRun = req.body.dryRun === 'true';
+
+      // Parse CSV
+      const parseResult = Papa.parse(csvContent, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, ''),
+      });
+
+      if (parseResult.errors.length > 0) {
+        return res.status(400).json({ 
+          error: "CSV parsing errors", 
+          details: parseResult.errors.map(e => ({ row: e.row, message: e.message }))
+        });
+      }
+
+      const results = {
+        processed: 0,
+        created: 0,
+        failed: 0,
+        errors: [] as { row: number; roomNumber: string; message: string }[],
+        warnings: [] as { row: number; roomNumber: string; message: string }[],
+      };
+
+      const roomsToCreate: any[] = [];
+
+      // Validate each row
+      for (let i = 0; i < parseResult.data.length; i++) {
+        const row = parseResult.data[i] as any;
+        const rowNum = i + 2; // +2 because header is row 1 and arrays are 0-indexed
+        results.processed++;
+
+        try {
+          // Validate and parse the row
+          const validatedRow = bulkRoomRowSchema.parse({
+            roomNumber: row.roomnumber || row.room_number || row['room number'] || '',
+            floor: row.floor || '1',
+            sharing: row.sharing || row.sharingcapacity || row['sharing capacity'] || '1',
+            monthlyRent: row.monthlyrent || row.monthly_rent || row['monthly rent'] || row.rent || '0',
+            hasAttachedBathroom: row.hasattachedbathroom || row.attached_bathroom || row['attached bathroom'] || 'false',
+            hasAC: row.hasac || row.ac || row['has ac'] || 'false',
+            amenities: row.amenities || '',
+            tenantIdentifiers: row.tenantidentifiers || row.tenant_identifiers || row.tenants || '',
+          });
+
+          // Check for duplicate room number in this PG
+          const existingRoom = await storage.getRoomByNumber(userId, validatedRow.roomNumber);
+          if (existingRoom && existingRoom.pgId === pg.id) {
+            results.failed++;
+            results.errors.push({
+              row: rowNum,
+              roomNumber: validatedRow.roomNumber,
+              message: `Room number ${validatedRow.roomNumber} already exists in this PG`
+            });
+            continue;
+          }
+
+          // Check if room already in our batch
+          if (roomsToCreate.some(r => r.roomNumber === validatedRow.roomNumber)) {
+            results.failed++;
+            results.errors.push({
+              row: rowNum,
+              roomNumber: validatedRow.roomNumber,
+              message: `Duplicate room number ${validatedRow.roomNumber} in upload file`
+            });
+            continue;
+          }
+
+          // Resolve tenant identifiers to tenant IDs
+          const tenantIds: number[] = [];
+          for (const identifier of validatedRow.tenantIdentifiers) {
+            const tenant = await storage.getTenantByEmailOrPhone(userId, identifier);
+            if (!tenant) {
+              results.failed++;
+              results.errors.push({
+                row: rowNum,
+                roomNumber: validatedRow.roomNumber,
+                message: `Tenant not found with identifier: ${identifier}`
+              });
+              continue;
+            }
+            if (tenant.pgId !== pg.id) {
+              results.warnings.push({
+                row: rowNum,
+                roomNumber: validatedRow.roomNumber,
+                message: `Tenant ${identifier} belongs to a different PG, skipping tenant assignment`
+              });
+              continue;
+            }
+            tenantIds.push(tenant.id);
+          }
+
+          // Check if tenant count exceeds sharing capacity
+          if (tenantIds.length > validatedRow.sharing) {
+            results.failed++;
+            results.errors.push({
+              row: rowNum,
+              roomNumber: validatedRow.roomNumber,
+              message: `Tenant count (${tenantIds.length}) exceeds sharing capacity (${validatedRow.sharing})`
+            });
+            continue;
+          }
+
+          // Determine room status based on occupancy
+          let status = 'vacant';
+          if (tenantIds.length > 0) {
+            status = tenantIds.length >= validatedRow.sharing ? 'fully_occupied' : 'partially_occupied';
+          }
+
+          roomsToCreate.push({
+            ownerId: userId,
+            pgId: pg.id,
+            roomNumber: validatedRow.roomNumber,
+            floor: validatedRow.floor,
+            sharing: validatedRow.sharing,
+            monthlyRent: validatedRow.monthlyRent.toString(),
+            hasAttachedBathroom: validatedRow.hasAttachedBathroom,
+            hasAC: validatedRow.hasAC,
+            amenities: validatedRow.amenities,
+            tenantIds: tenantIds,
+            status: status,
+          });
+
+        } catch (validationError: any) {
+          results.failed++;
+          const roomNum = row.roomnumber || row.room_number || row['room number'] || 'Unknown';
+          results.errors.push({
+            row: rowNum,
+            roomNumber: roomNum,
+            message: validationError.errors?.[0]?.message || validationError.message || 'Validation failed'
+          });
+        }
+      }
+
+      // If not dry run, create the rooms
+      if (!dryRun) {
+        for (const roomData of roomsToCreate) {
+          try {
+            await storage.createRoom(roomData);
+            results.created++;
+          } catch (createError: any) {
+            results.failed++;
+            results.errors.push({
+              row: 0,
+              roomNumber: roomData.roomNumber,
+              message: `Failed to create room: ${createError.message}`
+            });
+          }
+        }
+      } else {
+        // In dry run mode, count potential successes
+        results.created = roomsToCreate.length;
+      }
+
+      res.json({
+        success: results.failed === 0,
+        dryRun,
+        summary: {
+          total: results.processed,
+          created: results.created,
+          failed: results.failed,
+        },
+        errors: results.errors,
+        warnings: results.warnings,
+      });
+
+    } catch (error: any) {
+      console.error("Bulk upload error:", error);
+      res.status(400).json({ error: "Bulk upload failed", details: error.message });
+    }
+  });
+
+  // Download CSV template for bulk upload
+  app.get("/api/rooms/bulk-upload-template", async (req, res) => {
+    const template = `roomNumber,floor,sharing,monthlyRent,hasAttachedBathroom,hasAC,amenities,tenantIdentifiers
+101,1,2,8000,true,false,WiFi;Water;Power,
+102,1,3,10000,false,true,WiFi;Power,tenant@email.com
+103,2,1,6000,true,true,WiFi;Water,`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=room_bulk_upload_template.csv');
+    res.send(template);
   });
 
   app.post("/api/rooms/seed", async (req, res) => {

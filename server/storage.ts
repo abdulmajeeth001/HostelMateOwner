@@ -171,6 +171,28 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getTenantByEmail(ownerId: number, email: string): Promise<Tenant | undefined> {
+    const result = await db.select().from(tenants)
+      .where(and(eq(tenants.ownerId, ownerId), eq(tenants.email, email)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getTenantByPhone(ownerId: number, phone: string): Promise<Tenant | undefined> {
+    const result = await db.select().from(tenants)
+      .where(and(eq(tenants.ownerId, ownerId), eq(tenants.phone, phone)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getTenantByEmailOrPhone(ownerId: number, identifier: string): Promise<Tenant | undefined> {
+    // Try email first
+    let tenant = await this.getTenantByEmail(ownerId, identifier);
+    if (tenant) return tenant;
+    // Try phone
+    return await this.getTenantByPhone(ownerId, identifier);
+  }
+
   async getAvailableTenants(ownerId: number): Promise<Tenant[]> {
     // Get all tenants for this owner that are not currently assigned to any room
     const allRooms = await db.select({ tenantIds: rooms.tenantIds }).from(rooms).where(eq(rooms.ownerId, ownerId));

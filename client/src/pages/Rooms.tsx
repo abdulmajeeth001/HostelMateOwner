@@ -1,7 +1,7 @@
 import DesktopLayout from "@/components/layout/DesktopLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DoorOpen, Plus, Wifi, Droplet, Zap, Wind, Bath, Search, MoreVertical } from "lucide-react";
+import { DoorOpen, Plus, Wifi, Droplet, Zap, Wind, Bath, Search, MoreVertical, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState, useMemo } from "react";
 import { useLocation } from "wouter";
@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { BulkUploadModal } from "@/components/BulkUploadModal";
 
 interface Tenant {
   id: number;
@@ -41,6 +42,7 @@ export default function Rooms() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "fully_occupied" | "partially_occupied" | "vacant">("all");
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
 
   const getRoomOccupancyStatus = (room: any) => {
     const tenantCount = room.tenantIds?.length || 0;
@@ -133,11 +135,17 @@ export default function Rooms() {
               <Plus className="w-4 h-4" /> Seed Demo Rooms
             </Button>
           )}
-          {roomsData.length > 0 && (
-            <Button onClick={() => setLocation("/rooms/add")} className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800" data-testid="button-add-room">
-              <Plus className="w-4 h-4" /> Add Room
-            </Button>
-          )}
+          <Button 
+            variant="outline" 
+            onClick={() => setBulkUploadOpen(true)} 
+            className="gap-2"
+            data-testid="button-bulk-upload"
+          >
+            <Upload className="w-4 h-4" /> Bulk Upload
+          </Button>
+          <Button onClick={() => setLocation("/rooms/add")} className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800" data-testid="button-add-room">
+            <Plus className="w-4 h-4" /> Add Room
+          </Button>
         </div>
       }
       showNav={false}
@@ -345,6 +353,12 @@ export default function Rooms() {
           </>
         )}
       </div>
+
+      <BulkUploadModal 
+        open={bulkUploadOpen} 
+        onOpenChange={setBulkUploadOpen}
+        onSuccess={fetchRooms}
+      />
     </DesktopLayout>
   );
 }
