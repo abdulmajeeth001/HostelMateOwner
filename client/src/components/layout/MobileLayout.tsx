@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X, Building2 } from "lucide-react";
+import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X, Building2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { PGSwitcher } from "@/components/PGSwitcher";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -23,6 +31,8 @@ export default function MobileLayout({
 }: MobileLayoutProps) {
   const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user } = useUser();
   
   const isOwner = user?.userType === "owner";
@@ -31,6 +41,25 @@ export default function MobileLayout({
   useEffect(() => {
     setSidebarOpen(false);
   }, [location]);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: 'include',
+      });
+      
+      if (res.ok) {
+        navigate("/");
+      }
+    } catch (err) {
+      console.error("Logout failed:", err);
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutConfirm(false);
+    }
+  };
 
   // Owner navigation items
   const ownerSideNavItems = [
@@ -129,6 +158,16 @@ export default function MobileLayout({
             <p className="text-xs font-medium text-muted-foreground mb-1">Plan</p>
             <p className="font-bold text-sm text-foreground">Pro Plan</p>
           </div>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => setShowLogoutConfirm(true)}
+            disabled={isLoggingOut}
+            data-testid="button-mobile-logout"
+          >
+            <LogOut className="w-4 h-4" />
+            {isLoggingOut ? "Logging out..." : "Logout"}
+          </Button>
         </div>
       </aside>
 
@@ -198,6 +237,25 @@ export default function MobileLayout({
           </nav>
         )}
       </div>
+
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Logout Confirmation</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to logout? You'll need to login again to access your account.
+          </AlertDialogDescription>
+          <div className="flex gap-2 justify-end mt-4">
+            <AlertDialogCancel disabled={isLoggingOut}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleLogout} 
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

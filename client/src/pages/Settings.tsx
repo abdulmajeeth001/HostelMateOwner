@@ -4,22 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LocationPicker from "@/components/LocationPicker";
-import { Bell, Lock, User, Building, LogOut, Edit2 } from "lucide-react";
-import { useLocation } from "wouter";
+import { Bell, User, Building, Edit2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 export default function Settings() {
-  const [, setLocation] = useLocation();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [pg, setPg] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -144,24 +132,6 @@ export default function Settings() {
       alert("Failed to update PG details");
     } finally {
       setPgSaveLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      const res = await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: 'include',
-      });
-      
-      if (res.ok) {
-        setLocation("/");
-      }
-    } catch (err) {
-      console.error("Logout failed:", err);
-    } finally {
-      setIsLoggingOut(false);
     }
   };
 
@@ -389,39 +359,7 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Logout */}
-        <Card className="border-red-200">
-          <CardHeader>
-            <CardTitle className="text-red-600">Danger Zone</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              variant="destructive" 
-              onClick={() => setShowLogoutConfirm(true)}
-              disabled={isLoggingOut}
-              data-testid="button-logout"
-            >
-              <LogOut className="mr-2 w-4 h-4" />
-              Logout
-            </Button>
-          </CardContent>
-        </Card>
       </div>
-
-      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-        <AlertDialogContent>
-          <AlertDialogTitle>Logout Confirmation</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to logout? You'll need to login again to access your account.
-          </AlertDialogDescription>
-          <div className="flex gap-2">
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogout} className="bg-red-600">
-              Logout
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </DesktopLayout>
   );
 }

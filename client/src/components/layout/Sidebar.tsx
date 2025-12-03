@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { PGSwitcher } from "@/components/PGSwitcher";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const ownerNavItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
@@ -30,9 +39,30 @@ const tenantNavItems = [
 export default function Sidebar() {
   const [location, navigate] = useLocation();
   const { user } = useUser();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const navItems = user?.userType === "tenant" ? tenantNavItems : ownerNavItems;
   const isOwner = user?.userType === "owner";
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: 'include',
+      });
+      
+      if (res.ok) {
+        navigate("/");
+      }
+    } catch (err) {
+      console.error("Logout failed:", err);
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutConfirm(false);
+    }
+  };
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-card border-r border-border h-screen sticky top-0 overflow-y-auto">
@@ -84,11 +114,36 @@ export default function Sidebar() {
           <p className="text-xs font-medium text-muted-foreground mb-1">Plan</p>
           <p className="font-bold text-sm text-foreground">Pro Plan</p>
         </div>
-        <Button variant="outline" className="w-full justify-start gap-2 text-destructive hover:text-destructive">
+        <Button 
+          variant="outline" 
+          className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={() => setShowLogoutConfirm(true)}
+          disabled={isLoggingOut}
+          data-testid="button-sidebar-logout"
+        >
           <LogOut className="w-4 h-4" />
-          Logout
+          {isLoggingOut ? "Logging out..." : "Logout"}
         </Button>
       </div>
+
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Logout Confirmation</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to logout? You'll need to login again to access your account.
+          </AlertDialogDescription>
+          <div className="flex gap-2 justify-end mt-4">
+            <AlertDialogCancel disabled={isLoggingOut}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleLogout} 
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 }
