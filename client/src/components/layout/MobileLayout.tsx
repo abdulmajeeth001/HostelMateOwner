@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
+import { usePG } from "@/hooks/use-pg";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
 
 interface MobileLayoutProps {
@@ -23,6 +24,9 @@ export default function MobileLayout({
   const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useUser();
+  const { pg } = usePG();
+  
+  const pgName = user?.userType === "owner" ? (pg?.pgName || "PG Management") : "PG Management";
 
   // Close sidebar when location changes
   useEffect(() => {
@@ -88,7 +92,7 @@ export default function MobileLayout({
             </div>
             <div>
               <h1 className="font-bold text-lg text-foreground">HostelMate</h1>
-              <p className="text-xs text-muted-foreground">PG Management</p>
+              <p className="text-sm text-foreground font-semibold truncate">{pgName}</p>
             </div>
           </div>
         </div>
