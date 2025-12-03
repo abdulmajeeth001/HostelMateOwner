@@ -836,8 +836,23 @@ export async function registerRoutes(
         aadharCard: body.aadharCard,
       });
 
-      // Save emergency contact if provided
-      if (body.emergencyContactName && body.emergencyContactPhone && body.relationship) {
+      // Save emergency contacts if provided (supports both old single contact and new array format)
+      const emergencyContacts = body.emergencyContacts as Array<{name: string; phone: string; relationship: string}> | undefined;
+      
+      if (emergencyContacts && Array.isArray(emergencyContacts)) {
+        // New array format
+        for (const contact of emergencyContacts) {
+          if (contact.name && contact.phone && contact.relationship) {
+            await storage.createEmergencyContact({
+              tenantId: tenant.id,
+              name: contact.name,
+              phone: contact.phone,
+              relationship: contact.relationship,
+            });
+          }
+        }
+      } else if (body.emergencyContactName && body.emergencyContactPhone && body.relationship) {
+        // Legacy single contact format (for backward compatibility)
         await storage.createEmergencyContact({
           tenantId: tenant.id,
           name: body.emergencyContactName,

@@ -168,7 +168,7 @@ export default function TenantsList() {
               )}
             </div>
           ) : (
-            filteredTenants.map((tenant) => (
+            filteredTenants.map((tenant: { id: number; name: string; room: string; rent: number; phone: string; status: string; avatar: string }) => (
               <div 
                 key={tenant.id} 
                 className="bg-white border border-border rounded-2xl p-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98]"

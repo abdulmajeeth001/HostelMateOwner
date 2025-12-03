@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { ChevronLeft, Upload } from "lucide-react";
+import { ChevronLeft, Upload, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import pako from "pako";
@@ -15,6 +15,12 @@ interface Room {
   roomNumber: string;
   monthlyRent: string;
   status: string;
+}
+
+interface EmergencyContact {
+  name: string;
+  phone: string;
+  relationship: string;
 }
 
 const RELATIONSHIPS = [
@@ -45,12 +51,30 @@ export default function AddTenant() {
     monthlyRent: "",
     tenantImage: "",
     aadharCard: "",
-    emergencyContactName: "",
-    emergencyContactPhone: "",
-    relationship: "",
   });
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([
+    { name: "", phone: "", relationship: "" }
+  ]);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [aadharPreview, setAadharPreview] = useState<string | null>(null);
+
+  const addEmergencyContact = () => {
+    if (emergencyContacts.length < 5) {
+      setEmergencyContacts([...emergencyContacts, { name: "", phone: "", relationship: "" }]);
+    }
+  };
+
+  const removeEmergencyContact = (index: number) => {
+    if (emergencyContacts.length > 1) {
+      setEmergencyContacts(emergencyContacts.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateEmergencyContact = (index: number, field: keyof EmergencyContact, value: string) => {
+    const updated = [...emergencyContacts];
+    updated[index] = { ...updated[index], [field]: value };
+    setEmergencyContacts(updated);
+  };
 
   // Fetch active rooms
   const { data: rooms = [] } = useQuery<Room[]>({
@@ -73,11 +97,14 @@ export default function AddTenant() {
   }, [formData.roomNumber, rooms]);
 
   const createTenantMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
+    mutationFn: async (data: { formData: typeof formData; emergencyContacts: EmergencyContact[] }) => {
       const response = await fetch("/api/tenants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data.formData,
+          emergencyContacts: data.emergencyContacts,
+        }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -178,11 +205,12 @@ export default function AddTenant() {
       alert("Please upload Aadhar card");
       return;
     }
-    if (!formData.emergencyContactName || !formData.emergencyContactPhone || !formData.relationship) {
-      alert("Please fill in emergency contact information");
+    const validContacts = emergencyContacts.filter(c => c.name && c.phone && c.relationship);
+    if (validContacts.length === 0) {
+      alert("Please add at least one emergency contact with all details filled");
       return;
     }
-    createTenantMutation.mutate(formData);
+    createTenantMutation.mutate({ formData, emergencyContacts: validContacts });
   };
 
   return (
@@ -314,52 +342,89 @@ export default function AddTenant() {
             </label>
           </div>
 
-          {/* Emergency Contact Section */}
+          {/* Emergency Contacts Section */}
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-4">
-            <h3 className="font-semibold text-orange-900">Emergency Contact Information</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-orange-900">Emergency Contacts</h3>
+              <span className="text-xs text-orange-600">{emergencyContacts.length}/5 contacts</span>
+            </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="emergency-name">Contact Person Name</Label>
-              <Input 
-                id="emergency-name" 
-                placeholder="e.g. John Doe" 
-                required 
-                className="bg-white"
-                value={formData.emergencyContactName}
-                onChange={(e) => setFormData({...formData, emergencyContactName: e.target.value})}
-                data-testid="input-add-emergency-name"
-              />
-            </div>
+            {emergencyContacts.map((contact, index) => (
+              <div key={index} className="bg-white rounded-lg p-3 space-y-3 border border-orange-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-orange-800">Contact {index + 1}</span>
+                  {emergencyContacts.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeEmergencyContact(index)}
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      data-testid={`button-remove-contact-${index}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`emergency-name-${index}`}>Contact Person Name</Label>
+                  <Input 
+                    id={`emergency-name-${index}`}
+                    placeholder="e.g. John Doe" 
+                    className="bg-white"
+                    value={contact.name}
+                    onChange={(e) => updateEmergencyContact(index, 'name', e.target.value)}
+                    data-testid={`input-emergency-name-${index}`}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="emergency-phone">Contact Phone</Label>
-              <Input 
-                id="emergency-phone" 
-                type="tel" 
-                placeholder="+91" 
-                required 
-                className="bg-white"
-                value={formData.emergencyContactPhone}
-                onChange={(e) => setFormData({...formData, emergencyContactPhone: e.target.value})}
-                data-testid="input-add-emergency-phone"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`emergency-phone-${index}`}>Contact Phone</Label>
+                  <Input 
+                    id={`emergency-phone-${index}`}
+                    type="tel" 
+                    placeholder="+91" 
+                    className="bg-white"
+                    value={contact.phone}
+                    onChange={(e) => updateEmergencyContact(index, 'phone', e.target.value)}
+                    data-testid={`input-emergency-phone-${index}`}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="relationship">Relationship</Label>
-              <Select value={formData.relationship} onValueChange={(val) => setFormData({...formData, relationship: val})}>
-                <SelectTrigger className="bg-white" data-testid="select-add-relationship">
-                  <SelectValue placeholder="Select relationship" />
-                </SelectTrigger>
-                <SelectContent className="max-h-48">
-                  {RELATIONSHIPS.map((rel) => (
-                    <SelectItem key={rel.value} value={rel.value}>
-                      {rel.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`relationship-${index}`}>Relationship</Label>
+                  <Select 
+                    value={contact.relationship} 
+                    onValueChange={(val) => updateEmergencyContact(index, 'relationship', val)}
+                  >
+                    <SelectTrigger className="bg-white" data-testid={`select-relationship-${index}`}>
+                      <SelectValue placeholder="Select relationship" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-48">
+                      {RELATIONSHIPS.map((rel) => (
+                        <SelectItem key={rel.value} value={rel.value}>
+                          {rel.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ))}
+
+            {emergencyContacts.length < 5 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addEmergencyContact}
+                className="w-full border-dashed border-orange-300 text-orange-700 hover:bg-orange-100"
+                data-testid="button-add-emergency-contact"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Another Contact
+              </Button>
+            )}
           </div>
         </div>
 
