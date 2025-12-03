@@ -415,6 +415,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getAllPgsByOwnerId(ownerId: number): Promise<PgMaster[]> {
+    return await db.select().from(pgMaster).where(eq(pgMaster.ownerId, ownerId)).orderBy(desc(pgMaster.createdAt));
+  }
+
   async getPgById(pgId: number): Promise<PgMaster | undefined> {
     const result = await db.select().from(pgMaster).where(eq(pgMaster.id, pgId)).limit(1);
     return result[0];
@@ -428,6 +432,15 @@ export class DatabaseStorage implements IStorage {
   async updatePgMaster(ownerId: number, updates: Partial<PgMaster>): Promise<PgMaster | undefined> {
     const result = await db.update(pgMaster).set(updates).where(eq(pgMaster.ownerId, ownerId)).returning();
     return result[0];
+  }
+
+  async updatePgMasterById(pgId: number, updates: Partial<PgMaster>): Promise<PgMaster | undefined> {
+    const result = await db.update(pgMaster).set(updates).where(eq(pgMaster.id, pgId)).returning();
+    return result[0];
+  }
+
+  async deletePgMaster(pgId: number): Promise<void> {
+    await db.delete(pgMaster).where(eq(pgMaster.id, pgId));
   }
 
   // Emergency Contacts

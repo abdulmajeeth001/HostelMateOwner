@@ -560,37 +560,159 @@ export async function registerRoutes(
     }
   });
 
-  // PG Master endpoints
+  // PG Master endpoints - Multi-PG Support
+  
+  // Get all PGs for the owner
+  app.get("/api/pgs", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const pgs = await storage.getAllPgsByOwnerId(userId);
+      res.json(pgs);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch PGs" });
+    }
+  });
+
+  // Get current/selected PG
   app.get("/api/pg", async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
+      
+      // Check if a PG is selected in session
+      const selectedPgId = (req.session as any).selectedPgId;
+      
+      if (selectedPgId) {
+        const pg = await storage.getPgById(selectedPgId);
+        // Verify this PG belongs to the user
+        if (pg && pg.ownerId === userId) {
+          return res.json(pg);
+        }
+      }
+      
+      // Fall back to first PG
       const pg = await storage.getPgByOwnerId(userId);
+      if (pg) {
+        (req.session as any).selectedPgId = pg.id;
+      }
       res.json(pg);
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch PG details" });
     }
   });
 
+  // Select a PG to work with
+  app.post("/api/pg/select/:id", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const pgId = parseInt(req.params.id);
+      const pg = await storage.getPgById(pgId);
+      
+      if (!pg || pg.ownerId !== userId) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+      
+      (req.session as any).selectedPgId = pgId;
+      res.json({ success: true, pg });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to select PG" });
+    }
+  });
+
+  // Get a specific PG by ID
+  app.get("/api/pg/:id", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const pgId = parseInt(req.params.id);
+      const pg = await storage.getPgById(pgId);
+      
+      if (!pg || pg.ownerId !== userId) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+      
+      res.json(pg);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to fetch PG details" });
+    }
+  });
+
+  // Create a new PG
   app.post("/api/pg", async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      const existing = await storage.getPgByOwnerId(userId);
       
-      if (existing) {
-        const updated = await storage.updatePgMaster(userId, req.body);
-        res.json(updated || {});
-      } else {
-        const pg = await storage.createPgMaster({ ownerId: userId, ...req.body });
-        res.json(pg || {});
-      }
+      const pg = await storage.createPgMaster({ ownerId: userId, ...req.body });
+      // Auto-select the newly created PG
+      (req.session as any).selectedPgId = pg.id;
+      res.json(pg);
     } catch (error) {
-      res.status(400).json({ error: "Failed to save PG details" });
+      res.status(400).json({ error: "Failed to create PG" });
+    }
+  });
+
+  // Update a specific PG
+  app.put("/api/pg/:id", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const pgId = parseInt(req.params.id);
+      const pg = await storage.getPgById(pgId);
+      
+      if (!pg || pg.ownerId !== userId) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+      
+      const updated = await storage.updatePgMasterById(pgId, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update PG" });
+    }
+  });
+
+  // Delete a PG
+  app.delete("/api/pg/:id", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const pgId = parseInt(req.params.id);
+      const pg = await storage.getPgById(pgId);
+      
+      if (!pg || pg.ownerId !== userId) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+      
+      await storage.deletePgMaster(pgId);
+      
+      // If this was the selected PG, clear selection
+      if ((req.session as any).selectedPgId === pgId) {
+        delete (req.session as any).selectedPgId;
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to delete PG" });
     }
   });
 
