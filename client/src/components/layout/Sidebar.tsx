@@ -1,9 +1,9 @@
 import { useLocation } from "wouter";
-import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, LogOut } from "lucide-react";
+import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, LogOut, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
-import { usePG } from "@/hooks/use-pg";
+import { PGSwitcher } from "@/components/PGSwitcher";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
 
 const ownerNavItems = [
@@ -15,6 +15,7 @@ const ownerNavItems = [
   { icon: Wrench, label: "Maintenance", path: "/maintenance" },
   { icon: BarChart3, label: "Reports", path: "/reports" },
   { icon: Bell, label: "Notifications", path: "/notifications" },
+  { icon: Building2, label: "My PGs", path: "/pg-management" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
@@ -29,10 +30,9 @@ const tenantNavItems = [
 export default function Sidebar() {
   const [location, navigate] = useLocation();
   const { user } = useUser();
-  const { pg } = usePG();
 
   const navItems = user?.userType === "tenant" ? tenantNavItems : ownerNavItems;
-  const pgName = user?.userType === "owner" ? (pg?.pgName || "PG Management") : "PG Management";
+  const isOwner = user?.userType === "owner";
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-card border-r border-border h-screen sticky top-0 overflow-y-auto">
@@ -40,16 +40,18 @@ export default function Sidebar() {
       <div className="p-6 border-b border-border">
         <div 
           onClick={() => navigate("/dashboard")}
-          className="flex items-center gap-3 cursor-pointer rounded-lg hover:bg-secondary/50 transition-colors p-2 -m-2"
+          className="flex items-center gap-3 cursor-pointer rounded-lg hover:bg-secondary/50 transition-colors p-2 -m-2 mb-4"
         >
           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
             <img src={appIcon} alt="HostelMate" className="w-full h-full object-cover rounded-lg" />
           </div>
           <div>
             <h1 className="font-bold text-lg text-foreground">HostelMate</h1>
-            <p className="text-sm text-foreground truncate font-semibold">{pgName}</p>
           </div>
         </div>
+        {isOwner && (
+          <PGSwitcher variant="sidebar" />
+        )}
       </div>
 
       {/* Navigation */}

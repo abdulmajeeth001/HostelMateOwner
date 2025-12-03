@@ -1,11 +1,11 @@
 import { useLocation } from "wouter";
-import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X } from "lucide-react";
+import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
-import { usePG } from "@/hooks/use-pg";
+import { PGSwitcher } from "@/components/PGSwitcher";
 import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
 
 interface MobileLayoutProps {
@@ -24,9 +24,8 @@ export default function MobileLayout({
   const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useUser();
-  const { pg } = usePG();
   
-  const pgName = user?.userType === "owner" ? (pg?.pgName || "PG Management") : "PG Management";
+  const isOwner = user?.userType === "owner";
 
   // Close sidebar when location changes
   useEffect(() => {
@@ -43,6 +42,7 @@ export default function MobileLayout({
     { icon: Wrench, label: "Maintenance", path: "/maintenance" },
     { icon: BarChart3, label: "Reports", path: "/reports" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
+    { icon: Building2, label: "My PGs", path: "/pg-management" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
@@ -85,16 +85,18 @@ export default function MobileLayout({
         <div className="p-6 border-b border-border">
           <div 
             onClick={() => navigate("/dashboard")}
-            className="flex items-center gap-3 cursor-pointer"
+            className="flex items-center gap-3 cursor-pointer mb-4"
           >
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
               <img src={appIcon} alt="HostelMate" className="w-full h-full object-cover rounded-lg" />
             </div>
             <div>
               <h1 className="font-bold text-lg text-foreground">HostelMate</h1>
-              <p className="text-sm text-foreground font-semibold truncate">{pgName}</p>
             </div>
           </div>
+          {isOwner && (
+            <PGSwitcher variant="sidebar" />
+          )}
         </div>
 
         {/* Navigation */}

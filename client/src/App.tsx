@@ -31,6 +31,7 @@ import TenantPayments from "@/pages/TenantPayments";
 import TenantPgDetails from "@/pages/TenantPgDetails";
 import TenantPgFacilities from "@/pages/TenantPgFacilities";
 import ForgotPassword from "@/pages/ForgotPassword";
+import PGManagement from "@/pages/PGManagement";
 
 function Router() {
   return (
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/maintenance" component={Maintenance} />
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
+      <Route path="/pg-management" component={PGManagement} />
       <Route path="/tenant-reset-password" component={TenantResetPassword} />
       <Route path="/tenant-dashboard" component={TenantDashboard} />
       <Route path="/tenant-profile" component={TenantProfile} />
