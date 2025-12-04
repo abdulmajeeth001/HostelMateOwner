@@ -52,10 +52,12 @@ declare global {
     interface Session {
       userId?: number;
       registrationData?: any;
+      selectedPgId?: number;
     }
     interface SessionData {
       userId?: number;
       registrationData?: any;
+      selectedPgId?: number;
     }
   }
 }

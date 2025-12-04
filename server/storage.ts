@@ -43,34 +43,34 @@ export interface IStorage {
   deleteOtp(id: number): Promise<void>;
   
   // Tenants
-  getTenants(ownerId: number): Promise<Tenant[]>;
+  getTenants(ownerId: number, pgId?: number): Promise<Tenant[]>;
   getTenant(id: number): Promise<Tenant | undefined>;
   getTenantByUserId(userId: number): Promise<Tenant | undefined>;
-  getAvailableTenants(ownerId: number): Promise<Tenant[]>;
+  getAvailableTenants(ownerId: number, pgId?: number): Promise<Tenant[]>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, updates: Partial<Tenant>): Promise<Tenant | undefined>;
   deleteTenant(id: number): Promise<void>;
   
   // Payments
-  getPayments(ownerId: number): Promise<Payment[]>;
+  getPayments(ownerId: number, pgId?: number): Promise<Payment[]>;
   getPaymentsByTenant(tenantId: number): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined>;
   
   // Notifications
-  getNotifications(userId: number): Promise<Notification[]>;
+  getNotifications(userId: number, pgId?: number): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<void>;
 
   // Rooms
-  getRooms(ownerId: number): Promise<Room[]>;
+  getRooms(ownerId: number, pgId?: number): Promise<Room[]>;
   getRoom(id: number): Promise<Room | undefined>;
   createRoom(room: InsertRoom): Promise<Room>;
   updateRoom(id: number, updates: Partial<Room>): Promise<Room | undefined>;
   deleteRoom(id: number): Promise<void>;
   getRoomWithTenant(roomId: number): Promise<any>;
-  getAllRoomsWithTenants(ownerId: number): Promise<any[]>;
-  seedInitialRooms(ownerId: number): Promise<void>;
+  getAllRoomsWithTenants(ownerId: number, pgId?: number): Promise<any[]>;
+  seedInitialRooms(ownerId: number, pgId?: number): Promise<void>;
 
   // PG Master
   getPgByOwnerId(ownerId: number): Promise<PgMaster | undefined>;
@@ -157,7 +157,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Tenants
-  async getTenants(ownerId: number): Promise<Tenant[]> {
+  async getTenants(ownerId: number, pgId?: number): Promise<Tenant[]> {
+    if (pgId) {
+      return await db.select().from(tenants)
+        .where(and(eq(tenants.ownerId, ownerId), eq(tenants.pgId, pgId)))
+        .orderBy(desc(tenants.createdAt));
+    }
     return await db.select().from(tenants).where(eq(tenants.ownerId, ownerId)).orderBy(desc(tenants.createdAt));
   }
 
@@ -193,19 +198,32 @@ export class DatabaseStorage implements IStorage {
     return await this.getTenantByPhone(ownerId, identifier);
   }
 
-  async getAvailableTenants(ownerId: number): Promise<Tenant[]> {
+  async getAvailableTenants(ownerId: number, pgId?: number): Promise<Tenant[]> {
     // Get all tenants for this owner that are not currently assigned to any room
-    const allRooms = await db.select({ tenantIds: rooms.tenantIds }).from(rooms).where(eq(rooms.ownerId, ownerId));
+    let roomsQuery;
+    if (pgId) {
+      roomsQuery = await db.select({ tenantIds: rooms.tenantIds }).from(rooms)
+        .where(and(eq(rooms.ownerId, ownerId), eq(rooms.pgId, pgId)));
+    } else {
+      roomsQuery = await db.select({ tenantIds: rooms.tenantIds }).from(rooms).where(eq(rooms.ownerId, ownerId));
+    }
     const assignedIds: number[] = [];
-    allRooms.forEach(room => {
+    roomsQuery.forEach(room => {
       if (room.tenantIds && Array.isArray(room.tenantIds)) {
         assignedIds.push(...room.tenantIds);
       }
     });
     
-    const result = await db.select().from(tenants)
-      .where(eq(tenants.ownerId, ownerId))
-      .orderBy(desc(tenants.createdAt));
+    let result;
+    if (pgId) {
+      result = await db.select().from(tenants)
+        .where(and(eq(tenants.ownerId, ownerId), eq(tenants.pgId, pgId)))
+        .orderBy(desc(tenants.createdAt));
+    } else {
+      result = await db.select().from(tenants)
+        .where(eq(tenants.ownerId, ownerId))
+        .orderBy(desc(tenants.createdAt));
+    }
     
     return result.filter(t => !assignedIds.includes(t.id));
   }
@@ -273,7 +291,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Payments
-  async getPayments(ownerId: number): Promise<Payment[]> {
+  async getPayments(ownerId: number, pgId?: number): Promise<Payment[]> {
+    if (pgId) {
+      return await db.select().from(payments)
+        .where(and(eq(payments.ownerId, ownerId), eq(payments.pgId, pgId)))
+        .orderBy(desc(payments.createdAt));
+    }
     return await db.select().from(payments).where(eq(payments.ownerId, ownerId)).orderBy(desc(payments.createdAt));
   }
 
@@ -292,7 +315,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Notifications
-  async getNotifications(userId: number): Promise<Notification[]> {
+  async getNotifications(userId: number, pgId?: number): Promise<Notification[]> {
+    if (pgId) {
+      return await db.select().from(notifications)
+        .where(and(eq(notifications.userId, userId), eq(notifications.pgId, pgId)))
+        .orderBy(desc(notifications.createdAt));
+    }
     return await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt));
   }
 
@@ -306,7 +334,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Rooms
-  async getRooms(ownerId: number): Promise<Room[]> {
+  async getRooms(ownerId: number, pgId?: number): Promise<Room[]> {
+    if (pgId) {
+      return await db.select().from(rooms)
+        .where(and(eq(rooms.ownerId, ownerId), eq(rooms.pgId, pgId)))
+        .orderBy(desc(rooms.createdAt));
+    }
     return await db.select().from(rooms).where(eq(rooms.ownerId, ownerId)).orderBy(desc(rooms.createdAt));
   }
 
@@ -349,13 +382,22 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getAllRoomsWithTenants(ownerId: number): Promise<any[]> {
+  async getAllRoomsWithTenants(ownerId: number, pgId?: number): Promise<any[]> {
     try {
-      const result = await db
-        .select()
-        .from(rooms)
-        .where(eq(rooms.ownerId, ownerId))
-        .orderBy(desc(rooms.createdAt));
+      let result;
+      if (pgId) {
+        result = await db
+          .select()
+          .from(rooms)
+          .where(and(eq(rooms.ownerId, ownerId), eq(rooms.pgId, pgId)))
+          .orderBy(desc(rooms.createdAt));
+      } else {
+        result = await db
+          .select()
+          .from(rooms)
+          .where(eq(rooms.ownerId, ownerId))
+          .orderBy(desc(rooms.createdAt));
+      }
       
       // Fetch tenant data for each room
       const roomsWithTenants = await Promise.all(
@@ -389,7 +431,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async seedInitialRooms(ownerId: number): Promise<void> {
+  async seedInitialRooms(ownerId: number, pgId?: number): Promise<void> {
     const seedData = [
       { roomNumber: "101", monthlyRent: "5000", sharing: 1, floor: 1, hasAttachedBathroom: true, hasAC: true, tenantNames: ["Rahul Kumar"], tenantPhones: ["98765 43210"], amenities: ["WiFi", "Water", "Power"] },
       { roomNumber: "102", monthlyRent: "6500", sharing: 2, floor: 1, hasAttachedBathroom: false, hasAC: false, tenantNames: ["Amit Singh", "Vikram Patel"], tenantPhones: ["98765 43211", "98765 43215"], amenities: ["WiFi", "Water", "Power"] },
@@ -406,6 +448,7 @@ export class DatabaseStorage implements IStorage {
       for (let i = 0; i < data.tenantNames.length; i++) {
         const createdTenant = await this.createTenant({
           ownerId,
+          pgId,
           name: data.tenantNames[i],
           phone: data.tenantPhones[i],
           roomNumber: data.roomNumber,
@@ -418,6 +461,7 @@ export class DatabaseStorage implements IStorage {
       const status = tenantIds.length > 0 ? "occupied" : "vacant";
       await this.createRoom({
         ownerId,
+        pgId,
         roomNumber: data.roomNumber,
         monthlyRent: data.monthlyRent,
         tenantIds: tenantIds.length > 0 ? tenantIds : [],
