@@ -1,79 +1,374 @@
-import MobileLayout from "@/components/layout/MobileLayout";
-import { ArrowUpRight, ArrowDownLeft, Calendar, Filter } from "lucide-react";
+import DesktopLayout from "@/components/layout/DesktopLayout";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, IndianRupee, Calendar, User, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { usePG } from "@/hooks/use-pg";
+import { useToast } from "@/hooks/use-toast";
 
-const TRANSACTIONS = [
-  { id: 1, name: "Rahul Kumar", type: "received", amount: "₹5,000", date: "Today, 10:30 AM", status: "Success" },
-  { id: 2, name: "Electricity Bill", type: "paid", amount: "₹2,400", date: "Yesterday", status: "Success" },
-  { id: 3, name: "Amit Singh", type: "received", amount: "₹6,500", date: "28 Nov", status: "Success" },
-  { id: 4, name: "Maintenance", type: "paid", amount: "₹500", date: "27 Nov", status: "Pending" },
-  { id: 5, name: "Priya Sharma", type: "received", amount: "₹7,000", date: "26 Nov", status: "Success" },
-];
+interface Tenant {
+  id: number;
+  name: string;
+  email: string;
+  roomId: number;
+}
+
+interface Payment {
+  id: number;
+  tenantId: number;
+  amount: number;
+  dueDate: string;
+  paidAt?: string;
+  status: string;
+  paymentMethod?: string;
+  transactionId?: string;
+  tenant?: {
+    name: string;
+    email: string;
+  };
+}
 
 export default function Payments() {
+  const { pg } = usePG();
+  const { toast } = useToast();
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [filter, setFilter] = useState<"all" | "pending" | "paid">("all");
+  
+  const [newPayment, setNewPayment] = useState({
+    tenantId: "",
+    amount: "",
+    dueDate: "",
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, [pg]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      const [paymentsRes, tenantsRes] = await Promise.all([
+        fetch("/api/payments", { credentials: "include" }),
+        fetch("/api/tenants", { credentials: "include" })
+      ]);
+
+      if (paymentsRes.ok) {
+        const paymentsData = await paymentsRes.json();
+        setPayments(paymentsData);
+      }
+
+      if (tenantsRes.ok) {
+        const tenantsData = await tenantsRes.json();
+        setTenants(tenantsData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load payment data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreatePayment = async () => {
+    if (!newPayment.tenantId || !newPayment.amount || !newPayment.dueDate) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          tenantId: parseInt(newPayment.tenantId),
+          amount: parseFloat(newPayment.amount),
+          dueDate: new Date(newPayment.dueDate).toISOString(),
+        }),
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Success",
+          description: "Payment request created successfully",
+        });
+        setDialogOpen(false);
+        setNewPayment({ tenantId: "", amount: "", dueDate: "" });
+        fetchData();
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to create payment request",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create payment request",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredPayments = payments.filter((payment) => {
+    if (filter === "all") return true;
+    if (filter === "pending") return payment.status === "pending";
+    if (filter === "paid") return payment.status === "paid";
+    return true;
+  });
+
+  const stats = {
+    total: payments.reduce((sum, p) => sum + p.amount, 0),
+    pending: payments.filter(p => p.status === "pending").reduce((sum, p) => sum + p.amount, 0),
+    received: payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0),
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "paid":
+        return <CheckCircle2 className="w-5 h-5 text-green-600" />;
+      case "pending":
+        return <Clock className="w-5 h-5 text-yellow-600" />;
+      default:
+        return <XCircle className="w-5 h-5 text-gray-400" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "paid":
+        return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Paid</span>;
+      case "pending":
+        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700">Pending</span>;
+      default:
+        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">{status}</span>;
+    }
+  };
+
   return (
-    <MobileLayout title="Payments">
-      {/* Balance Card */}
-      <div className="bg-primary text-primary-foreground rounded-2xl p-6 shadow-lg shadow-primary/30">
-        <p className="text-primary-foreground/80 text-sm font-medium mb-1">Total Balance</p>
-        <h2 className="text-3xl font-bold mb-4">₹42,500</h2>
-        <div className="flex gap-4">
-          <div className="flex-1 bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-5 h-5 rounded-full bg-emerald-400/20 flex items-center justify-center">
-                <ArrowDownLeft className="w-3 h-3 text-emerald-300" />
+    <DesktopLayout title="Payments">
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Amount</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <IndianRupee className="w-5 h-5 text-primary" />
+                <span className="text-2xl font-bold">₹{stats.total.toLocaleString()}</span>
               </div>
-              <span className="text-xs opacity-80">Income</span>
-            </div>
-            <p className="font-semibold">₹54,200</p>
-          </div>
-          <div className="flex-1 bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-5 h-5 rounded-full bg-rose-400/20 flex items-center justify-center">
-                <ArrowUpRight className="w-3 h-3 text-rose-300" />
-              </div>
-              <span className="text-xs opacity-80">Expense</span>
-            </div>
-            <p className="font-semibold">₹11,700</p>
-          </div>
-        </div>
-      </div>
+            </CardContent>
+          </Card>
 
-      {/* Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        <Button variant="secondary" size="sm" className="rounded-full px-4 bg-primary/10 text-primary hover:bg-primary/20 border-transparent">All</Button>
-        <Button variant="outline" size="sm" className="rounded-full px-4">Income</Button>
-        <Button variant="outline" size="sm" className="rounded-full px-4">Expense</Button>
-        <Button variant="ghost" size="sm" className="rounded-full w-9 h-9 p-0 ml-auto"><Filter className="w-4 h-4" /></Button>
-      </div>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-yellow-600" />
+                <span className="text-2xl font-bold">₹{stats.pending.toLocaleString()}</span>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Transactions */}
-      <div className="space-y-4">
-        <h3 className="font-bold text-lg">Recent Transactions</h3>
-        <div className="space-y-0 divide-y divide-border bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-          {TRANSACTIONS.map((tx) => (
-            <div key={tx.id} className="p-4 flex items-center gap-4 hover:bg-secondary/50 transition-colors">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                tx.type === 'received' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
-              }`}>
-                {tx.type === 'received' ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Received</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <span className="text-2xl font-bold">₹{stats.received.toLocaleString()}</span>
               </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-sm text-foreground">{tx.name}</h4>
-                <p className="text-xs text-muted-foreground">{tx.date}</p>
-              </div>
-              <div className="text-right">
-                <p className={`font-bold text-sm ${
-                  tx.type === 'received' ? 'text-emerald-600' : 'text-foreground'
-                }`}>
-                  {tx.type === 'received' ? '+' : '-'}{tx.amount}
-                </p>
-                <p className="text-[10px] text-muted-foreground">{tx.status}</p>
-              </div>
-            </div>
-          ))}
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Action Bar */}
+        <div className="flex justify-between items-center">
+          <div className="flex gap-2">
+            <Button
+              variant={filter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("all")}
+              data-testid="button-filter-all"
+            >
+              All
+            </Button>
+            <Button
+              variant={filter === "pending" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("pending")}
+              data-testid="button-filter-pending"
+            >
+              Pending
+            </Button>
+            <Button
+              variant={filter === "paid" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("paid")}
+              data-testid="button-filter-paid"
+            >
+              Paid
+            </Button>
+          </div>
+
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-create-payment">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Payment Request
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Payment Request</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tenant">Tenant</Label>
+                  <Select
+                    value={newPayment.tenantId}
+                    onValueChange={(value) => setNewPayment({ ...newPayment, tenantId: value })}
+                  >
+                    <SelectTrigger id="tenant" data-testid="select-tenant">
+                      <SelectValue placeholder="Select tenant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tenants.map((tenant) => (
+                        <SelectItem key={tenant.id} value={tenant.id.toString()}>
+                          {tenant.name} - {tenant.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount (₹)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="Enter amount"
+                    value={newPayment.amount}
+                    onChange={(e) => setNewPayment({ ...newPayment, amount: e.target.value })}
+                    data-testid="input-amount"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate">Due Date</Label>
+                  <Input
+                    id="dueDate"
+                    type="date"
+                    value={newPayment.dueDate}
+                    onChange={(e) => setNewPayment({ ...newPayment, dueDate: e.target.value })}
+                    data-testid="input-due-date"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                    data-testid="button-cancel"
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreatePayment} data-testid="button-submit-payment">
+                    Create Request
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Payments List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading payments...</div>
+            ) : filteredPayments.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No {filter !== "all" ? filter : ""} payments found
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredPayments.map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                    data-testid={`payment-item-${payment.id}`}
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      {getStatusIcon(payment.status)}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium" data-testid={`text-tenant-${payment.id}`}>
+                            {payment.tenant?.name || `Tenant #${payment.tenantId}`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>Due: {format(new Date(payment.dueDate), "MMM dd, yyyy")}</span>
+                          </div>
+                          {payment.paidAt && (
+                            <div className="flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Paid: {format(new Date(payment.paidAt), "MMM dd, yyyy")}</span>
+                            </div>
+                          )}
+                        </div>
+                        {payment.transactionId && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Transaction ID: <span className="font-mono">{payment.transactionId}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="font-bold text-lg" data-testid={`text-amount-${payment.id}`}>
+                          ₹{payment.amount.toLocaleString()}
+                        </div>
+                        <div>{getStatusBadge(payment.status)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </MobileLayout>
+    </DesktopLayout>
   );
 }
