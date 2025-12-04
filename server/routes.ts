@@ -243,13 +243,21 @@ export async function registerRoutes(
         }
       }
       
-      // Redirect based on user type
-      let redirectUrl = "/dashboard";
-      if (user.userType === "tenant") {
-        redirectUrl = "/tenant-dashboard";
-      }
-      
-      res.json({ success: true, user: { id: user.id, email: user.email, name: user.name, userType: user.userType }, redirectUrl });
+      // Explicitly save session to ensure persistence
+      req.session!.save((err: any) => {
+        if (err) {
+          console.error("Session save error during login:", err);
+          return res.status(500).json({ error: "Failed to save session" });
+        }
+        
+        // Redirect based on user type
+        let redirectUrl = "/dashboard";
+        if (user.userType === "tenant") {
+          redirectUrl = "/tenant-dashboard";
+        }
+        
+        res.json({ success: true, user: { id: user.id, email: user.email, name: user.name, userType: user.userType }, redirectUrl });
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(400).json({ error: "Invalid login data" });
