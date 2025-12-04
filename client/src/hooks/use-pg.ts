@@ -90,7 +90,10 @@ export function usePG() {
       queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/available-tenants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/active-rooms"] });
       
       return data.pg;
     } catch (err) {

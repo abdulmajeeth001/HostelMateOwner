@@ -234,7 +234,7 @@ export class DatabaseStorage implements IStorage {
     
     // If tenant has a room assigned, update room's tenantIds
     if (createdTenant && tenant.roomNumber) {
-      const room = await this.getRoomByNumber(tenant.ownerId, tenant.roomNumber);
+      const room = await this.getRoomByNumber(tenant.ownerId, tenant.roomNumber, tenant.pgId || undefined);
       if (room) {
         const currentIds = Array.isArray(room.tenantIds) ? room.tenantIds : [];
         if (!currentIds.includes(createdTenant.id)) {
@@ -258,9 +258,11 @@ export class DatabaseStorage implements IStorage {
 
     // Handle room assignment if roomNumber was updated
     if (updates.roomNumber) {
+      const tenantPgId = currentTenant.pgId || undefined;
+      
       // Remove from old room if it exists and is different
       if (currentTenant.roomNumber && currentTenant.roomNumber !== updates.roomNumber) {
-        const oldRoom = await this.getRoomByNumber(currentTenant.ownerId, currentTenant.roomNumber);
+        const oldRoom = await this.getRoomByNumber(currentTenant.ownerId, currentTenant.roomNumber, tenantPgId);
         if (oldRoom && Array.isArray(oldRoom.tenantIds)) {
           await this.updateRoom(oldRoom.id, {
             tenantIds: oldRoom.tenantIds.filter(tid => tid !== id)
@@ -270,7 +272,7 @@ export class DatabaseStorage implements IStorage {
 
       // Add to new room (either first assignment or room change)
       if (updatedTenant) {
-        const newRoom = await this.getRoomByNumber(updatedTenant.ownerId, updates.roomNumber);
+        const newRoom = await this.getRoomByNumber(updatedTenant.ownerId, updates.roomNumber, tenantPgId);
         if (newRoom) {
           const currentIds = Array.isArray(newRoom.tenantIds) ? newRoom.tenantIds : [];
           // Add tenant ID if not already present
@@ -375,7 +377,13 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getRoomByNumber(ownerId: number, roomNumber: string): Promise<Room | undefined> {
+  async getRoomByNumber(ownerId: number, roomNumber: string, pgId?: number): Promise<Room | undefined> {
+    if (pgId) {
+      const result = await db.select().from(rooms)
+        .where(and(eq(rooms.ownerId, ownerId), eq(rooms.pgId, pgId), eq(rooms.roomNumber, roomNumber)))
+        .limit(1);
+      return result[0];
+    }
     const result = await db.select().from(rooms)
       .where(and(eq(rooms.ownerId, ownerId), eq(rooms.roomNumber, roomNumber)))
       .limit(1);

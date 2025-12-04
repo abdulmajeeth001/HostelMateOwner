@@ -506,7 +506,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Tenant record not found" });
       }
 
-      const room = await storage.getRoomByNumber(tenant.ownerId, tenant.roomNumber);
+      const room = await storage.getRoomByNumber(tenant.ownerId, tenant.roomNumber, tenant.pgId || undefined);
       if (!room) {
         return res.status(404).json({ error: "Room not found" });
       }
@@ -806,10 +806,15 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Get owner's PG
-      const pg = await storage.getPgByOwnerId(userId);
-      if (!pg) {
-        return res.status(400).json({ error: "Please create a PG first" });
+      // Require selectedPgId for tenant creation to ensure correct PG context
+      const selectedPgId = req.session!.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "Please select a PG first" });
+      }
+      
+      const pg = await storage.getPgById(selectedPgId);
+      if (!pg || pg.ownerId !== userId) {
+        return res.status(400).json({ error: "Invalid PG selected" });
       }
 
       const body = createTenantSchema.parse(req.body);
@@ -885,7 +890,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const tenants = await storage.getTenants(userId);
+      const selectedPgId = req.session!.selectedPgId;
+      const tenants = await storage.getTenants(userId, selectedPgId);
       res.json(tenants);
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch tenants" });
@@ -1059,7 +1065,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const payments = await storage.getPayments(req.session!.userId);
+      const selectedPgId = req.session!.selectedPgId;
+      const payments = await storage.getPayments(req.session!.userId, selectedPgId);
       res.json(payments);
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch payments" });
@@ -1073,7 +1080,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const notifications = await storage.getNotifications(req.session!.userId);
+      const selectedPgId = req.session!.selectedPgId;
+      const notifications = await storage.getNotifications(req.session!.userId, selectedPgId);
       res.json(notifications);
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch notifications" });
@@ -1087,7 +1095,8 @@ export async function registerRoutes(
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      const availableTenants = await storage.getAvailableTenants(userId);
+      const selectedPgId = req.session!.selectedPgId;
+      const availableTenants = await storage.getAvailableTenants(userId, selectedPgId);
       res.json(availableTenants);
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch available tenants" });
@@ -1101,7 +1110,8 @@ export async function registerRoutes(
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      const rooms = await storage.getRooms(userId);
+      const selectedPgId = req.session!.selectedPgId;
+      const rooms = await storage.getRooms(userId, selectedPgId);
       // Return only rooms that have available slots (not fully occupied)
       const activeRooms = rooms
         .filter(room => {
@@ -1130,18 +1140,23 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Get owner's PG
-      const pg = await storage.getPgByOwnerId(userId);
-      if (!pg) {
-        return res.status(400).json({ error: "Please create a PG first" });
+      // Require selectedPgId for room creation to ensure correct PG context
+      const selectedPgId = req.session!.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "Please select a PG first" });
+      }
+      
+      const pg = await storage.getPgById(selectedPgId);
+      if (!pg || pg.ownerId !== userId) {
+        return res.status(400).json({ error: "Invalid PG selected" });
       }
 
       const body = insertRoomSchema.parse(req.body);
       
-      // Check if room number already exists for this owner
-      const existingRoom = await storage.getRoomByNumber(userId, body.roomNumber);
+      // Check if room number already exists for this PG (using pgId filter)
+      const existingRoom = await storage.getRoomByNumber(userId, body.roomNumber, pg.id);
       if (existingRoom) {
-        return res.status(400).json({ error: `Room number ${body.roomNumber} already exists` });
+        return res.status(400).json({ error: `Room number ${body.roomNumber} already exists in this PG` });
       }
       
       const room = await storage.createRoom({
@@ -1163,7 +1178,8 @@ export async function registerRoutes(
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      const roomsWithTenants = await storage.getAllRoomsWithTenants(userId);
+      const selectedPgId = req.session!.selectedPgId;
+      const roomsWithTenants = await storage.getAllRoomsWithTenants(userId, selectedPgId);
       res.json(roomsWithTenants);
     } catch (error) {
       res.status(400).json({ error: "Failed to fetch rooms" });
@@ -1178,20 +1194,15 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Get owner's current PG
-      const selectedPgId = (req.session as any).selectedPgId;
-      let pg;
-      if (selectedPgId) {
-        pg = await storage.getPgById(selectedPgId);
-        if (!pg || pg.ownerId !== userId) {
-          pg = await storage.getPgByOwnerId(userId);
-        }
-      } else {
-        pg = await storage.getPgByOwnerId(userId);
+      // Require selectedPgId for bulk upload to ensure correct PG context
+      const selectedPgId = req.session!.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "Please select a PG first" });
       }
       
-      if (!pg) {
-        return res.status(400).json({ error: "Please create a PG first" });
+      const pg = await storage.getPgById(selectedPgId);
+      if (!pg || pg.ownerId !== userId) {
+        return res.status(400).json({ error: "Invalid PG selected" });
       }
 
       if (!req.file) {
@@ -1245,9 +1256,9 @@ export async function registerRoutes(
             tenantIdentifiers: row.tenantidentifiers || row.tenant_identifiers || row.tenants || '',
           });
 
-          // Check for duplicate room number in this PG
-          const existingRoom = await storage.getRoomByNumber(userId, validatedRow.roomNumber);
-          if (existingRoom && existingRoom.pgId === pg.id) {
+          // Check for duplicate room number in this PG (using pgId filter)
+          const existingRoom = await storage.getRoomByNumber(userId, validatedRow.roomNumber, pg.id);
+          if (existingRoom) {
             results.failed++;
             results.errors.push({
               row: rowNum,
@@ -1417,14 +1428,27 @@ export async function registerRoutes(
   app.put("/api/rooms/:id", async (req, res) => {
     try {
       const roomId = parseInt(req.params.id);
-      const userId = (req.session && req.session.userId) || 1;
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
       const body = insertRoomSchema.partial().parse(req.body);
       
-      // If updating room number, check for duplicates (excluding current room)
+      // Get current room to check ownership and get pgId
+      const currentRoom = await storage.getRoom(roomId);
+      if (!currentRoom) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+      if (currentRoom.ownerId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // If updating room number, check for duplicates in same PG (excluding current room)
       if (body.roomNumber) {
-        const existingRoom = await storage.getRoomByNumber(userId, body.roomNumber);
+        const existingRoom = await storage.getRoomByNumber(userId, body.roomNumber, currentRoom.pgId || undefined);
         if (existingRoom && existingRoom.id !== roomId) {
-          return res.status(400).json({ error: `Room number ${body.roomNumber} already exists` });
+          return res.status(400).json({ error: `Room number ${body.roomNumber} already exists in this PG` });
         }
       }
       
