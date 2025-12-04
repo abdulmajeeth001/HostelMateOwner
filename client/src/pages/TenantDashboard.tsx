@@ -61,6 +61,12 @@ export default function TenantDashboard() {
       color: "bg-purple-100 text-purple-600",
     },
     {
+      label: "Complaints",
+      icon: AlertCircle,
+      href: "/tenant-complaints",
+      color: "bg-red-100 text-red-600",
+    },
+    {
       label: "PG Details",
       icon: Building2,
       href: "/tenant-pg",

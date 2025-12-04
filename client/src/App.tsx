@@ -28,6 +28,7 @@ import TenantDashboard from "@/pages/TenantDashboard";
 import TenantProfile from "@/pages/TenantProfile";
 import TenantRoomDetails from "@/pages/TenantRoomDetails";
 import TenantPayments from "@/pages/TenantPayments";
+import TenantComplaints from "@/pages/TenantComplaints";
 import TenantPgDetails from "@/pages/TenantPgDetails";
 import TenantPgFacilities from "@/pages/TenantPgFacilities";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/tenant-profile" component={TenantProfile} />
       <Route path="/tenant-room" component={TenantRoomDetails} />
       <Route path="/tenant-payments" component={TenantPayments} />
+      <Route path="/tenant-complaints" component={TenantComplaints} />
       <Route path="/tenant-pg" component={TenantPgDetails} />
       <Route path="/tenant-facilities" component={TenantPgFacilities} />
       <Route path="/forgot-password" component={ForgotPassword} />
