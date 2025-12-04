@@ -5,6 +5,7 @@ import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotifi
 import { z } from "zod";
 import multer from "multer";
 import Papa from "papaparse";
+import { sendOtpEmail } from "./email";
 
 // Configure multer for file upload (memory storage for CSV processing)
 const upload = multer({ 
@@ -137,14 +138,12 @@ export async function registerRoutes(
       // Store registration data in session for later use
       req.session!.registrationData = body;
 
-      // TODO: Send OTP via Twilio and SendGrid
-      console.log(`OTP for ${body.email}: ${otp}`);
+      // Send OTP via email
+      await sendOtpEmail(body.email, otp, "registration");
 
       res.json({ 
         success: true, 
-        message: "OTP sent to email and mobile",
-        // FOR TESTING: Return OTP (remove in production)
-        otp: process.env.NODE_ENV === "development" ? otp : undefined
+        message: "OTP sent to your email"
       });
     } catch (error) {
       res.status(400).json({ error: "Invalid registration data" });
@@ -315,12 +314,12 @@ export async function registerRoutes(
         expiresAt,
       });
 
-      console.log(`Password reset OTP for ${user.email}: ${otp}`);
+      // Send OTP via email
+      await sendOtpEmail(user.email, otp, "password_reset");
 
       res.json({
         success: true,
-        message: "OTP sent to email and mobile",
-        otp: process.env.NODE_ENV === "development" ? otp : undefined
+        message: "OTP sent to your email"
       });
     } catch (error) {
       console.error("Password reset error:", error);
@@ -391,10 +390,10 @@ export async function registerRoutes(
         expiresAt 
       });
 
-      // In production, send OTP via email and SMS
-      console.log(`[FORGOT PASSWORD] OTP for ${email}: ${otp}`);
+      // Send OTP via email
+      await sendOtpEmail(email, otp, "forgot_password");
 
-      res.json({ success: true, message: "OTP sent to your email and phone" });
+      res.json({ success: true, message: "OTP sent to your email" });
     } catch (error) {
       console.error("Forgot password error:", error);
       res.status(400).json({ error: "Failed to process forgot password", details: (error as any).message });
