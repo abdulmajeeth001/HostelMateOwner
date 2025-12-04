@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotificationSchema, insertRoomSchema, insertEmergencyContactSchema } from "@shared/schema";
+import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotificationSchema, insertRoomSchema, insertEmergencyContactSchema, insertComplaintSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import Papa from "papaparse";
@@ -1635,6 +1635,182 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=tenant_bulk_upload_template.csv');
     res.send(template);
+  });
+
+  // COMPLAINTS ROUTES
+  // Get all complaints for owner (filtered by current PG)
+  app.get("/api/complaints", async (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const pgId = req.session.selectedPgId;
+      const complaints = await storage.getComplaints(userId, pgId);
+
+      res.json(complaints);
+    } catch (error) {
+      console.error("Get complaints error:", error);
+      res.status(500).json({ error: "Failed to fetch complaints" });
+    }
+  });
+
+  // Get complaints for tenant
+  app.get("/api/tenant/complaints", async (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Get tenant record
+      const tenant = await storage.getTenantByUserId(userId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant record not found" });
+      }
+
+      const complaints = await storage.getComplaintsByTenant(tenant.id);
+      res.json(complaints);
+    } catch (error) {
+      console.error("Get tenant complaints error:", error);
+      res.status(500).json({ error: "Failed to fetch complaints" });
+    }
+  });
+
+  // Create a new complaint
+  app.post("/api/complaints", async (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      let complaintData;
+
+      if (user.userType === "tenant") {
+        // Tenant creating complaint
+        const tenant = await storage.getTenantByUserId(userId);
+        if (!tenant) {
+          return res.status(404).json({ error: "Tenant record not found" });
+        }
+
+        complaintData = insertComplaintSchema.parse({
+          ...req.body,
+          tenantId: tenant.id,
+          ownerId: tenant.ownerId,
+          pgId: tenant.pgId,
+        });
+      } else if (user.userType === "owner") {
+        // Owner creating complaint on behalf of tenant
+        const pgId = req.session.selectedPgId;
+        if (!pgId) {
+          return res.status(400).json({ error: "Please select a PG first" });
+        }
+
+        complaintData = insertComplaintSchema.parse({
+          ...req.body,
+          ownerId: userId,
+          pgId: pgId,
+        });
+      } else {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const complaint = await storage.createComplaint(complaintData);
+      res.status(201).json(complaint);
+    } catch (error) {
+      console.error("Create complaint error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid complaint data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create complaint" });
+    }
+  });
+
+  // Update complaint (owner only)
+  app.put("/api/complaints/:id", async (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Only owners can update complaints" });
+      }
+
+      const complaintId = parseInt(req.params.id);
+      const complaint = await storage.getComplaint(complaintId);
+
+      if (!complaint) {
+        return res.status(404).json({ error: "Complaint not found" });
+      }
+
+      if (complaint.ownerId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // If status is being set to 'resolved', add resolvedAt timestamp
+      const updates = { ...req.body };
+      if (updates.status === 'resolved' && complaint.status !== 'resolved') {
+        updates.resolvedAt = new Date();
+      }
+
+      const updatedComplaint = await storage.updateComplaint(complaintId, updates);
+      res.json(updatedComplaint);
+    } catch (error) {
+      console.error("Update complaint error:", error);
+      res.status(500).json({ error: "Failed to update complaint" });
+    }
+  });
+
+  // Delete complaint (owner only)
+  app.delete("/api/complaints/:id", async (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Only owners can delete complaints" });
+      }
+
+      const complaintId = parseInt(req.params.id);
+      const complaint = await storage.getComplaint(complaintId);
+
+      if (!complaint) {
+        return res.status(404).json({ error: "Complaint not found" });
+      }
+
+      if (complaint.ownerId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      await storage.deleteComplaint(complaintId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete complaint error:", error);
+      res.status(500).json({ error: "Failed to delete complaint" });
+    }
   });
 
   return httpServer;
