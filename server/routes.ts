@@ -606,8 +606,8 @@ export async function registerRoutes(
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      const { name, email, mobile } = req.body;
-      const updated = await storage.updateUser(userId, { name, email, mobile });
+      const { name, email, mobile, upiId } = req.body;
+      const updated = await storage.updateUser(userId, { name, email, mobile, upiId });
       res.json(updated || {});
     } catch (error) {
       console.error("Profile update error:", error);
