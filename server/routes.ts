@@ -1731,6 +1731,8 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
           tenantId: tenant.id,
           ownerId: tenant.ownerId,
           pgId: tenant.pgId,
+          // Auto-populate roomId from tenant's assigned room if not provided
+          roomId: req.body.roomId || tenant.roomId,
         });
       } else if (user.userType === "owner") {
         // Owner creating complaint on behalf of tenant
@@ -1739,10 +1741,20 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
           return res.status(400).json({ error: "Please select a PG first" });
         }
 
+        // If tenantId is provided, auto-populate roomId from that tenant if not provided
+        let roomId = req.body.roomId;
+        if (!roomId && req.body.tenantId) {
+          const tenant = await storage.getTenant(req.body.tenantId);
+          if (tenant) {
+            roomId = tenant.roomId;
+          }
+        }
+
         complaintData = insertComplaintSchema.parse({
           ...req.body,
           ownerId: userId,
           pgId: pgId,
+          roomId: roomId,
         });
       } else {
         return res.status(403).json({ error: "Access denied" });
