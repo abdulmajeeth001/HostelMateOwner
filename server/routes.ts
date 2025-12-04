@@ -235,6 +235,14 @@ export async function registerRoutes(
 
       req.session!.userId = user.id;
       
+      // Auto-select first PG for owners
+      if (user.userType === "owner") {
+        const pg = await storage.getPgByOwnerId(user.id);
+        if (pg) {
+          (req.session as any).selectedPgId = pg.id;
+        }
+      }
+      
       // Redirect based on user type
       let redirectUrl = "/dashboard";
       if (user.userType === "tenant") {
