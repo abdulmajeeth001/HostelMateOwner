@@ -172,3 +172,27 @@ export const insertRoomSchema = createInsertSchema(rooms).omit({
 });
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type Room = typeof rooms.$inferSelect;
+
+// Complaints table
+export const complaints = pgTable("complaints", {
+  id: serial("id").primaryKey(),
+  pgId: integer("pg_id").notNull().references(() => pgMaster.id),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  tenantId: integer("tenant_id").references(() => tenants.id),
+  roomId: integer("room_id").references(() => rooms.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  priority: text("priority").default("medium"), // low, medium, high
+  status: text("status").default("open"), // open, in-progress, resolved
+  resolutionNotes: text("resolution_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertComplaintSchema = createInsertSchema(complaints).omit({ 
+  id: true, 
+  createdAt: true,
+  resolvedAt: true
+});
+export type InsertComplaint = z.infer<typeof insertComplaintSchema>;
+export type Complaint = typeof complaints.$inferSelect;
