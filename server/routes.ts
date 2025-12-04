@@ -1472,5 +1472,171 @@ export async function registerRoutes(
     }
   });
 
+  // Bulk upload tenants from CSV
+  app.post("/api/tenants/bulk-upload", upload.single('file'), async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const selectedPgId = req.session!.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "Please select a PG first" });
+      }
+      
+      const pg = await storage.getPgById(selectedPgId);
+      if (!pg || pg.ownerId !== userId) {
+        return res.status(400).json({ error: "Invalid PG selected" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const csvContent = req.file.buffer.toString('utf-8');
+      const dryRun = req.body.dryRun === 'true';
+
+      const parseResult = Papa.parse(csvContent, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, ''),
+      });
+
+      if (parseResult.errors.length > 0) {
+        return res.status(400).json({ 
+          error: "CSV parsing errors", 
+          details: parseResult.errors.map(e => ({ row: e.row, message: e.message }))
+        });
+      }
+
+      const results = {
+        processed: 0,
+        created: 0,
+        failed: 0,
+        errors: [] as { row: number; email: string; message: string }[],
+        warnings: [] as { row: number; email: string; message: string }[],
+      };
+
+      const tenantsToCreate: any[] = [];
+
+      for (let i = 0; i < parseResult.data.length; i++) {
+        const row = parseResult.data[i] as any;
+        const rowNum = i + 2;
+        results.processed++;
+
+        try {
+          const email = (row.email || row['email address'] || '').trim();
+          const name = (row.name || row['tenant name'] || '').trim();
+          const phone = (row.phone || row['phone number'] || '').trim();
+          const monthlyRent = (row.monthlyrent || row.monthly_rent || row['monthly rent'] || row.rent || '0').toString();
+          const roomNumber = (row.roomnumber || row.room_number || row['room number'] || '').trim();
+
+          if (!email || !name || !phone) {
+            results.failed++;
+            results.errors.push({
+              row: rowNum,
+              email: email || 'Unknown',
+              message: 'Email, name, and phone are required'
+            });
+            continue;
+          }
+
+          const existingTenant = await storage.getTenantByEmail(email, userId);
+          if (existingTenant) {
+            results.failed++;
+            results.errors.push({
+              row: rowNum,
+              email: email,
+              message: `Tenant with email ${email} already exists`
+            });
+            continue;
+          }
+
+          if (tenantsToCreate.some(t => t.email === email)) {
+            results.failed++;
+            results.errors.push({
+              row: rowNum,
+              email: email,
+              message: `Duplicate email ${email} in upload file`
+            });
+            continue;
+          }
+
+          let roomId = undefined;
+          if (roomNumber) {
+            const room = await storage.getRoomByNumber(userId, roomNumber, pg.id);
+            if (room) {
+              roomId = room.id;
+            }
+          }
+
+          tenantsToCreate.push({
+            ownerId: userId,
+            pgId: pg.id,
+            name: name,
+            email: email,
+            phone: phone,
+            monthlyRent: monthlyRent,
+            roomId: roomId,
+            status: 'active'
+          });
+        } catch (validationError: any) {
+          results.failed++;
+          const email = row.email || row['email address'] || 'Unknown';
+          results.errors.push({
+            row: rowNum,
+            email: email,
+            message: validationError.message || 'Validation failed'
+          });
+        }
+      }
+
+      if (!dryRun) {
+        for (const tenantData of tenantsToCreate) {
+          try {
+            await storage.createTenant(tenantData);
+            results.created++;
+          } catch (createError: any) {
+            results.failed++;
+            results.errors.push({
+              row: 0,
+              email: tenantData.email,
+              message: createError.message || 'Failed to create tenant'
+            });
+          }
+        }
+      } else {
+        results.created = tenantsToCreate.length;
+      }
+
+      res.json({
+        success: results.failed === 0,
+        dryRun: dryRun,
+        summary: {
+          total: results.processed,
+          created: results.created,
+          failed: results.failed,
+        },
+        errors: results.errors,
+        warnings: results.warnings,
+      });
+    } catch (error) {
+      console.error("Tenant bulk upload error:", error);
+      res.status(400).json({ error: "Failed to process bulk upload", details: (error as any).message });
+    }
+  });
+
+  app.get("/api/tenants/bulk-upload-template", async (req, res) => {
+    const template = `name,email,phone,monthlyRent,roomNumber
+John Doe,john@example.com,9876543210,8000,101
+Jane Smith,jane@example.com,9876543211,8000,102
+Bob Johnson,bob@example.com,9876543212,10000,103`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=tenant_bulk_upload_template.csv');
+    res.send(template);
+  });
+
   return httpServer;
 }

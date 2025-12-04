@@ -1,9 +1,10 @@
 import MobileLayout from "@/components/layout/MobileLayout";
-import { Search, UserPlus, Edit2, Trash2, Eye, Users, Phone, MapPin, IndianRupee, MoreVertical } from "lucide-react";
+import { Search, UserPlus, Edit2, Trash2, Eye, Users, Phone, MapPin, IndianRupee, MoreVertical, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useState, useMemo } from "react";
+import { TenantBulkUploadModal } from "@/components/TenantBulkUploadModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertDialog,
@@ -25,6 +26,7 @@ export default function TenantsList() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
   const [deletingTenantId, setDeletingTenantId] = useState<number | null>(null);
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: tenants = [], isLoading } = useQuery({
@@ -89,14 +91,25 @@ export default function TenantsList() {
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold">Tenants</h1>
-            <Button 
-              size="icon" 
-              onClick={() => navigate("/tenants/add")}
-              className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg"
-              data-testid="button-add-tenant"
-            >
-              <UserPlus className="h-5 w-5" />
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                size="icon" 
+                onClick={() => setBulkUploadOpen(true)}
+                className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg"
+                data-testid="button-bulk-upload-tenant"
+                title="Bulk Upload"
+              >
+                <Upload className="h-5 w-5" />
+              </Button>
+              <Button 
+                size="icon" 
+                onClick={() => navigate("/tenants/add")}
+                className="bg-white text-blue-600 hover:bg-blue-50 shadow-lg"
+                data-testid="button-add-tenant"
+              >
+                <UserPlus className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white rounded-lg p-3">
@@ -297,6 +310,14 @@ export default function TenantsList() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TenantBulkUploadModal 
+        open={bulkUploadOpen} 
+        onOpenChange={setBulkUploadOpen}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["tenants"] });
+        }}
+      />
     </MobileLayout>
   );
 }
