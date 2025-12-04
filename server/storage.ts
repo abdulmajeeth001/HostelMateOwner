@@ -15,6 +15,8 @@ import {
   type InsertPgMaster,
   type EmergencyContact,
   type InsertEmergencyContact,
+  type Complaint,
+  type InsertComplaint,
   users,
   otpCodes,
   tenants,
@@ -22,7 +24,8 @@ import {
   notifications,
   rooms,
   pgMaster,
-  emergencyContacts
+  emergencyContacts,
+  complaints
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte } from "drizzle-orm";
@@ -83,6 +86,14 @@ export interface IStorage {
   createEmergencyContact(contact: InsertEmergencyContact): Promise<EmergencyContact>;
   deleteEmergencyContact(id: number): Promise<void>;
   deleteEmergencyContactsByTenant(tenantId: number): Promise<void>;
+
+  // Complaints
+  getComplaints(ownerId: number, pgId?: number): Promise<Complaint[]>;
+  getComplaintsByTenant(tenantId: number): Promise<Complaint[]>;
+  getComplaint(id: number): Promise<Complaint | undefined>;
+  createComplaint(complaint: InsertComplaint): Promise<Complaint>;
+  updateComplaint(id: number, updates: Partial<Complaint>): Promise<Complaint | undefined>;
+  deleteComplaint(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -533,6 +544,43 @@ export class DatabaseStorage implements IStorage {
 
   async deleteEmergencyContactsByTenant(tenantId: number): Promise<void> {
     await db.delete(emergencyContacts).where(eq(emergencyContacts.tenantId, tenantId));
+  }
+
+  // Complaints
+  async getComplaints(ownerId: number, pgId?: number): Promise<Complaint[]> {
+    if (pgId) {
+      return await db.select().from(complaints)
+        .where(and(eq(complaints.ownerId, ownerId), eq(complaints.pgId, pgId)))
+        .orderBy(desc(complaints.createdAt));
+    }
+    return await db.select().from(complaints)
+      .where(eq(complaints.ownerId, ownerId))
+      .orderBy(desc(complaints.createdAt));
+  }
+
+  async getComplaintsByTenant(tenantId: number): Promise<Complaint[]> {
+    return await db.select().from(complaints)
+      .where(eq(complaints.tenantId, tenantId))
+      .orderBy(desc(complaints.createdAt));
+  }
+
+  async getComplaint(id: number): Promise<Complaint | undefined> {
+    const result = await db.select().from(complaints).where(eq(complaints.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createComplaint(complaint: InsertComplaint): Promise<Complaint> {
+    const result = await db.insert(complaints).values(complaint).returning();
+    return result[0];
+  }
+
+  async updateComplaint(id: number, updates: Partial<Complaint>): Promise<Complaint | undefined> {
+    const result = await db.update(complaints).set(updates).where(eq(complaints.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteComplaint(id: number): Promise<void> {
+    await db.delete(complaints).where(eq(complaints.id, id));
   }
 }
 
