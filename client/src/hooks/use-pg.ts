@@ -87,13 +87,14 @@ export function usePG() {
       setPG(data.pg);
       
       // Invalidate queries to refresh data for new PG context
-      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/available-tenants"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/active-rooms"] });
+      // Use the correct query keys that match what components use
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["available-tenants"] });
+      queryClient.invalidateQueries({ queryKey: ["active-rooms"] });
       
       return data.pg;
     } catch (err) {
