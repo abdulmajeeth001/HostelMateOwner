@@ -302,7 +302,7 @@ export default function Complaints() {
                         <SelectValue placeholder="Select room" />
                       </SelectTrigger>
                       <SelectContent>
-                        {rooms.map((room) => (
+                        {rooms.filter(room => room?.id).map((room) => (
                           <SelectItem key={room.id} value={room.id.toString()}>
                             {room.roomNumber}
                           </SelectItem>
@@ -317,7 +317,7 @@ export default function Complaints() {
                         <SelectValue placeholder="Select tenant" />
                       </SelectTrigger>
                       <SelectContent>
-                        {tenants.map((tenant) => (
+                        {tenants.filter(tenant => tenant?.id).map((tenant) => (
                           <SelectItem key={tenant.id} value={tenant.id.toString()}>
                             {tenant.name}
                           </SelectItem>
