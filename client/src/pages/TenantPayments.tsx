@@ -1,14 +1,26 @@
 import { useEffect, useState } from "react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownLeft, Calendar } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Calendar, Copy, Check } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 export default function TenantPayments() {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ownerUpi, setOwnerUpi] = useState<any>(null);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [transactionId, setTransactionId] = useState("");
+  const [isCopied, setIsCopied] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchPayments();
+    fetchOwnerUpi();
   }, []);
 
   const fetchPayments = async () => {
@@ -24,6 +36,69 @@ export default function TenantPayments() {
       console.error("Failed to fetch payments:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOwnerUpi = async () => {
+    try {
+      const res = await fetch("/api/tenant/owner-upi", {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOwnerUpi(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch owner UPI:", err);
+    }
+  };
+
+  const handlePayNow = (payment: any) => {
+    setSelectedPayment(payment);
+    setTransactionId("");
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleCopyUpi = () => {
+    if (ownerUpi?.upiId) {
+      navigator.clipboard.writeText(ownerUpi.upiId);
+      setIsCopied(true);
+      toast.success("UPI ID copied!");
+      setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
+
+  const handleSubmitPayment = async () => {
+    if (!transactionId.trim()) {
+      toast.error("Please enter transaction ID");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/payments/${selectedPayment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          status: "paid",
+          paymentMethod: "upi",
+          transactionId: transactionId.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("Payment submitted successfully!");
+        setIsPaymentDialogOpen(false);
+        fetchPayments(); // Refresh payment list
+      } else {
+        toast.error("Failed to submit payment");
+      }
+    } catch (err) {
+      console.error("Payment submission error:", err);
+      toast.error("Failed to submit payment");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -111,6 +186,16 @@ export default function TenantPayments() {
                     >
                       {payment.status}
                     </p>
+                    {payment.status === "pending" && (
+                      <Button
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => handlePayNow(payment)}
+                        data-testid={`button-pay-${payment.id}`}
+                      >
+                        Pay Now
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -124,6 +209,93 @@ export default function TenantPayments() {
           </Card>
         )}
       </div>
+
+      {/* Payment Dialog */}
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pay Rent</DialogTitle>
+            <DialogDescription>
+              Make payment using UPI and enter the transaction ID
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {ownerUpi?.upiId ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Owner's UPI ID</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={ownerUpi.upiId}
+                      readOnly
+                      className="bg-muted"
+                      data-testid="input-owner-upi"
+                    />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={handleCopyUpi}
+                      data-testid="button-copy-upi"
+                    >
+                      {isCopied ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Copy this UPI ID and make payment using any UPI app
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Amount to Pay</Label>
+                  <Input
+                    value={`₹${selectedPayment?.amount || 0}`}
+                    readOnly
+                    className="bg-muted font-bold"
+                    data-testid="input-payment-amount"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Transaction ID / UTR Number</Label>
+                  <Input
+                    value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    placeholder="Enter transaction ID after payment"
+                    data-testid="input-transaction-id"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    After making the payment, enter the transaction ID/UTR number from your payment app
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-muted-foreground py-4">
+                Owner has not set up UPI ID yet. Please contact your owner.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsPaymentDialogOpen(false)}
+              data-testid="button-cancel-payment"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitPayment}
+              disabled={!ownerUpi?.upiId || submitting || !transactionId.trim()}
+              data-testid="button-submit-payment"
+            >
+              {submitting ? "Submitting..." : "Submit Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MobileLayout>
   );
 }

@@ -1088,6 +1088,174 @@ export async function registerRoutes(
     }
   });
 
+  // Create a new payment (owner only)
+  app.post("/api/payments", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Only owners can create payments" });
+      }
+
+      const selectedPgId = req.session!.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "Please select a PG first" });
+      }
+
+      const paymentData = insertPaymentSchema.parse({
+        ...req.body,
+        ownerId: userId,
+        pgId: selectedPgId,
+        status: "pending",
+      });
+
+      const payment = await storage.createPayment(paymentData);
+      res.status(201).json(payment);
+    } catch (error) {
+      console.error("Create payment error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid payment data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create payment" });
+    }
+  });
+
+  // Update payment status (mark as paid with transaction ID)
+  app.put("/api/payments/:id", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const paymentId = parseInt(req.params.id);
+      
+      // Get the payment before update to check status change and authorization
+      const oldPaymentResult = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
+      const oldPayment = oldPaymentResult[0];
+      
+      if (!oldPayment) {
+        return res.status(404).json({ error: "Payment not found" });
+      }
+
+      // Authorization check: verify user has permission to update this payment
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      if (user.userType === "tenant") {
+        // Tenant can only update their own payments
+        const tenant = await storage.getTenantByUserId(userId);
+        if (!tenant || oldPayment.tenantId !== tenant.id) {
+          return res.status(403).json({ error: "You can only update your own payments" });
+        }
+      } else if (user.userType === "owner") {
+        // Owner can only update payments for their tenants
+        if (oldPayment.ownerId !== userId) {
+          return res.status(403).json({ error: "You can only update payments for your tenants" });
+        }
+      } else {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const payment = await storage.updatePayment(paymentId, {
+        ...req.body,
+        paidAt: req.body.status === "paid" ? new Date() : undefined,
+      });
+
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found" });
+      }
+
+      // Create notification for owner when tenant marks payment as paid
+      if (req.body.status === "paid" && oldPayment.status !== "paid") {
+        const tenant = await storage.getTenant(payment.tenantId);
+        if (tenant) {
+          await storage.createNotification({
+            userId: payment.ownerId,
+            pgId: payment.pgId || null,
+            title: "Payment Received",
+            message: `${tenant.name} has submitted rent payment of ₹${payment.amount}. Transaction ID: ${req.body.transactionId || 'N/A'}`,
+            type: "payment",
+            isRead: false,
+          });
+        }
+      }
+
+      res.json(payment);
+    } catch (error) {
+      console.error("Update payment error:", error);
+      res.status(500).json({ error: "Failed to update payment" });
+    }
+  });
+
+  // Get owner's UPI ID (tenant-facing)
+  app.get("/api/tenant/owner-upi", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Get tenant record to find owner
+      const tenant = await storage.getTenantByUserId(userId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant record not found" });
+      }
+
+      // Get owner details
+      const owner = await storage.getUser(tenant.ownerId);
+      if (!owner) {
+        return res.status(404).json({ error: "Owner not found" });
+      }
+
+      res.json({ 
+        upiId: owner.upiId || null,
+        ownerName: owner.name,
+        ownerMobile: owner.mobile
+      });
+    } catch (error) {
+      console.error("Get owner UPI error:", error);
+      res.status(500).json({ error: "Failed to fetch owner details" });
+    }
+  });
+
+  // Get tenant's payment history
+  app.get("/api/tenant/payments", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const tenant = await storage.getTenantByUserId(userId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant record not found" });
+      }
+
+      const payments = await storage.getPaymentsByTenant(tenant.id);
+      res.json(payments);
+    } catch (error) {
+      console.error("Get tenant payments error:", error);
+      res.status(500).json({ error: "Failed to fetch payments" });
+    }
+  });
+
   // NOTIFICATIONS ROUTES
   app.get("/api/notifications", async (req, res) => {
     try {

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LocationPicker from "@/components/LocationPicker";
-import { Bell, User, Building, Edit2 } from "lucide-react";
+import { Bell, User, Building, Edit2, Wallet } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function Settings() {
@@ -14,13 +14,17 @@ export default function Settings() {
   
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingPg, setEditingPg] = useState(false);
+  const [editingPayment, setEditingPayment] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [pgSaveLoading, setPgSaveLoading] = useState(false);
+  const [paymentSaveLoading, setPaymentSaveLoading] = useState(false);
 
   const [profileForm, setProfileForm] = useState({ name: "", email: "", mobile: "" });
   const [pgForm, setPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", totalRooms: 0 });
+  const [paymentForm, setPaymentForm] = useState({ upiId: "" });
   const [originalProfileForm, setOriginalProfileForm] = useState({ name: "", email: "", mobile: "" });
   const [originalPgForm, setOriginalPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", totalRooms: 0 });
+  const [originalPaymentForm, setOriginalPaymentForm] = useState({ upiId: "" });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,6 +42,10 @@ export default function Settings() {
             };
             setProfileForm(profileData);
             setOriginalProfileForm(profileData);
+            
+            const paymentData = { upiId: userData.upiId || "" };
+            setPaymentForm(paymentData);
+            setOriginalPaymentForm(paymentData);
           }
         }
         
@@ -132,6 +140,41 @@ export default function Settings() {
       alert("Failed to update PG details");
     } finally {
       setPgSaveLoading(false);
+    }
+  };
+
+  const handleEditPayment = () => {
+    setEditingPayment(true);
+  };
+
+  const handleCancelPayment = () => {
+    setEditingPayment(false);
+    setPaymentForm(originalPaymentForm);
+  };
+
+  const handleSavePayment = async () => {
+    setPaymentSaveLoading(true);
+    try {
+      const res = await fetch("/api/users/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify(paymentForm),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+        setOriginalPaymentForm(paymentForm);
+        setEditingPayment(false);
+        alert("Payment details updated successfully");
+      } else {
+        alert("Failed to update payment details");
+      }
+    } catch (error) {
+      alert("Failed to update payment details");
+    } finally {
+      setPaymentSaveLoading(false);
     }
   };
 
@@ -314,6 +357,68 @@ export default function Settings() {
                   variant="outline" 
                   onClick={handleCancelPg}
                   data-testid="button-cancel-pg"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        )}
+
+        {/* Payment Settings - Only for Owners */}
+        {user?.userType === "owner" && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-primary" />
+                <div>
+                  <CardTitle>Payment Settings</CardTitle>
+                  <CardDescription>Manage your UPI payment details for receiving rent</CardDescription>
+                </div>
+              </div>
+              {!editingPayment && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleEditPayment}
+                  data-testid="button-edit-payment"
+                >
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>UPI ID</Label>
+              <Input 
+                value={paymentForm.upiId}
+                onChange={(e) => setPaymentForm({ ...paymentForm, upiId: e.target.value })}
+                disabled={!editingPayment}
+                placeholder="yourname@upi"
+                data-testid="input-settings-upiid"
+                className={!editingPayment ? "bg-muted" : ""}
+              />
+              <p className="text-xs text-muted-foreground">
+                Tenants will use this UPI ID to pay rent. Example: yourname@paytm, yourname@phonepe
+              </p>
+            </div>
+            {editingPayment && (
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleSavePayment} 
+                  disabled={paymentSaveLoading} 
+                  data-testid="button-save-payment"
+                >
+                  {paymentSaveLoading ? "Saving..." : "Save UPI Details"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancelPayment}
+                  data-testid="button-cancel-payment"
                 >
                   Cancel
                 </Button>
