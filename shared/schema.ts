@@ -18,6 +18,7 @@ export const users = pgTable("users", {
   googleId: text("google_id"),
   subscriptionTier: text("subscription_tier").default("none"), // none, starter, pro, enterprise
   subscriptionExpiresAt: timestamp("subscription_expires_at"),
+  upiId: text("upi_id"), // UPI ID for receiving payments
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -115,9 +116,12 @@ export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
   tenantId: integer("tenant_id").notNull().references(() => tenants.id),
   ownerId: integer("owner_id").notNull().references(() => users.id),
+  pgId: integer("pg_id").references(() => pgMaster.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   type: text("type").notNull(), // rent, maintenance, other
   status: text("status").default("pending"), // pending, paid, overdue
+  paymentMethod: text("payment_method"), // upi, cash, bank_transfer, other
+  transactionId: text("transaction_id"), // UPI transaction ID or reference number
   dueDate: timestamp("due_date"),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow(),
