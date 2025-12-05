@@ -20,10 +20,10 @@ export default function Settings() {
   const [paymentSaveLoading, setPaymentSaveLoading] = useState(false);
 
   const [profileForm, setProfileForm] = useState({ name: "", email: "", mobile: "" });
-  const [pgForm, setPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", totalRooms: 0 });
+  const [pgForm, setPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", totalRooms: 0, rentPaymentDate: null });
   const [paymentForm, setPaymentForm] = useState({ upiId: "" });
   const [originalProfileForm, setOriginalProfileForm] = useState({ name: "", email: "", mobile: "" });
-  const [originalPgForm, setOriginalPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", totalRooms: 0 });
+  const [originalPgForm, setOriginalPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", totalRooms: 0, rentPaymentDate: null });
   const [originalPaymentForm, setOriginalPaymentForm] = useState({ upiId: "" });
 
   useEffect(() => {
@@ -58,7 +58,8 @@ export default function Settings() {
               pgName: pgData.pgName || "", 
               pgAddress: pgData.pgAddress || "", 
               pgLocation: pgData.pgLocation || "", 
-              totalRooms: pgData.totalRooms || 0 
+              totalRooms: pgData.totalRooms || 0,
+              rentPaymentDate: pgData.rentPaymentDate || null
             };
             setPgForm(pgData2);
             setOriginalPgForm(pgData2);
@@ -343,6 +344,23 @@ export default function Settings() {
                 data-testid="input-settings-rooms"
                 className={!editingPg ? "bg-muted" : ""}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Rent Payment Date (Day of Month)</Label>
+              <Input 
+                type="number" 
+                min="1"
+                max="31"
+                value={pgForm.rentPaymentDate || ""}
+                onChange={(e) => setPgForm({ ...pgForm, rentPaymentDate: e.target.value ? parseInt(e.target.value) : null })}
+                disabled={!editingPg}
+                placeholder="e.g., 1 for 1st of month"
+                data-testid="input-settings-rent-date"
+                className={!editingPg ? "bg-muted" : ""}
+              />
+              <p className="text-xs text-muted-foreground">
+                Tenants assigned to this PG will get automatic payment requests on this date each month
+              </p>
             </div>
             {editingPg && (
               <div className="flex gap-2">

@@ -55,6 +55,7 @@ export const pgMaster = pgTable("pg_master", {
   pgAddress: text("pg_address").notNull(),
   pgLocation: text("pg_location").notNull(),
   totalRooms: integer("total_rooms").default(0),
+  rentPaymentDate: integer("rent_payment_date"), // Day of month (1-31) when rent is due
   createdAt: timestamp("created_at").defaultNow(),
 });
 
