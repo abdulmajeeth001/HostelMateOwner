@@ -1,9 +1,14 @@
 import DesktopLayout from "@/components/layout/DesktopLayout";
-import { ArrowUpRight, ArrowDownLeft, Calendar, Filter } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Calendar, Filter, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { usePG } from "@/hooks/use-pg";
+import { toast } from "sonner";
 
 interface Payment {
   id: number;
@@ -19,28 +24,82 @@ interface Payment {
   };
 }
 
+interface Tenant {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export default function Payments() {
   const { pg } = usePG();
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formData, setFormData] = useState({ tenantId: "", amount: "", dueDate: "" });
 
   useEffect(() => {
-    fetchPayments();
+    fetchData();
   }, [pg]);
 
-  const fetchPayments = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/payments", { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
+      const [paymentsRes, tenantsRes] = await Promise.all([
+        fetch("/api/payments", { credentials: "include" }),
+        fetch("/api/tenants", { credentials: "include" }),
+      ]);
+      
+      if (paymentsRes.ok) {
+        const data = await paymentsRes.json();
         setPayments(data);
       }
+      
+      if (tenantsRes.ok) {
+        const data = await tenantsRes.json();
+        setTenants(data);
+      }
     } catch (error) {
-      console.error("Failed to fetch payments:", error);
+      console.error("Failed to fetch data:", error);
+      toast.error("Failed to load data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreatePayment = async () => {
+    if (!formData.tenantId || !formData.amount || !formData.dueDate) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          tenantId: parseInt(formData.tenantId),
+          amount: parseFloat(formData.amount),
+          dueDate: new Date(formData.dueDate).toISOString(),
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("Payment request created");
+        setDialogOpen(false);
+        setFormData({ tenantId: "", amount: "", dueDate: "" });
+        fetchData();
+      } else {
+        toast.error("Failed to create payment request");
+      }
+    } catch (error) {
+      toast.error("Failed to create payment request");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -96,12 +155,12 @@ export default function Payments() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-6">
+      {/* Filters & Create Button */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-6 items-center">
         <Button 
           variant={filter === "all" ? "default" : "outline"} 
           size="sm" 
-          className={filter === "all" ? "rounded-full px-4" : "rounded-full px-4"}
+          className="rounded-full px-4"
           onClick={() => setFilter("all")}
           data-testid="button-filter-all"
         >
@@ -128,18 +187,80 @@ export default function Payments() {
         <Button 
           variant="ghost" 
           size="sm" 
-          className="rounded-full w-9 h-9 p-0 ml-auto"
+          className="rounded-full w-9 h-9 p-0"
           data-testid="button-filter-icon"
         >
           <Filter className="w-4 h-4" />
         </Button>
+        
+        <div className="ml-auto">
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-2" data-testid="button-create-payment">
+                <Plus className="w-4 h-4" />
+                Create Request
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Payment Request</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tenant">Tenant</Label>
+                  <Select value={formData.tenantId} onValueChange={(val) => setFormData({...formData, tenantId: val})}>
+                    <SelectTrigger id="tenant" data-testid="select-tenant">
+                      <SelectValue placeholder="Select tenant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tenants.map(t => (
+                        <SelectItem key={t.id} value={t.id.toString()}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount (₹)</Label>
+                  <Input 
+                    id="amount" 
+                    type="number" 
+                    placeholder="0"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                    data-testid="input-amount"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate">Due Date</Label>
+                  <Input 
+                    id="dueDate" 
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                    data-testid="input-due-date"
+                  />
+                </div>
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button variant="outline" onClick={() => setDialogOpen(false)} data-testid="button-cancel">
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreatePayment} disabled={creating} data-testid="button-submit">
+                    {creating ? "Creating..." : "Create"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Transactions */}
       <div className="space-y-4">
         <h3 className="font-bold text-lg">Recent Transactions</h3>
         {loading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading payments...</div>
+          <div className="text-center py-8 text-muted-foreground">Loading...</div>
         ) : transactions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">No transactions found</div>
         ) : (
