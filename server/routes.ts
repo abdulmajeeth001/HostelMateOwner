@@ -1124,6 +1124,36 @@ export async function registerRoutes(
     }
   });
 
+  // Generate automatic payments for all tenants in PG based on rent payment date
+  app.post("/api/payments/auto-generate", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Only owners can generate payments" });
+      }
+
+      const selectedPgId = req.session!.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "Please select a PG first" });
+      }
+
+      const payments = await storage.generateAutoPaymentsForPg(selectedPgId, userId);
+      res.status(201).json({ 
+        success: true, 
+        message: `Generated ${payments.length} payment requests`,
+        payments 
+      });
+    } catch (error) {
+      console.error("Auto-generate payment error:", error);
+      res.status(500).json({ error: "Failed to generate automatic payments" });
+    }
+  });
+
   // Update payment status (mark as paid with transaction ID)
   app.put("/api/payments/:id", async (req, res) => {
     try {

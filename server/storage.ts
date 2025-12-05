@@ -59,6 +59,7 @@ export interface IStorage {
   getPaymentsByTenant(tenantId: number): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined>;
+  generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<Payment[]>;
   
   // Notifications
   getNotifications(userId: number, pgId?: number): Promise<Notification[]>;
@@ -325,6 +326,63 @@ export class DatabaseStorage implements IStorage {
   async updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined> {
     const result = await db.update(payments).set(updates).where(eq(payments.id, id)).returning();
     return result[0];
+  }
+
+  async generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<Payment[]> {
+    // Get PG details to check rent payment date
+    const pg = await this.getPgById(pgId);
+    if (!pg || !pg.rentPaymentDate) {
+      return [];
+    }
+
+    // Get all active tenants in this PG
+    const pgTenants = await db.select().from(tenants)
+      .where(and(eq(tenants.pgId, pgId), eq(tenants.ownerId, ownerId), eq(tenants.status, "active")));
+
+    const createdPayments: Payment[] = [];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    // Determine due date: set to rentPaymentDate of current month
+    let dueDate = new Date(currentYear, currentMonth, pg.rentPaymentDate);
+
+    // If due date has passed this month, schedule for next month
+    if (dueDate < now) {
+      dueDate = new Date(currentYear, currentMonth + 1, pg.rentPaymentDate);
+    }
+
+    // Create payment request for each tenant if one doesn't already exist for this month
+    for (const tenant of pgTenants) {
+      // Check if payment already exists for this tenant this month
+      const existingPayment = await db.select().from(payments)
+        .where(and(
+          eq(payments.tenantId, tenant.id),
+          eq(payments.pgId, pgId),
+          eq(payments.type, "rent")
+        ))
+        .orderBy(desc(payments.createdAt))
+        .limit(1);
+
+      const lastPayment = existingPayment[0];
+      const lastPaymentMonth = lastPayment ? new Date(lastPayment.dueDate).getMonth() : -1;
+
+      // Only create if no payment exists for this month
+      if (lastPaymentMonth !== currentMonth) {
+        const payment = await this.createPayment({
+          tenantId: tenant.id,
+          ownerId: ownerId,
+          pgId: pgId,
+          amount: parseFloat(tenant.monthlyRent.toString()),
+          type: "rent",
+          status: "pending",
+          dueDate: dueDate
+        });
+        createdPayments.push(payment);
+      }
+    }
+
+    return createdPayments;
   }
 
   // Notifications

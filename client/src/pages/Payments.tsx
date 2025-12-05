@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { usePG } from "@/hooks/use-pg";
+import { useUser } from "@/hooks/use-user";
 import { toast } from "sonner";
 
 interface Payment {
@@ -103,6 +104,34 @@ export default function Payments() {
     }
   };
 
+  const handleAutoGeneratePayments = async () => {
+    if (!pg?.rentPaymentDate) {
+      toast.error("Please set rent payment date in Settings first");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const res = await fetch("/api/payments/auto-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message);
+        fetchData();
+      } else {
+        toast.error("Failed to generate payments");
+      }
+    } catch (error) {
+      toast.error("Failed to generate payments");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   // Calculate totals
   const totalBalance = payments.reduce((sum, p) => sum + p.amount, 0);
   const income = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
@@ -193,7 +222,17 @@ export default function Payments() {
           <Filter className="w-4 h-4" />
         </Button>
         
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+          <Button 
+            size="sm" 
+            variant="outline"
+            className="gap-2" 
+            onClick={handleAutoGeneratePayments}
+            disabled={creating || !pg?.rentPaymentDate}
+            data-testid="button-auto-generate"
+          >
+            Auto Generate
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-2" data-testid="button-create-payment">
