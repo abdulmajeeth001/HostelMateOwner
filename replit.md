@@ -1,8 +1,8 @@
-# HostelMate - PG Management System
+# WinkStay - PG Management System
 
 ## Overview
 
-HostelMate is a comprehensive PG (Paying Guest) hostel management application designed for hostel owners and tenants. The system provides tools for managing rooms, tenants, payments, complaints, maintenance schedules, and reporting. It features a dual-interface design with separate dashboards for owners and tenants, enabling efficient hostel operations and transparent communication.
+WinkStay is a comprehensive PG (Paying Guest) hostel management application designed for hostel owners and tenants. The system provides tools for managing rooms, tenants, payments, complaints, maintenance schedules, and reporting. It features a dual-interface design with separate dashboards for owners and tenants, enabling efficient hostel operations and transparent communication.
 
 The application is built as a full-stack web application with a React-based frontend and Express.js backend, using PostgreSQL for data persistence through Drizzle ORM.
 

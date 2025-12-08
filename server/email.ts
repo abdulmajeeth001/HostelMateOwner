@@ -34,7 +34,7 @@ export async function sendOtpEmail(email: string, otp: string, purpose: string =
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0;">HostelMate</h1>
+          <h1 style="margin: 0;">WinkStay</h1>
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0;">
           <h2 style="color: #333; margin-top: 0;">${subject}</h2>
@@ -47,7 +47,7 @@ export async function sendOtpEmail(email: string, otp: string, purpose: string =
           </div>
 
           <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
-            Do not share this code with anyone. HostelMate will never ask for your OTP.
+            Do not share this code with anyone. WinkStay will never ask for your OTP.
           </p>
           
           <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
@@ -56,7 +56,7 @@ export async function sendOtpEmail(email: string, otp: string, purpose: string =
             If you didn't request this code, please ignore this email.
           </p>
           <p style="color: #999; font-size: 12px; margin: 0;">
-            © 2025 HostelMate. All rights reserved.
+            © 2025 WinkStay. All rights reserved.
           </p>
         </div>
       </div>

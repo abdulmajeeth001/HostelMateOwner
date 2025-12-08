@@ -117,10 +117,10 @@ export default function MobileLayout({
             className="flex items-center gap-3 cursor-pointer mb-4"
           >
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-              <img src={appIcon} alt="HostelMate" className="w-full h-full object-cover rounded-lg" />
+              <img src={appIcon} alt="WinkStay" className="w-full h-full object-cover rounded-lg" />
             </div>
             <div>
-              <h1 className="font-bold text-lg text-foreground">HostelMate</h1>
+              <h1 className="font-bold text-lg text-foreground">WinkStay</h1>
             </div>
           </div>
           {isOwner && (

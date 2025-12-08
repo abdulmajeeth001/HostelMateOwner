@@ -63,9 +63,9 @@ export default function Login() {
       >
         <div className="text-center space-y-2">
           <div className="bg-primary/10 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg border border-primary/20">
-             <img src={appIcon} alt="HostelMate Logo" className="w-full h-full object-cover rounded-2xl" />
+             <img src={appIcon} alt="WinkStay Logo" className="w-full h-full object-cover rounded-2xl" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">HostelMate</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">WinkStay</h1>
           <p className="text-muted-foreground">Manage your PG smarter, not harder.</p>
         </div>
 

@@ -12,9 +12,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-              <img src={appIcon} alt="HostelMate" className="w-full h-full object-cover rounded-lg" />
+              <img src={appIcon} alt="WinkStay" className="w-full h-full object-cover rounded-lg" />
             </div>
-            <h1 className="text-xl font-bold text-foreground">HostelMate</h1>
+            <h1 className="text-xl font-bold text-foreground">WinkStay</h1>
           </div>
           <div className="flex gap-3">
             <Button onClick={() => navigate("/login")} variant="outline" data-testid="button-nav-login">
@@ -37,7 +37,7 @@ export default function Home() {
                 Manage Your PG <span className="text-primary">Effortlessly</span>
               </h2>
               <p className="text-xl text-muted-foreground">
-                HostelMate is a comprehensive PG management solution that helps you handle tenants, payments, maintenance, and more—all in one place.
+                WinkStay is a comprehensive PG management solution that helps you handle tenants, payments, maintenance, and more—all in one place.
               </p>
             </div>
 
@@ -116,7 +116,7 @@ export default function Home() {
       <div className="bg-primary/5 border-t border-border/50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
           <h2 className="text-4xl font-bold text-foreground mb-4">Ready to Simplify Your PG Management?</h2>
-          <p className="text-lg text-muted-foreground mb-8">Join thousands of PG owners using HostelMate to manage their properties efficiently</p>
+          <p className="text-lg text-muted-foreground mb-8">Join thousands of PG owners using WinkStay to manage their properties efficiently</p>
           <Button onClick={() => navigate("/register")} size="lg" className="text-lg px-12" data-testid="button-cta-register">
             Start Your Free Trial
           </Button>
@@ -126,7 +126,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border/50 bg-card/30 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-muted-foreground">
-          <p>&copy; 2024 HostelMate. All rights reserved.</p>
+          <p>&copy; 2024 WinkStay. All rights reserved.</p>
         </div>
       </footer>
     </div>
