@@ -146,7 +146,18 @@ export async function registerRoutes(
         message: "OTP sent to your email"
       });
     } catch (error) {
-      res.status(400).json({ error: "Invalid registration data" });
+      // FIX: Just log the raw error object directly.
+      console.error("--- REGISTRATION ERROR ---");
+      console.error(error);
+      console.error("--------------------------");
+
+      // If it is a Zod error, it will have an 'issues' array
+      if (error instanceof z.ZodError) {
+          res.status(400).json({ error: "Invalid registration data", details: error.issues });
+      } else {
+          // If it's something else (like DB connection), send a generic error
+          res.status(500).json({ error: "Internal server error during registration" });
+      }
     }
   });
 
