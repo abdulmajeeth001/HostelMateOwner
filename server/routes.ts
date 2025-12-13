@@ -313,16 +313,46 @@ export async function registerRoutes(
         });
       }
 
-      req.session!.userId = user.id;
-      
-      // Auto-select first approved and active PG for owners
+      // Check PG approval status for owners
       if (user.userType === "owner") {
         const allPgs = await storage.getAllPgsByOwnerId(user.id);
-        const approvedPg = allPgs.find(pg => pg.status === "approved" && pg.isActive);
-        if (approvedPg) {
-          (req.session as any).selectedPgId = approvedPg.id;
+        
+        // If owner has PGs, check if at least one is approved and active
+        if (allPgs.length > 0) {
+          const approvedPg = allPgs.find(pg => pg.status === "approved" && pg.isActive);
+          
+          if (!approvedPg) {
+            // No approved PGs - check status and provide specific error
+            const hasPending = allPgs.some(pg => pg.status === "pending");
+            const hasRejected = allPgs.some(pg => pg.status === "rejected");
+            const hasDeactivated = allPgs.some(pg => !pg.isActive && pg.status === "approved");
+            
+            if (hasPending && !hasRejected && !hasDeactivated) {
+              return res.status(403).json({ 
+                error: "Your PG is pending admin approval. Please wait for confirmation before logging in.",
+                status: "pending"
+              });
+            } else if (hasRejected) {
+              const rejectedPg = allPgs.find(pg => pg.status === "rejected");
+              return res.status(403).json({ 
+                error: `Your PG has been rejected${rejectedPg?.rejectionReason ? `: ${rejectedPg.rejectionReason}` : ''}. Please contact support for more information.`,
+                status: "rejected"
+              });
+            } else if (hasDeactivated) {
+              return res.status(403).json({ 
+                error: "Your PG has been deactivated. Please contact support to reactivate your account.",
+                status: "deactivated"
+              });
+            }
+          } else {
+            // Set approved PG in session
+            (req.session as any).selectedPgId = approvedPg.id;
+          }
         }
+        // If no PGs exist, allow login (new owner needs to create PG)
       }
+      
+      req.session!.userId = user.id;
       
       // Explicitly save session to ensure persistence
       req.session!.save((err: any) => {

@@ -84,6 +84,7 @@ export interface IStorage {
 
   // PG Master
   getPgByOwnerId(ownerId: number): Promise<PgMaster | undefined>;
+  getAllPgsByOwnerId(ownerId: number): Promise<PgMaster[]>;
   getPgById(pgId: number): Promise<PgMaster | undefined>;
   createPgMaster(pg: InsertPgMaster): Promise<PgMaster>;
   updatePgMaster(ownerId: number, updates: Partial<PgMaster>): Promise<PgMaster | undefined>;
