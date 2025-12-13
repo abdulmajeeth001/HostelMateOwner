@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import LocationMapPicker from "@/components/LocationMapPicker";
+import ImageUploader from "@/components/ImageUploader";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +40,9 @@ export default function PGManagement() {
     pgName: "",
     pgAddress: "",
     pgLocation: "",
+    latitude: "",
+    longitude: "",
+    imageUrl: "",
     totalRooms: "",
   });
 
@@ -46,6 +51,9 @@ export default function PGManagement() {
       pgName: "",
       pgAddress: "",
       pgLocation: "",
+      latitude: "",
+      longitude: "",
+      imageUrl: "",
       totalRooms: "",
     });
   };
@@ -122,6 +130,9 @@ export default function PGManagement() {
       pgName: pg.pgName,
       pgAddress: pg.pgAddress || "",
       pgLocation: pg.pgLocation || "",
+      latitude: pg.latitude || "",
+      longitude: pg.longitude || "",
+      imageUrl: pg.imageUrl || "",
       totalRooms: pg.totalRooms?.toString() || "",
     });
     setIsEditDialogOpen(true);
@@ -298,7 +309,7 @@ export default function PGManagement() {
               Enter the details of your new PG property.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="grid gap-2">
               <Label htmlFor="pgName">PG Name *</Label>
               <Input
@@ -309,26 +320,33 @@ export default function PGManagement() {
                 data-testid="input-pg-name"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="pgAddress">Address *</Label>
-              <Input
-                id="pgAddress"
-                placeholder="Enter full address"
-                value={formData.pgAddress}
-                onChange={(e) => setFormData({ ...formData, pgAddress: e.target.value })}
-                data-testid="input-pg-address"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="pgLocation">Location/City *</Label>
-              <Input
-                id="pgLocation"
-                placeholder="Enter city or area"
-                value={formData.pgLocation}
-                onChange={(e) => setFormData({ ...formData, pgLocation: e.target.value })}
-                data-testid="input-pg-location"
-              />
-            </div>
+            <LocationMapPicker 
+              onLocationSelect={(location) => {
+                setFormData(prev => ({
+                  ...prev,
+                  pgAddress: location.address,
+                  pgLocation: location.city,
+                  latitude: location.lat,
+                  longitude: location.lon
+                }));
+              }}
+              selectedLocation={{
+                address: formData.pgAddress,
+                city: formData.pgLocation,
+                lat: formData.latitude,
+                lon: formData.longitude
+              }}
+            />
+            <ImageUploader 
+              onImageSelect={(base64Image) => {
+                setFormData(prev => ({
+                  ...prev,
+                  imageUrl: base64Image
+                }));
+              }}
+              currentImage={formData.imageUrl}
+              label="PG Image (Optional)"
+            />
             <div className="grid gap-2">
               <Label htmlFor="totalRooms">Total Rooms</Label>
               <Input
@@ -361,7 +379,7 @@ export default function PGManagement() {
               Update the details of your PG property.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="grid gap-2">
               <Label htmlFor="edit-pgName">PG Name *</Label>
               <Input
@@ -372,26 +390,33 @@ export default function PGManagement() {
                 data-testid="input-edit-pg-name"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-pgAddress">Address *</Label>
-              <Input
-                id="edit-pgAddress"
-                placeholder="Enter full address"
-                value={formData.pgAddress}
-                onChange={(e) => setFormData({ ...formData, pgAddress: e.target.value })}
-                data-testid="input-edit-pg-address"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-pgLocation">Location/City *</Label>
-              <Input
-                id="edit-pgLocation"
-                placeholder="Enter city or area"
-                value={formData.pgLocation}
-                onChange={(e) => setFormData({ ...formData, pgLocation: e.target.value })}
-                data-testid="input-edit-pg-location"
-              />
-            </div>
+            <LocationMapPicker 
+              onLocationSelect={(location) => {
+                setFormData(prev => ({
+                  ...prev,
+                  pgAddress: location.address,
+                  pgLocation: location.city,
+                  latitude: location.lat,
+                  longitude: location.lon
+                }));
+              }}
+              selectedLocation={{
+                address: formData.pgAddress,
+                city: formData.pgLocation,
+                lat: formData.latitude,
+                lon: formData.longitude
+              }}
+            />
+            <ImageUploader 
+              onImageSelect={(base64Image) => {
+                setFormData(prev => ({
+                  ...prev,
+                  imageUrl: base64Image
+                }));
+              }}
+              currentImage={formData.imageUrl}
+              label="PG Image (Optional)"
+            />
             <div className="grid gap-2">
               <Label htmlFor="edit-totalRooms">Total Rooms</Label>
               <Input

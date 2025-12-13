@@ -2,7 +2,8 @@ import MobileLayout from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import LocationPicker from "@/components/LocationPicker";
+import LocationMapPicker from "@/components/LocationMapPicker";
+import ImageUploader from "@/components/ImageUploader";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { ChevronLeft, Mail, Phone, User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -23,6 +24,9 @@ export default function Register() {
     userType: "owner",
     pgAddress: "",
     pgLocation: "",
+    latitude: "",
+    longitude: "",
+    imageUrl: "",
     password: "",
     confirmPassword: ""
   });
@@ -71,6 +75,9 @@ export default function Register() {
             password: formData.password,
             pgAddress: formData.pgAddress,
             pgLocation: formData.pgLocation,
+            latitude: formData.latitude,
+            longitude: formData.longitude,
+            imageUrl: formData.imageUrl,
           }),
         });
 
@@ -299,19 +306,35 @@ export default function Register() {
                     </div>
 
                     {formData.userType === "owner" && (
-                      <LocationPicker 
-                        onLocationSelect={(location) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            pgAddress: location.address,
-                            pgLocation: location.city
-                          }));
-                        }}
-                        selectedLocation={{ 
-                          address: formData.pgAddress, 
-                          city: formData.pgLocation 
-                        }}
-                      />
+                      <>
+                        <LocationMapPicker 
+                          onLocationSelect={(location) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              pgAddress: location.address,
+                              pgLocation: location.city,
+                              latitude: location.lat,
+                              longitude: location.lon
+                            }));
+                          }}
+                          selectedLocation={{ 
+                            address: formData.pgAddress, 
+                            city: formData.pgLocation,
+                            lat: formData.latitude,
+                            lon: formData.longitude
+                          }}
+                        />
+                        <ImageUploader 
+                          onImageSelect={(base64Image) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              imageUrl: base64Image
+                            }));
+                          }}
+                          currentImage={formData.imageUrl}
+                          label="PG Image (Optional)"
+                        />
+                      </>
                     )}
                   </div>
 

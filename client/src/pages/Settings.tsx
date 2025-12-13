@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import LocationPicker from "@/components/LocationPicker";
+import LocationMapPicker from "@/components/LocationMapPicker";
+import ImageUploader from "@/components/ImageUploader";
 import { Bell, User, Building, Edit2, Wallet } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -20,10 +21,10 @@ export default function Settings() {
   const [paymentSaveLoading, setPaymentSaveLoading] = useState(false);
 
   const [profileForm, setProfileForm] = useState({ name: "", email: "", mobile: "" });
-  const [pgForm, setPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", totalRooms: 0, rentPaymentDate: null });
+  const [pgForm, setPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", latitude: "", longitude: "", imageUrl: "", totalRooms: 0, rentPaymentDate: null });
   const [paymentForm, setPaymentForm] = useState({ upiId: "" });
   const [originalProfileForm, setOriginalProfileForm] = useState({ name: "", email: "", mobile: "" });
-  const [originalPgForm, setOriginalPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", totalRooms: 0, rentPaymentDate: null });
+  const [originalPgForm, setOriginalPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", latitude: "", longitude: "", imageUrl: "", totalRooms: 0, rentPaymentDate: null });
   const [originalPaymentForm, setOriginalPaymentForm] = useState({ upiId: "" });
 
   useEffect(() => {
@@ -58,6 +59,9 @@ export default function Settings() {
               pgName: pgData.pgName || "", 
               pgAddress: pgData.pgAddress || "", 
               pgLocation: pgData.pgLocation || "", 
+              latitude: pgData.latitude || "",
+              longitude: pgData.longitude || "",
+              imageUrl: pgData.imageUrl || "",
               totalRooms: pgData.totalRooms || 0,
               rentPaymentDate: pgData.rentPaymentDate || null
             };
@@ -312,17 +316,21 @@ export default function Settings() {
             <div className="space-y-2">
               <Label>Pick Location</Label>
               {editingPg ? (
-                <LocationPicker 
+                <LocationMapPicker 
                   onLocationSelect={(location) => {
                     setPgForm(prev => ({
                       ...prev,
                       pgAddress: location.address,
-                      pgLocation: location.city
+                      pgLocation: location.city,
+                      latitude: location.lat,
+                      longitude: location.lon
                     }));
                   }}
                   selectedLocation={{
                     address: pgForm.pgAddress,
-                    city: pgForm.pgLocation
+                    city: pgForm.pgLocation,
+                    lat: pgForm.latitude,
+                    lon: pgForm.longitude
                   }}
                 />
               ) : (
@@ -334,6 +342,20 @@ export default function Settings() {
                 />
               )}
             </div>
+            {editingPg && (
+              <div className="space-y-2">
+                <ImageUploader 
+                  onImageSelect={(base64Image) => {
+                    setPgForm(prev => ({
+                      ...prev,
+                      imageUrl: base64Image
+                    }));
+                  }}
+                  currentImage={pgForm.imageUrl}
+                  label="PG Image (Optional)"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Total Rooms</Label>
               <Input 
