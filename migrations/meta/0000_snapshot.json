@@ -1,5 +1,5 @@
 {
-  "id": "39f5e0aa-8f90-42fb-a06c-cfc8aab7d88b",
+  "id": "88f61d73-08cb-4ba5-8cd3-2f4fa4d1cb36",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -280,6 +280,7 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+<<<<<<< HEAD
     "public.onboarding_requests": {
       "name": "onboarding_requests",
       "schema": "",
@@ -475,6 +476,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+=======
+>>>>>>> 2d39019 (Add local database driver and generated migrations)
     "public.otp_codes": {
       "name": "otp_codes",
       "schema": "",
@@ -584,12 +587,15 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< HEAD
         "rejection_reason": {
           "name": "rejection_reason",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
+=======
+>>>>>>> 2d39019 (Add local database driver and generated migrations)
         "due_date": {
           "name": "due_date",
           "type": "timestamp",
@@ -692,6 +698,7 @@
           "primaryKey": false,
           "notNull": true
         },
+<<<<<<< HEAD
         "latitude": {
           "name": "latitude",
           "type": "numeric(10, 7)",
@@ -710,6 +717,8 @@
           "primaryKey": false,
           "notNull": false
         },
+=======
+>>>>>>> 2d39019 (Add local database driver and generated migrations)
         "total_rooms": {
           "name": "total_rooms",
           "type": "integer",
@@ -723,6 +732,7 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< HEAD
         "status": {
           "name": "status",
           "type": "text",
@@ -838,6 +848,8 @@
           "notNull": false,
           "default": 0
         },
+=======
+>>>>>>> 2d39019 (Add local database driver and generated migrations)
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -860,6 +872,7 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+<<<<<<< HEAD
         },
         "pg_master_approved_by_users_id_fk": {
           "name": "pg_master_approved_by_users_id_fk",
@@ -1119,6 +1132,8 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+=======
+>>>>>>> 2d39019 (Add local database driver and generated migrations)
         }
       },
       "compositePrimaryKeys": {},
@@ -1253,6 +1268,7 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+<<<<<<< HEAD
     "public.subscription_plans": {
       "name": "subscription_plans",
       "schema": "",
@@ -1329,6 +1345,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+=======
+>>>>>>> 2d39019 (Add local database driver and generated migrations)
     "public.tenants": {
       "name": "tenants",
       "schema": "",
@@ -1351,12 +1369,15 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< HEAD
         "room_id": {
           "name": "room_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
+=======
+>>>>>>> 2d39019 (Add local database driver and generated migrations)
         "user_id": {
           "name": "user_id",
           "type": "integer",
@@ -1443,6 +1464,7 @@
           "notNull": false,
           "default": "'active'"
         },
+<<<<<<< HEAD
         "onboarding_status": {
           "name": "onboarding_status",
           "type": "text",
@@ -1450,6 +1472,8 @@
           "notNull": false,
           "default": "'not_onboarded'"
         },
+=======
+>>>>>>> 2d39019 (Add local database driver and generated migrations)
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1486,6 +1510,7 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
+<<<<<<< HEAD
         "tenants_room_id_rooms_id_fk": {
           "name": "tenants_room_id_rooms_id_fk",
           "tableFrom": "tenants",
@@ -1499,6 +1524,8 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
+=======
+>>>>>>> 2d39019 (Add local database driver and generated migrations)
         "tenants_user_id_users_id_fk": {
           "name": "tenants_user_id_users_id_fk",
           "tableFrom": "tenants",
@@ -1634,6 +1661,7 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+<<<<<<< HEAD
     },
     "public.visit_requests": {
       "name": "visit_requests",
@@ -1805,6 +1833,8 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+=======
+>>>>>>> 2d39019 (Add local database driver and generated migrations)
     }
   },
   "enums": {},
