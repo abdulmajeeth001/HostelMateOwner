@@ -104,8 +104,8 @@ export interface IStorage {
 
   // Admin Methods
   adminExists(): Promise<boolean>;
-  getAllPgs(): Promise<PgMaster[]>;
-  getPendingPgs(): Promise<PgMaster[]>;
+  getAllPgs(): Promise<any[]>;
+  getPendingPgs(): Promise<any[]>;
   approvePg(pgId: number, adminId: number): Promise<PgMaster | undefined>;
   rejectPg(pgId: number, adminId: number, reason: string): Promise<PgMaster | undefined>;
   deactivatePg(pgId: number): Promise<PgMaster | undefined>;
@@ -679,14 +679,75 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async getAllPgs(): Promise<PgMaster[]> {
-    return await db.select().from(pgMaster).orderBy(desc(pgMaster.createdAt));
+  async getAllPgs(): Promise<any[]> {
+    const results = await db
+      .select({
+        id: pgMaster.id,
+        ownerId: pgMaster.ownerId,
+        pgName: pgMaster.pgName,
+        pgAddress: pgMaster.pgAddress,
+        pgLocation: pgMaster.pgLocation,
+        latitude: pgMaster.latitude,
+        longitude: pgMaster.longitude,
+        imageUrl: pgMaster.imageUrl,
+        totalRooms: pgMaster.totalRooms,
+        rentPaymentDate: pgMaster.rentPaymentDate,
+        status: pgMaster.status,
+        approvedBy: pgMaster.approvedBy,
+        approvedAt: pgMaster.approvedAt,
+        rejectionReason: pgMaster.rejectionReason,
+        isActive: pgMaster.isActive,
+        subscriptionStatus: pgMaster.subscriptionStatus,
+        subscriptionExpiresAt: pgMaster.subscriptionExpiresAt,
+        createdAt: pgMaster.createdAt,
+        owner: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          mobile: users.mobile,
+        },
+      })
+      .from(pgMaster)
+      .innerJoin(users, eq(pgMaster.ownerId, users.id))
+      .orderBy(desc(pgMaster.createdAt));
+    
+    return results;
   }
 
-  async getPendingPgs(): Promise<PgMaster[]> {
-    return await db.select().from(pgMaster)
+  async getPendingPgs(): Promise<any[]> {
+    const results = await db
+      .select({
+        id: pgMaster.id,
+        ownerId: pgMaster.ownerId,
+        pgName: pgMaster.pgName,
+        pgAddress: pgMaster.pgAddress,
+        pgLocation: pgMaster.pgLocation,
+        latitude: pgMaster.latitude,
+        longitude: pgMaster.longitude,
+        imageUrl: pgMaster.imageUrl,
+        totalRooms: pgMaster.totalRooms,
+        rentPaymentDate: pgMaster.rentPaymentDate,
+        status: pgMaster.status,
+        approvedBy: pgMaster.approvedBy,
+        approvedAt: pgMaster.approvedAt,
+        rejectionReason: pgMaster.rejectionReason,
+        isActive: pgMaster.isActive,
+        subscriptionStatus: pgMaster.subscriptionStatus,
+        subscriptionExpiresAt: pgMaster.subscriptionExpiresAt,
+        createdAt: pgMaster.createdAt,
+        owner: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          mobile: users.mobile,
+        },
+      })
+      .from(pgMaster)
+      .innerJoin(users, eq(pgMaster.ownerId, users.id))
       .where(eq(pgMaster.status, "pending"))
       .orderBy(desc(pgMaster.createdAt));
+    
+    return results;
   }
 
   async approvePg(pgId: number, adminId: number): Promise<PgMaster | undefined> {
