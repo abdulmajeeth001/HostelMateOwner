@@ -54,6 +54,9 @@ export const pgMaster = pgTable("pg_master", {
   pgName: text("pg_name").notNull(),
   pgAddress: text("pg_address").notNull(),
   pgLocation: text("pg_location").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }), // Latitude for location-based search
+  longitude: decimal("longitude", { precision: 10, scale: 7 }), // Longitude for location-based search
+  imageUrl: text("image_url"), // PG image (base64 or URL)
   totalRooms: integer("total_rooms").default(0),
   rentPaymentDate: integer("rent_payment_date"), // Day of month (1-31) when rent is due
   createdAt: timestamp("created_at").defaultNow(),
