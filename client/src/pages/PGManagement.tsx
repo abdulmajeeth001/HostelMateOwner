@@ -70,6 +70,9 @@ export default function PGManagement() {
         pgName: formData.pgName,
         pgAddress: formData.pgAddress,
         pgLocation: formData.pgLocation,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        imageUrl: formData.imageUrl,
         totalRooms: formData.totalRooms ? parseInt(formData.totalRooms) : 0,
       });
       toast.success("PG created successfully!");
@@ -95,6 +98,9 @@ export default function PGManagement() {
         pgName: formData.pgName,
         pgAddress: formData.pgAddress,
         pgLocation: formData.pgLocation,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        imageUrl: formData.imageUrl,
         totalRooms: formData.totalRooms ? parseInt(formData.totalRooms) : 0,
       });
       toast.success("PG updated successfully!");
