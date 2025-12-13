@@ -313,6 +313,9 @@ export async function registerRoutes(
         });
       }
 
+      // Set user session first
+      req.session!.userId = user.id;
+
       // Check PG approval status for owners
       if (user.userType === "owner") {
         const allPgs = await storage.getAllPgsByOwnerId(user.id);
@@ -322,7 +325,9 @@ export async function registerRoutes(
           const approvedPg = allPgs.find(pg => pg.status === "approved" && pg.isActive);
           
           if (!approvedPg) {
-            // No approved PGs - check status and provide specific error
+            // No approved PGs - destroy session and check status to provide specific error
+            req.session!.destroy(() => {});
+            
             const hasPending = allPgs.some(pg => pg.status === "pending");
             const hasRejected = allPgs.some(pg => pg.status === "rejected");
             const hasDeactivated = allPgs.some(pg => !pg.isActive && pg.status === "approved");
@@ -351,8 +356,6 @@ export async function registerRoutes(
         }
         // If no PGs exist, allow login (new owner needs to create PG)
       }
-      
-      req.session!.userId = user.id;
       
       // Explicitly save session to ensure persistence
       req.session!.save((err: any) => {
