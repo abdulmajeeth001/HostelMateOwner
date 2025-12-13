@@ -59,6 +59,13 @@ export const pgMaster = pgTable("pg_master", {
   imageUrl: text("image_url"), // PG image (base64 or URL)
   totalRooms: integer("total_rooms").default(0),
   rentPaymentDate: integer("rent_payment_date"), // Day of month (1-31) when rent is due
+  status: text("status").default("pending"), // pending, approved, rejected - Admin approval status
+  approvedBy: integer("approved_by").references(() => users.id), // Admin who approved
+  approvedAt: timestamp("approved_at"), // When it was approved
+  rejectionReason: text("rejection_reason"), // Reason for rejection if status is rejected
+  isActive: boolean("is_active").default(true), // Can be deactivated by admin for non-payment
+  subscriptionStatus: text("subscription_status").default("trial"), // trial, active, expired, suspended
+  subscriptionExpiresAt: timestamp("subscription_expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -204,3 +211,50 @@ export const insertComplaintSchema = createInsertSchema(complaints).omit({
 });
 export type InsertComplaint = z.infer<typeof insertComplaintSchema>;
 export type Complaint = typeof complaints.$inferSelect;
+
+// Subscription Plans table (configured by admin)
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Starter, Pro, Enterprise
+  description: text("description"),
+  monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }).notNull(),
+  yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }),
+  maxRooms: integer("max_rooms"), // null for unlimited
+  maxTenants: integer("max_tenants"), // null for unlimited
+  features: text("features").array().default([]), // Array of feature descriptions
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+
+// PG Subscriptions table (tracks subscription payments for each PG)
+export const pgSubscriptions = pgTable("pg_subscriptions", {
+  id: serial("id").primaryKey(),
+  pgId: integer("pg_id").notNull().references(() => pgMaster.id, { onDelete: "cascade" }),
+  planId: integer("plan_id").notNull().references(() => subscriptionPlans.id),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  billingCycle: text("billing_cycle").notNull(), // monthly, yearly
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").default("pending"), // pending, paid, overdue, cancelled
+  paymentMethod: text("payment_method"), // upi, bank_transfer, card, other
+  transactionId: text("transaction_id"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  paidAt: timestamp("paid_at"),
+  invoiceUrl: text("invoice_url"), // Link to invoice PDF
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPgSubscriptionSchema = createInsertSchema(pgSubscriptions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertPgSubscription = z.infer<typeof insertPgSubscriptionSchema>;
+export type PgSubscription = typeof pgSubscriptions.$inferSelect;

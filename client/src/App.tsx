@@ -33,6 +33,10 @@ import TenantPgDetails from "@/pages/TenantPgDetails";
 import TenantPgFacilities from "@/pages/TenantPgFacilities";
 import ForgotPassword from "@/pages/ForgotPassword";
 import PGManagement from "@/pages/PGManagement";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminPGManagement from "@/pages/AdminPGManagement";
+import AdminSubscriptions from "@/pages/AdminSubscriptions";
+import AdminComplaints from "@/pages/AdminComplaints";
 
 function Router() {
   return (
@@ -42,6 +46,10 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/subscription" component={SubscriptionPlan} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/admin-dashboard" component={AdminDashboard} />
+      <Route path="/admin-pgs" component={AdminPGManagement} />
+      <Route path="/admin-subscriptions" component={AdminSubscriptions} />
+      <Route path="/admin-complaints" component={AdminComplaints} />
       <Route path="/tenants" component={TenantsList} />
       <Route path="/tenants/add" component={AddTenant} />
       <Route path="/tenants/view/:id" component={ViewTenant} />

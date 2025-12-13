@@ -17,6 +17,10 @@ import {
   type InsertEmergencyContact,
   type Complaint,
   type InsertComplaint,
+  type SubscriptionPlan,
+  type InsertSubscriptionPlan,
+  type PgSubscription,
+  type InsertPgSubscription,
   users,
   otpCodes,
   tenants,
@@ -25,7 +29,9 @@ import {
   rooms,
   pgMaster,
   emergencyContacts,
-  complaints
+  complaints,
+  subscriptionPlans,
+  pgSubscriptions
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte } from "drizzle-orm";
@@ -95,6 +101,32 @@ export interface IStorage {
   createComplaint(complaint: InsertComplaint): Promise<Complaint>;
   updateComplaint(id: number, updates: Partial<Complaint>): Promise<Complaint | undefined>;
   deleteComplaint(id: number): Promise<void>;
+
+  // Admin Methods
+  adminExists(): Promise<boolean>;
+  getAllPgs(): Promise<PgMaster[]>;
+  getPendingPgs(): Promise<PgMaster[]>;
+  approvePg(pgId: number, adminId: number): Promise<PgMaster | undefined>;
+  rejectPg(pgId: number, adminId: number, reason: string): Promise<PgMaster | undefined>;
+  deactivatePg(pgId: number): Promise<PgMaster | undefined>;
+  activatePg(pgId: number): Promise<PgMaster | undefined>;
+  updatePgById(pgId: number, updates: Partial<PgMaster>): Promise<PgMaster | undefined>;
+  getAllTenants(): Promise<Tenant[]>;
+  getAllComplaints(): Promise<Complaint[]>;
+  
+  // Subscription Plans
+  getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  getSubscriptionPlan(id: number): Promise<SubscriptionPlan | undefined>;
+  createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan>;
+  updateSubscriptionPlan(id: number, updates: Partial<SubscriptionPlan>): Promise<SubscriptionPlan | undefined>;
+  deleteSubscriptionPlan(id: number): Promise<void>;
+  
+  // PG Subscriptions
+  getPgSubscriptions(pgId?: number): Promise<PgSubscription[]>;
+  getPgSubscription(id: number): Promise<PgSubscription | undefined>;
+  createPgSubscription(subscription: InsertPgSubscription): Promise<PgSubscription>;
+  updatePgSubscription(id: number, updates: Partial<PgSubscription>): Promise<PgSubscription | undefined>;
+  deletePgSubscription(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -639,6 +671,141 @@ export class DatabaseStorage implements IStorage {
 
   async deleteComplaint(id: number): Promise<void> {
     await db.delete(complaints).where(eq(complaints.id, id));
+  }
+
+  // Admin Methods
+  async adminExists(): Promise<boolean> {
+    const result = await db.select().from(users).where(eq(users.userType, "admin")).limit(1);
+    return result.length > 0;
+  }
+
+  async getAllPgs(): Promise<PgMaster[]> {
+    return await db.select().from(pgMaster).orderBy(desc(pgMaster.createdAt));
+  }
+
+  async getPendingPgs(): Promise<PgMaster[]> {
+    return await db.select().from(pgMaster)
+      .where(eq(pgMaster.status, "pending"))
+      .orderBy(desc(pgMaster.createdAt));
+  }
+
+  async approvePg(pgId: number, adminId: number): Promise<PgMaster | undefined> {
+    const result = await db.update(pgMaster)
+      .set({ 
+        status: "approved", 
+        approvedBy: adminId, 
+        approvedAt: new Date() 
+      })
+      .where(eq(pgMaster.id, pgId))
+      .returning();
+    return result[0];
+  }
+
+  async rejectPg(pgId: number, adminId: number, reason: string): Promise<PgMaster | undefined> {
+    const result = await db.update(pgMaster)
+      .set({ 
+        status: "rejected", 
+        approvedBy: adminId, 
+        approvedAt: new Date(),
+        rejectionReason: reason,
+        isActive: false
+      })
+      .where(eq(pgMaster.id, pgId))
+      .returning();
+    return result[0];
+  }
+
+  async deactivatePg(pgId: number): Promise<PgMaster | undefined> {
+    const result = await db.update(pgMaster)
+      .set({ isActive: false })
+      .where(eq(pgMaster.id, pgId))
+      .returning();
+    return result[0];
+  }
+
+  async activatePg(pgId: number): Promise<PgMaster | undefined> {
+    const result = await db.update(pgMaster)
+      .set({ isActive: true })
+      .where(eq(pgMaster.id, pgId))
+      .returning();
+    return result[0];
+  }
+
+  async updatePgById(pgId: number, updates: Partial<PgMaster>): Promise<PgMaster | undefined> {
+    const result = await db.update(pgMaster)
+      .set(updates)
+      .where(eq(pgMaster.id, pgId))
+      .returning();
+    return result[0];
+  }
+
+  async getAllTenants(): Promise<Tenant[]> {
+    return await db.select().from(tenants).orderBy(desc(tenants.createdAt));
+  }
+
+  async getAllComplaints(): Promise<Complaint[]> {
+    return await db.select().from(complaints).orderBy(desc(complaints.createdAt));
+  }
+
+  // Subscription Plans
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return await db.select().from(subscriptionPlans)
+      .where(eq(subscriptionPlans.isActive, true))
+      .orderBy(desc(subscriptionPlans.createdAt));
+  }
+
+  async getSubscriptionPlan(id: number): Promise<SubscriptionPlan | undefined> {
+    const result = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+    const result = await db.insert(subscriptionPlans).values(plan).returning();
+    return result[0];
+  }
+
+  async updateSubscriptionPlan(id: number, updates: Partial<SubscriptionPlan>): Promise<SubscriptionPlan | undefined> {
+    const result = await db.update(subscriptionPlans)
+      .set(updates)
+      .where(eq(subscriptionPlans.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteSubscriptionPlan(id: number): Promise<void> {
+    await db.delete(subscriptionPlans).where(eq(subscriptionPlans.id, id));
+  }
+
+  // PG Subscriptions
+  async getPgSubscriptions(pgId?: number): Promise<PgSubscription[]> {
+    if (pgId) {
+      return await db.select().from(pgSubscriptions)
+        .where(eq(pgSubscriptions.pgId, pgId))
+        .orderBy(desc(pgSubscriptions.createdAt));
+    }
+    return await db.select().from(pgSubscriptions).orderBy(desc(pgSubscriptions.createdAt));
+  }
+
+  async getPgSubscription(id: number): Promise<PgSubscription | undefined> {
+    const result = await db.select().from(pgSubscriptions).where(eq(pgSubscriptions.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createPgSubscription(subscription: InsertPgSubscription): Promise<PgSubscription> {
+    const result = await db.insert(pgSubscriptions).values(subscription).returning();
+    return result[0];
+  }
+
+  async updatePgSubscription(id: number, updates: Partial<PgSubscription>): Promise<PgSubscription | undefined> {
+    const result = await db.update(pgSubscriptions)
+      .set(updates)
+      .where(eq(pgSubscriptions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deletePgSubscription(id: number): Promise<void> {
+    await db.delete(pgSubscriptions).where(eq(pgSubscriptions.id, id));
   }
 }
 

@@ -126,6 +126,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Email already registered" });
       }
 
+      // Prevent multiple admin users
+      if (body.userType === "admin") {
+        const adminExists = await storage.adminExists();
+        if (adminExists) {
+          return res.status(403).json({ error: "Admin user already exists. Only one admin is allowed in the system." });
+        }
+      }
+
       // Generate OTP
       const otp = generateOTP();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -241,11 +249,12 @@ export async function registerRoutes(
 
       req.session!.userId = user.id;
       
-      // Auto-select first PG for owners
+      // Auto-select first approved and active PG for owners
       if (user.userType === "owner") {
-        const pg = await storage.getPgByOwnerId(user.id);
-        if (pg) {
-          (req.session as any).selectedPgId = pg.id;
+        const allPgs = await storage.getAllPgsByOwnerId(user.id);
+        const approvedPg = allPgs.find(pg => pg.status === "approved" && pg.isActive);
+        if (approvedPg) {
+          (req.session as any).selectedPgId = approvedPg.id;
         }
       }
       
@@ -260,6 +269,8 @@ export async function registerRoutes(
         let redirectUrl = "/dashboard";
         if (user.userType === "tenant") {
           redirectUrl = "/tenant-dashboard";
+        } else if (user.userType === "admin") {
+          redirectUrl = "/admin-dashboard";
         }
         
         res.json({ success: true, user: { id: user.id, email: user.email, name: user.name, userType: user.userType }, redirectUrl });
@@ -820,7 +831,7 @@ export async function registerRoutes(
   });
 
   // TENANT ROUTES
-  app.post("/api/tenants", async (req, res) => {
+  app.post("/api/tenants", requireApprovedPg, async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
@@ -904,7 +915,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/tenants", async (req, res) => {
+  app.get("/api/tenants", requireApprovedPg, async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
@@ -919,7 +930,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/tenants/:id", async (req, res) => {
+  app.get("/api/tenants/:id", requireApprovedPg, async (req, res) => {
     try {
       const ownerId = req.session!.userId;
       if (!ownerId) {
@@ -942,7 +953,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/tenants/:id", async (req, res) => {
+  app.put("/api/tenants/:id", requireApprovedPg, async (req, res) => {
     try {
       const ownerId = req.session!.userId;
       if (!ownerId) {
@@ -992,7 +1003,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/tenants/:id", async (req, res) => {
+  app.delete("/api/tenants/:id", requireApprovedPg, async (req, res) => {
     try {
       const ownerId = req.session!.userId;
       if (!ownerId) {
@@ -1080,7 +1091,7 @@ export async function registerRoutes(
   });
 
   // PAYMENTS ROUTES
-  app.get("/api/payments", async (req, res) => {
+  app.get("/api/payments", requireApprovedPg, async (req, res) => {
     try {
       if (!req.session!.userId) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -1095,7 +1106,7 @@ export async function registerRoutes(
   });
 
   // Create a new payment (owner only)
-  app.post("/api/payments", async (req, res) => {
+  app.post("/api/payments", requireApprovedPg, async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
@@ -1131,7 +1142,7 @@ export async function registerRoutes(
   });
 
   // Generate automatic payments for all tenants in PG based on rent payment date
-  app.post("/api/payments/auto-generate", async (req, res) => {
+  app.post("/api/payments/auto-generate", requireApprovedPg, async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
@@ -1293,7 +1304,7 @@ export async function registerRoutes(
   });
 
   // NOTIFICATIONS ROUTES
-  app.get("/api/notifications", async (req, res) => {
+  app.get("/api/notifications", requireApprovedPg, async (req, res) => {
     try {
       if (!req.session!.userId) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -1308,7 +1319,7 @@ export async function registerRoutes(
   });
 
   // AVAILABLE TENANTS ROUTE
-  app.get("/api/available-tenants", async (req, res) => {
+  app.get("/api/available-tenants", requireApprovedPg, async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
@@ -1323,7 +1334,7 @@ export async function registerRoutes(
   });
 
   // ACTIVE ROOMS ROUTE (for tenant add/edit screens - only rooms with available slots)
-  app.get("/api/active-rooms", async (req, res) => {
+  app.get("/api/active-rooms", requireApprovedPg, async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
@@ -1352,7 +1363,7 @@ export async function registerRoutes(
   });
 
   // ROOMS ROUTES
-  app.post("/api/rooms", async (req, res) => {
+  app.post("/api/rooms", requireApprovedPg, async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
@@ -1391,7 +1402,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/rooms", async (req, res) => {
+  app.get("/api/rooms", requireApprovedPg, async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
@@ -1406,7 +1417,7 @@ export async function registerRoutes(
   });
 
   // Bulk upload rooms from CSV
-  app.post("/api/rooms/bulk-upload", upload.single('file'), async (req, res) => {
+  app.post("/api/rooms/bulk-upload", requireApprovedPg, upload.single('file'), async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
@@ -1644,7 +1655,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/rooms/:id", async (req, res) => {
+  app.put("/api/rooms/:id", requireApprovedPg, async (req, res) => {
     try {
       const roomId = parseInt(req.params.id);
       const userId = req.session?.userId;
@@ -1682,7 +1693,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/rooms/:id", async (req, res) => {
+  app.delete("/api/rooms/:id", requireApprovedPg, async (req, res) => {
     try {
       await storage.deleteRoom(parseInt(req.params.id));
       res.json({ success: true });
@@ -1692,7 +1703,7 @@ export async function registerRoutes(
   });
 
   // Bulk upload tenants from CSV
-  app.post("/api/tenants/bulk-upload", upload.single('file'), async (req, res) => {
+  app.post("/api/tenants/bulk-upload", requireApprovedPg, upload.single('file'), async (req, res) => {
     try {
       const userId = req.session!.userId;
       if (!userId) {
@@ -1859,7 +1870,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
 
   // COMPLAINTS ROUTES
   // Get all complaints for owner (filtered by current PG)
-  app.get("/api/complaints", async (req, res) => {
+  app.get("/api/complaints", requireApprovedPg, async (req, res) => {
     const userId = req.session.userId;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -1976,7 +1987,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
   });
 
   // Update complaint (owner only)
-  app.put("/api/complaints/:id", async (req, res) => {
+  app.put("/api/complaints/:id", requireApprovedPg, async (req, res) => {
     const userId = req.session.userId;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -2014,7 +2025,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
   });
 
   // Delete complaint (owner only)
-  app.delete("/api/complaints/:id", async (req, res) => {
+  app.delete("/api/complaints/:id", requireApprovedPg, async (req, res) => {
     const userId = req.session.userId;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -2042,6 +2053,318 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
     } catch (error) {
       console.error("Delete complaint error:", error);
       res.status(500).json({ error: "Failed to delete complaint" });
+    }
+  });
+
+  // MIDDLEWARE: Check if owner's PG is approved and active
+  const requireApprovedPg = async (req: any, res: any, next: any) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user || user.userType !== "owner") {
+      // Not an owner, skip this check
+      return next();
+    }
+
+    // Get the selected PG or the owner's first PG
+    const selectedPgId = req.session.selectedPgId;
+    let pg;
+    
+    if (selectedPgId) {
+      pg = await storage.getPgById(selectedPgId);
+    } else {
+      pg = await storage.getPgByOwnerId(userId);
+    }
+
+    if (!pg) {
+      return res.status(400).json({ error: "No PG found. Please create a PG first." });
+    }
+
+    // Check approval status
+    if (pg.status === "pending") {
+      return res.status(403).json({ 
+        error: "Your PG is pending admin approval. You cannot use the system until your PG is approved.",
+        status: "pending"
+      });
+    }
+
+    if (pg.status === "rejected") {
+      return res.status(403).json({ 
+        error: `Your PG has been rejected. Reason: ${pg.rejectionReason || "No reason provided"}`,
+        status: "rejected",
+        reason: pg.rejectionReason
+      });
+    }
+
+    // Check if PG is active
+    if (!pg.isActive) {
+      return res.status(403).json({ 
+        error: "Your PG has been deactivated by the admin. Please contact support.",
+        status: "deactivated"
+      });
+    }
+
+    // PG is approved and active, allow access
+    next();
+  };
+
+  // ADMIN ROUTES
+  // Admin middleware to verify admin access
+  const adminOnly = async (req: any, res: any, next: any) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user || user.userType !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    req.user = user;
+    next();
+  };
+
+  // Admin Dashboard Stats
+  app.get("/api/admin/stats", adminOnly, async (req, res) => {
+    try {
+      const allPgs = await storage.getAllPgs();
+      const pendingPgs = await storage.getPendingPgs();
+      const allTenants = await storage.getAllTenants();
+      const allComplaints = await storage.getAllComplaints();
+      const allSubscriptions = await storage.getPgSubscriptions();
+      
+      const activeSubscriptions = allSubscriptions.filter(s => s.status === "paid");
+      const totalRevenue = allSubscriptions
+        .filter(s => s.status === "paid")
+        .reduce((sum, s) => sum + parseFloat(s.amount.toString()), 0);
+
+      res.json({
+        totalPgs: allPgs.length,
+        pendingApprovals: pendingPgs.length,
+        approvedPgs: allPgs.filter(pg => pg.status === "approved").length,
+        rejectedPgs: allPgs.filter(pg => pg.status === "rejected").length,
+        activePgs: allPgs.filter(pg => pg.isActive).length,
+        totalTenants: allTenants.length,
+        totalComplaints: allComplaints.length,
+        openComplaints: allComplaints.filter(c => c.status === "open").length,
+        activeSubscriptions: activeSubscriptions.length,
+        totalRevenue: totalRevenue,
+      });
+    } catch (error) {
+      console.error("Admin stats error:", error);
+      res.status(500).json({ error: "Failed to fetch admin stats" });
+    }
+  });
+
+  // Get all PGs (admin view)
+  app.get("/api/admin/pgs", adminOnly, async (req, res) => {
+    try {
+      const allPgs = await storage.getAllPgs();
+      res.json(allPgs);
+    } catch (error) {
+      console.error("Get all PGs error:", error);
+      res.status(500).json({ error: "Failed to fetch PGs" });
+    }
+  });
+
+  // Get pending PGs
+  app.get("/api/admin/pgs/pending", adminOnly, async (req, res) => {
+    try {
+      const pendingPgs = await storage.getPendingPgs();
+      res.json(pendingPgs);
+    } catch (error) {
+      console.error("Get pending PGs error:", error);
+      res.status(500).json({ error: "Failed to fetch pending PGs" });
+    }
+  });
+
+  // Approve PG
+  app.post("/api/admin/pgs/:id/approve", adminOnly, async (req: any, res) => {
+    try {
+      const pgId = parseInt(req.params.id);
+      const adminId = req.user.id;
+      
+      const pg = await storage.approvePg(pgId, adminId);
+      if (!pg) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+
+      res.json(pg);
+    } catch (error) {
+      console.error("Approve PG error:", error);
+      res.status(500).json({ error: "Failed to approve PG" });
+    }
+  });
+
+  // Reject PG
+  app.post("/api/admin/pgs/:id/reject", adminOnly, async (req: any, res) => {
+    try {
+      const pgId = parseInt(req.params.id);
+      const adminId = req.user.id;
+      const { reason } = req.body;
+      
+      if (!reason) {
+        return res.status(400).json({ error: "Rejection reason is required" });
+      }
+
+      const pg = await storage.rejectPg(pgId, adminId, reason);
+      if (!pg) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+
+      res.json(pg);
+    } catch (error) {
+      console.error("Reject PG error:", error);
+      res.status(500).json({ error: "Failed to reject PG" });
+    }
+  });
+
+  // Deactivate PG
+  app.post("/api/admin/pgs/:id/deactivate", adminOnly, async (req, res) => {
+    try {
+      const pgId = parseInt(req.params.id);
+      const pg = await storage.deactivatePg(pgId);
+      
+      if (!pg) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+
+      res.json(pg);
+    } catch (error) {
+      console.error("Deactivate PG error:", error);
+      res.status(500).json({ error: "Failed to deactivate PG" });
+    }
+  });
+
+  // Activate PG
+  app.post("/api/admin/pgs/:id/activate", adminOnly, async (req, res) => {
+    try {
+      const pgId = parseInt(req.params.id);
+      const pg = await storage.activatePg(pgId);
+      
+      if (!pg) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+
+      res.json(pg);
+    } catch (error) {
+      console.error("Activate PG error:", error);
+      res.status(500).json({ error: "Failed to activate PG" });
+    }
+  });
+
+  // Get all complaints (admin view)
+  app.get("/api/admin/complaints", adminOnly, async (req, res) => {
+    try {
+      const allComplaints = await storage.getAllComplaints();
+      res.json(allComplaints);
+    } catch (error) {
+      console.error("Get all complaints error:", error);
+      res.status(500).json({ error: "Failed to fetch complaints" });
+    }
+  });
+
+  // Get all tenants (admin view)
+  app.get("/api/admin/tenants", adminOnly, async (req, res) => {
+    try {
+      const allTenants = await storage.getAllTenants();
+      res.json(allTenants);
+    } catch (error) {
+      console.error("Get all tenants error:", error);
+      res.status(500).json({ error: "Failed to fetch tenants" });
+    }
+  });
+
+  // Subscription Plans
+  app.get("/api/admin/subscription-plans", adminOnly, async (req, res) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json(plans);
+    } catch (error) {
+      console.error("Get subscription plans error:", error);
+      res.status(500).json({ error: "Failed to fetch subscription plans" });
+    }
+  });
+
+  app.post("/api/admin/subscription-plans", adminOnly, async (req, res) => {
+    try {
+      const planData = req.body;
+      const plan = await storage.createSubscriptionPlan(planData);
+      res.status(201).json(plan);
+    } catch (error) {
+      console.error("Create subscription plan error:", error);
+      res.status(500).json({ error: "Failed to create subscription plan" });
+    }
+  });
+
+  app.put("/api/admin/subscription-plans/:id", adminOnly, async (req, res) => {
+    try {
+      const planId = parseInt(req.params.id);
+      const updates = req.body;
+      const plan = await storage.updateSubscriptionPlan(planId, updates);
+      
+      if (!plan) {
+        return res.status(404).json({ error: "Subscription plan not found" });
+      }
+
+      res.json(plan);
+    } catch (error) {
+      console.error("Update subscription plan error:", error);
+      res.status(500).json({ error: "Failed to update subscription plan" });
+    }
+  });
+
+  app.delete("/api/admin/subscription-plans/:id", adminOnly, async (req, res) => {
+    try {
+      const planId = parseInt(req.params.id);
+      await storage.deleteSubscriptionPlan(planId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete subscription plan error:", error);
+      res.status(500).json({ error: "Failed to delete subscription plan" });
+    }
+  });
+
+  // PG Subscriptions
+  app.get("/api/admin/pg-subscriptions", adminOnly, async (req, res) => {
+    try {
+      const subscriptions = await storage.getPgSubscriptions();
+      res.json(subscriptions);
+    } catch (error) {
+      console.error("Get PG subscriptions error:", error);
+      res.status(500).json({ error: "Failed to fetch PG subscriptions" });
+    }
+  });
+
+  app.post("/api/admin/pg-subscriptions", adminOnly, async (req, res) => {
+    try {
+      const subscriptionData = req.body;
+      const subscription = await storage.createPgSubscription(subscriptionData);
+      res.status(201).json(subscription);
+    } catch (error) {
+      console.error("Create PG subscription error:", error);
+      res.status(500).json({ error: "Failed to create PG subscription" });
+    }
+  });
+
+  app.put("/api/admin/pg-subscriptions/:id", adminOnly, async (req, res) => {
+    try {
+      const subscriptionId = parseInt(req.params.id);
+      const updates = req.body;
+      const subscription = await storage.updatePgSubscription(subscriptionId, updates);
+      
+      if (!subscription) {
+        return res.status(404).json({ error: "PG subscription not found" });
+      }
+
+      res.json(subscription);
+    } catch (error) {
+      console.error("Update PG subscription error:", error);
+      res.status(500).json({ error: "Failed to update PG subscription" });
     }
   });
 

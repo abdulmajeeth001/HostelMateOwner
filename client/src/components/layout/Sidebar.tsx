@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, LogOut, Building2 } from "lucide-react";
+import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, LogOut, Building2, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -36,14 +36,24 @@ const tenantNavItems = [
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
+const adminNavItems = [
+  { icon: Home, label: "Dashboard", path: "/admin-dashboard" },
+  { icon: Building2, label: "PG Management", path: "/admin-pgs" },
+  { icon: CreditCard, label: "Subscriptions", path: "/admin-subscriptions" },
+  { icon: AlertCircle, label: "Complaints", path: "/admin-complaints" },
+  { icon: Bell, label: "Notifications", path: "/notifications" },
+  { icon: Settings, label: "Settings", path: "/settings" },
+];
+
 export default function Sidebar() {
   const [location, navigate] = useLocation();
   const { user } = useUser();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const navItems = user?.userType === "tenant" ? tenantNavItems : ownerNavItems;
+  const navItems = user?.userType === "admin" ? adminNavItems : user?.userType === "tenant" ? tenantNavItems : ownerNavItems;
   const isOwner = user?.userType === "owner";
+  const isAdmin = user?.userType === "admin";
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -69,7 +79,7 @@ export default function Sidebar() {
       {/* Header */}
       <div className="p-6 border-b border-border">
         <div 
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(isAdmin ? "/admin-dashboard" : "/dashboard")}
           className="flex items-center gap-3 cursor-pointer rounded-lg hover:bg-secondary/50 transition-colors p-2 -m-2 mb-4"
         >
           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
@@ -77,6 +87,12 @@ export default function Sidebar() {
           </div>
           <div>
             <h1 className="font-bold text-lg text-foreground">WinkStay</h1>
+            {isAdmin && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                Admin Panel
+              </p>
+            )}
           </div>
         </div>
         {isOwner && (
