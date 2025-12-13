@@ -115,6 +115,72 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // MIDDLEWARE: Check if owner's PG is approved and active
+  const requireApprovedPg = async (req: any, res: any, next: any) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user || user.userType !== "owner") {
+      return next();
+    }
+
+    const selectedPgId = req.session.selectedPgId;
+    let pg;
+    
+    if (selectedPgId) {
+      pg = await storage.getPgById(selectedPgId);
+    } else {
+      pg = await storage.getPgByOwnerId(userId);
+    }
+
+    if (!pg) {
+      return res.status(400).json({ error: "No PG found. Please create a PG first." });
+    }
+
+    if (pg.status === "pending") {
+      return res.status(403).json({ 
+        error: "Your PG is pending admin approval. You cannot use the system until your PG is approved.",
+        status: "pending"
+      });
+    }
+
+    if (pg.status === "rejected") {
+      return res.status(403).json({ 
+        error: `Your PG has been rejected. Reason: ${pg.rejectionReason || "No reason provided"}`,
+        status: "rejected",
+        reason: pg.rejectionReason
+      });
+    }
+
+    if (!pg.isActive) {
+      return res.status(403).json({ 
+        error: "Your PG has been deactivated by the admin. Please contact support.",
+        status: "deactivated"
+      });
+    }
+
+    next();
+  };
+
+  // MIDDLEWARE: Admin-only access
+  const adminOnly = async (req: any, res: any, next: any) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user || user.userType !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    req.user = user;
+    next();
+  };
+
   // AUTH ROUTES
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -718,6 +784,45 @@ export async function registerRoutes(
       });
     } catch (error) {
       res.status(400).json({ error: "Failed to select PG" });
+    }
+  });
+
+  // Get PG status (for pending approval banner)
+  app.get("/api/pg/status", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Only owners can check PG status" });
+      }
+
+      const selectedPgId = req.session!.selectedPgId;
+      let pg;
+      
+      if (selectedPgId) {
+        pg = await storage.getPgById(selectedPgId);
+      } else {
+        pg = await storage.getPgByOwnerId(userId);
+      }
+
+      if (!pg) {
+        return res.status(404).json({ error: "No PG found" });
+      }
+
+      res.json({
+        id: pg.id,
+        name: pg.name,
+        status: pg.status,
+        isActive: pg.isActive,
+        rejectionReason: pg.rejectionReason,
+      });
+    } catch (error) {
+      console.error("Get PG status error:", error);
+      res.status(500).json({ error: "Failed to fetch PG status" });
     }
   });
 
@@ -2056,77 +2161,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
     }
   });
 
-  // MIDDLEWARE: Check if owner's PG is approved and active
-  const requireApprovedPg = async (req: any, res: any, next: any) => {
-    const userId = req.session.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const user = await storage.getUser(userId);
-    if (!user || user.userType !== "owner") {
-      // Not an owner, skip this check
-      return next();
-    }
-
-    // Get the selected PG or the owner's first PG
-    const selectedPgId = req.session.selectedPgId;
-    let pg;
-    
-    if (selectedPgId) {
-      pg = await storage.getPgById(selectedPgId);
-    } else {
-      pg = await storage.getPgByOwnerId(userId);
-    }
-
-    if (!pg) {
-      return res.status(400).json({ error: "No PG found. Please create a PG first." });
-    }
-
-    // Check approval status
-    if (pg.status === "pending") {
-      return res.status(403).json({ 
-        error: "Your PG is pending admin approval. You cannot use the system until your PG is approved.",
-        status: "pending"
-      });
-    }
-
-    if (pg.status === "rejected") {
-      return res.status(403).json({ 
-        error: `Your PG has been rejected. Reason: ${pg.rejectionReason || "No reason provided"}`,
-        status: "rejected",
-        reason: pg.rejectionReason
-      });
-    }
-
-    // Check if PG is active
-    if (!pg.isActive) {
-      return res.status(403).json({ 
-        error: "Your PG has been deactivated by the admin. Please contact support.",
-        status: "deactivated"
-      });
-    }
-
-    // PG is approved and active, allow access
-    next();
-  };
-
   // ADMIN ROUTES
-  // Admin middleware to verify admin access
-  const adminOnly = async (req: any, res: any, next: any) => {
-    const userId = req.session.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const user = await storage.getUser(userId);
-    if (!user || user.userType !== "admin") {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-
-    req.user = user;
-    next();
-  };
 
   // Admin Dashboard Stats
   app.get("/api/admin/stats", adminOnly, async (req, res) => {

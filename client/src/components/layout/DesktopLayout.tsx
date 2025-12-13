@@ -2,6 +2,7 @@ import Sidebar from "./Sidebar";
 import MobileLayout from "./MobileLayout";
 import { useUser } from "@/hooks/use-user";
 import { PGSwitcher } from "@/components/PGSwitcher";
+import { PendingApprovalBanner } from "@/components/PendingApprovalBanner";
 
 interface DesktopLayoutProps {
   children: React.ReactNode;
@@ -46,6 +47,9 @@ export default function DesktopLayout({
             {children}
           </MobileLayout>
         </div>
+
+        {/* Pending Approval Banner for Owners */}
+        {isOwner && <PendingApprovalBanner />}
       </div>
     </div>
   );
