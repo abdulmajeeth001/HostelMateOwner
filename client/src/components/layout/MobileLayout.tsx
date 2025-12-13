@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X, Building2, LogOut } from "lucide-react";
+import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X, Building2, LogOut, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -36,6 +36,7 @@ export default function MobileLayout({
   const { user } = useUser();
   
   const isOwner = user?.userType === "owner";
+  const isAdmin = user?.userType === "admin";
 
   // Close sidebar when location changes
   useEffect(() => {
@@ -100,8 +101,26 @@ export default function MobileLayout({
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
-  const sideNavItems = user?.userType === "tenant" ? tenantSideNavItems : ownerSideNavItems;
-  const bottomNavItems = user?.userType === "tenant" ? tenantBottomNavItems : ownerBottomNavItems;
+  // Admin navigation items
+  const adminSideNavItems = [
+    { icon: Home, label: "Dashboard", path: "/admin-dashboard" },
+    { icon: Building2, label: "PG Management", path: "/admin-pgs" },
+    { icon: CreditCard, label: "Subscriptions", path: "/admin-subscriptions" },
+    { icon: AlertCircle, label: "Complaints", path: "/admin-complaints" },
+    { icon: Bell, label: "Notifications", path: "/notifications" },
+    { icon: Settings, label: "Settings", path: "/settings" },
+  ];
+
+  const adminBottomNavItems = [
+    { icon: Home, label: "Home", path: "/admin-dashboard" },
+    { icon: Building2, label: "PGs", path: "/admin-pgs" },
+    { icon: CreditCard, label: "Subs", path: "/admin-subscriptions" },
+    { icon: AlertCircle, label: "Alerts", path: "/admin-complaints" },
+    { icon: Settings, label: "Settings", path: "/settings" },
+  ];
+
+  const sideNavItems = user?.userType === "admin" ? adminSideNavItems : user?.userType === "tenant" ? tenantSideNavItems : ownerSideNavItems;
+  const bottomNavItems = user?.userType === "admin" ? adminBottomNavItems : user?.userType === "tenant" ? tenantBottomNavItems : ownerBottomNavItems;
 
   return (
     <div className="min-h-screen bg-background max-w-4xl mx-auto border-x border-border shadow-2xl relative flex overflow-hidden">
@@ -113,7 +132,7 @@ export default function MobileLayout({
         {/* Header */}
         <div className="p-6 border-b border-border">
           <div 
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate(isAdmin ? "/admin-dashboard" : "/dashboard")}
             className="flex items-center gap-3 cursor-pointer mb-4"
           >
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
@@ -121,6 +140,12 @@ export default function MobileLayout({
             </div>
             <div>
               <h1 className="font-bold text-lg text-foreground">WinkStay</h1>
+              {isAdmin && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Shield className="h-3 w-3" />
+                  Admin Panel
+                </p>
+              )}
             </div>
           </div>
           {isOwner && (
