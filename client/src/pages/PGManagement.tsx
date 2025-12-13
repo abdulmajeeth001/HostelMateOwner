@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DesktopLayout from "@/components/layout/DesktopLayout";
 import { usePG, PG } from "@/hooks/use-pg";
 import { Building2, Plus, Edit2, Trash2, MapPin, Home, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -144,14 +145,17 @@ export default function PGManagement() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
+      <DesktopLayout title="My PGs">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DesktopLayout>
     );
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-6 px-4">
+    <DesktopLayout title="My PGs">
+      <div className="max-w-4xl mx-auto">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
@@ -433,6 +437,7 @@ export default function PGManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </DesktopLayout>
   );
 }

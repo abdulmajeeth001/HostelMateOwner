@@ -1,4 +1,4 @@
-import MobileLayout from "@/components/layout/MobileLayout";
+import DesktopLayout from "@/components/layout/DesktopLayout";
 import { Search, UserPlus, Edit2, Trash2, Eye, Users, Phone, MapPin, IndianRupee, MoreVertical, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -85,7 +85,7 @@ export default function TenantsList() {
   ] as const;
 
   return (
-    <MobileLayout title="Tenants">
+    <DesktopLayout title="Tenants">
       <div className="space-y-4">
         {/* Header with Stats */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-6 shadow-lg">
@@ -318,6 +318,6 @@ export default function TenantsList() {
           queryClient.invalidateQueries({ queryKey: ["tenants"] });
         }}
       />
-    </MobileLayout>
+    </DesktopLayout>
   );
 }

@@ -1,4 +1,4 @@
-import MobileLayout from "@/components/layout/MobileLayout";
+import DesktopLayout from "@/components/layout/DesktopLayout";
 import { Bell, MessageSquare, AlertTriangle, Check } from "lucide-react";
 
 const NOTIFICATIONS = [
@@ -10,7 +10,7 @@ const NOTIFICATIONS = [
 
 export default function Notifications() {
   return (
-    <MobileLayout title="Notifications">
+    <DesktopLayout title="Notifications">
       <div className="space-y-4">
         {NOTIFICATIONS.map((notif) => (
           <div key={notif.id} className="flex gap-4 p-4 bg-card rounded-xl border border-border shadow-sm hover:bg-secondary/30 transition-colors">
@@ -27,6 +27,6 @@ export default function Notifications() {
           </div>
         ))}
       </div>
-    </MobileLayout>
+    </DesktopLayout>
   );
 }
