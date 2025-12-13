@@ -72,6 +72,9 @@ const registrationSchema = z.object({
   password: z.string().min(8),
   pgAddress: z.string().optional(),
   pgLocation: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  imageUrl: z.string().optional(),
 });
 
 const otpVerificationSchema = z.object({
@@ -178,6 +181,9 @@ export async function registerRoutes(
           pgName: registrationData.pgAddress || "My PG",
           pgAddress: registrationData.pgAddress || "",
           pgLocation: registrationData.pgLocation || "",
+          latitude: registrationData.latitude || null,
+          longitude: registrationData.longitude || null,
+          imageUrl: registrationData.imageUrl || null,
           totalRooms: 0,
         });
       }
