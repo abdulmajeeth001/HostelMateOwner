@@ -28,12 +28,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle2, XCircle, Ban, PlayCircle, Eye, Search } from "lucide-react";
+import { CheckCircle2, XCircle, Ban, PlayCircle, Eye, Search, MapPin, Phone, Mail, User, Building } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import DesktopLayout from "@/components/layout/DesktopLayout";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { motion } from "framer-motion";
 
 interface PG {
   id: number;
@@ -62,6 +63,7 @@ export default function AdminPGManagement() {
   const [selectedPg, setSelectedPg] = useState<PG | null>(null);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export default function AdminPGManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pgs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pgs/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      toast({ title: "PG Approved", description: "The PG has been approved successfully." });
+      toast({ title: "Success", description: "PG has been approved successfully." });
       setShowApproveDialog(false);
       setSelectedPg(null);
     },
@@ -113,7 +115,7 @@ export default function AdminPGManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pgs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pgs/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      toast({ title: "PG Rejected", description: "The PG has been rejected." });
+      toast({ title: "Success", description: "PG has been rejected." });
       setShowRejectDialog(false);
       setSelectedPg(null);
       setRejectionReason("");
@@ -135,7 +137,7 @@ export default function AdminPGManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pgs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      toast({ title: "PG Deactivated", description: "The PG has been deactivated." });
+      toast({ title: "Success", description: "PG has been deactivated." });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to deactivate PG", variant: "destructive" });
@@ -154,7 +156,7 @@ export default function AdminPGManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pgs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      toast({ title: "PG Activated", description: "The PG has been activated." });
+      toast({ title: "Success", description: "PG has been activated." });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to activate PG", variant: "destructive" });
@@ -177,44 +179,44 @@ export default function AdminPGManagement() {
 
   const getStatusBadge = (pg: PG) => {
     if (!pg.isActive) {
-      return <Badge variant="destructive" data-testid={`badge-status-${pg.id}`}>Inactive</Badge>;
+      return <Badge variant="destructive" className="font-medium" data-testid={`badge-status-${pg.id}`}>Inactive</Badge>;
     }
     switch (pg.status) {
       case "pending":
-        return <Badge variant="secondary" data-testid={`badge-status-${pg.id}`}>Pending</Badge>;
+        return <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-950/30 text-orange-800 dark:text-orange-300 font-medium" data-testid={`badge-status-${pg.id}`}>Pending</Badge>;
       case "approved":
-        return <Badge variant="default" className="bg-green-600" data-testid={`badge-status-${pg.id}`}>Approved</Badge>;
+        return <Badge variant="default" className="bg-green-600 hover:bg-green-700 font-medium" data-testid={`badge-status-${pg.id}`}>Approved</Badge>;
       case "rejected":
-        return <Badge variant="destructive" data-testid={`badge-status-${pg.id}`}>Rejected</Badge>;
+        return <Badge variant="destructive" className="font-medium" data-testid={`badge-status-${pg.id}`}>Rejected</Badge>;
       default:
-        return <Badge variant="outline" data-testid={`badge-status-${pg.id}`}>{pg.status}</Badge>;
+        return <Badge variant="outline" className="font-medium" data-testid={`badge-status-${pg.id}`}>{pg.status}</Badge>;
     }
   };
 
   const content = (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground" data-testid="text-pg-management-title">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground" data-testid="text-pg-management-title">
           PG Management
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-sm md:text-base text-muted-foreground mt-2">
           Manage all registered PG properties
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col md:flex-row gap-3 md:gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by PG name, owner name, or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10 md:h-11"
             data-testid="input-search-pgs"
           />
         </div>
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-full md:w-[200px]" data-testid="select-filter">
+          <SelectTrigger className="w-full md:w-[200px] h-10 md:h-11" data-testid="select-filter">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -228,107 +230,315 @@ export default function AdminPGManagement() {
         </Select>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>PG List</CardTitle>
-          <CardDescription>
-            {filteredPgs?.length || 0} PG{filteredPgs?.length !== 1 ? "s" : ""} found
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading...</div>
-          ) : filteredPgs?.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No PGs found</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>PG Name</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Rooms</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPgs?.map((pg) => (
-                    <TableRow key={pg.id} data-testid={`row-pg-${pg.id}`}>
-                      <TableCell className="font-medium">{pg.pgName}</TableCell>
-                      <TableCell>{pg.owner.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {pg.owner.email}
-                      </TableCell>
-                      <TableCell>{pg.totalRooms}</TableCell>
-                      <TableCell>{getStatusBadge(pg)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {pg.status === "pending" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-green-600 hover:text-green-700"
-                                onClick={() => {
-                                  setSelectedPg(pg);
-                                  setShowApproveDialog(true);
-                                }}
-                                data-testid={`button-approve-${pg.id}`}
-                              >
-                                <CheckCircle2 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-red-600 hover:text-red-700"
-                                onClick={() => {
-                                  setSelectedPg(pg);
-                                  setShowRejectDialog(true);
-                                }}
-                                data-testid={`button-reject-${pg.id}`}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                          {pg.status === "approved" && (
-                            <>
-                              {pg.isActive ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-red-600 hover:text-red-700"
-                                  onClick={() => deactivateMutation.mutate(pg.id)}
-                                  data-testid={`button-deactivate-${pg.id}`}
-                                >
-                                  <Ban className="h-4 w-4" />
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-green-600 hover:text-green-700"
-                                  onClick={() => activateMutation.mutate(pg.id)}
-                                  data-testid={`button-activate-${pg.id}`}
-                                >
-                                  <PlayCircle className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
+      {isLoading ? (
+        <Card className="border-border">
+          <CardHeader>
+            <div className="h-6 bg-muted rounded w-32 animate-pulse" />
+            <div className="h-4 bg-muted rounded w-48 animate-pulse" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-20 bg-muted rounded animate-pulse" />
+            ))}
+          </CardContent>
+        </Card>
+      ) : filteredPgs?.length === 0 ? (
+        <Card className="border-border">
+          <CardContent className="py-12">
+            <div className="text-center text-muted-foreground">
+              <Building className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-lg font-medium">No PGs found</p>
+              <p className="text-sm mt-1">Try adjusting your filters</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {filteredPgs?.map((pg, index) => (
+              <motion.div
+                key={pg.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.05 }}
+              >
+                <Card className="border-border hover:border-primary/50 transition-colors" data-testid={`card-pg-${pg.id}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-base">{pg.pgName}</CardTitle>
+                        <CardDescription className="text-xs mt-1 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {pg.pgAddress || "No address"}
+                        </CardDescription>
+                      </div>
+                      {getStatusBadge(pg)}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground text-xs">Owner</p>
+                        <p className="font-medium">{pg.owner.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Rooms</p>
+                        <p className="font-medium">{pg.totalRooms}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs h-9"
+                        onClick={() => {
+                          setSelectedPg(pg);
+                          setShowDetailsDialog(true);
+                        }}
+                        data-testid={`button-view-${pg.id}`}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                      {pg.status === "pending" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-xs h-9 text-green-600 hover:text-green-700 border-green-200 hover:border-green-300"
+                            onClick={() => {
+                              setSelectedPg(pg);
+                              setShowApproveDialog(true);
+                            }}
+                            data-testid={`button-approve-${pg.id}`}
+                          >
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-xs h-9 text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                            onClick={() => {
+                              setSelectedPg(pg);
+                              setShowRejectDialog(true);
+                            }}
+                            data-testid={`button-reject-${pg.id}`}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                      {pg.status === "approved" && (
+                        pg.isActive ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-xs h-9 text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                            onClick={() => deactivateMutation.mutate(pg.id)}
+                            data-testid={`button-deactivate-${pg.id}`}
+                          >
+                            <Ban className="h-3 w-3 mr-1" />
+                            Deactivate
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-xs h-9 text-green-600 hover:text-green-700 border-green-200 hover:border-green-300"
+                            onClick={() => activateMutation.mutate(pg.id)}
+                            data-testid={`button-activate-${pg.id}`}
+                          >
+                            <PlayCircle className="h-3 w-3 mr-1" />
+                            Activate
+                          </Button>
+                        )
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <Card className="hidden md:block border-border">
+            <CardHeader>
+              <CardTitle>PG List</CardTitle>
+              <CardDescription>
+                {filteredPgs?.length || 0} PG{filteredPgs?.length !== 1 ? "s" : ""} found
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>PG Name</TableHead>
+                      <TableHead>Owner</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Rooms</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPgs?.map((pg) => (
+                      <TableRow key={pg.id} data-testid={`row-pg-${pg.id}`}>
+                        <TableCell className="font-medium">{pg.pgName}</TableCell>
+                        <TableCell>{pg.owner.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {pg.owner.email}
+                        </TableCell>
+                        <TableCell>{pg.totalRooms}</TableCell>
+                        <TableCell>{getStatusBadge(pg)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={() => {
+                                setSelectedPg(pg);
+                                setShowDetailsDialog(true);
+                              }}
+                              data-testid={`button-view-${pg.id}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {pg.status === "pending" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  onClick={() => {
+                                    setSelectedPg(pg);
+                                    setShowApproveDialog(true);
+                                  }}
+                                  data-testid={`button-approve-${pg.id}`}
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => {
+                                    setSelectedPg(pg);
+                                    setShowRejectDialog(true);
+                                  }}
+                                  data-testid={`button-reject-${pg.id}`}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                            {pg.status === "approved" && (
+                              <>
+                                {pg.isActive ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => deactivateMutation.mutate(pg.id)}
+                                    data-testid={`button-deactivate-${pg.id}`}
+                                  >
+                                    <Ban className="h-4 w-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    onClick={() => activateMutation.mutate(pg.id)}
+                                    data-testid={`button-activate-${pg.id}`}
+                                  >
+                                    <PlayCircle className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* PG Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-md" data-testid="dialog-pg-details">
+          <DialogHeader>
+            <DialogTitle>PG Details</DialogTitle>
+            <DialogDescription>Complete information about this property</DialogDescription>
+          </DialogHeader>
+          {selectedPg && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-secondary/50 space-y-3">
+                <div>
+                  <h3 className="font-semibold text-lg">{selectedPg.pgName}</h3>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                    <MapPin className="h-3 w-3" />
+                    {selectedPg.pgAddress || "No address provided"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Status:</span>
+                  {getStatusBadge(selectedPg)}
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">Total Rooms:</span>
+                  <span className="ml-2 font-semibold">{selectedPg.totalRooms}</span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg border space-y-3">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Owner Information
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedPg.owner.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{selectedPg.owner.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{selectedPg.owner.mobile}</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedPg.rejectionReason && (
+                <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <h4 className="font-semibold text-sm text-destructive mb-2">Rejection Reason</h4>
+                  <p className="text-sm text-destructive/90">{selectedPg.rejectionReason}</p>
+                </div>
+              )}
+
+              {selectedPg.approvedAt && (
+                <div className="text-xs text-muted-foreground">
+                  Approved on {new Date(selectedPg.approvedAt).toLocaleString()}
+                </div>
+              )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
 
+      {/* Approve Dialog */}
       <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
         <DialogContent data-testid="dialog-approve-pg">
           <DialogHeader>
@@ -344,6 +554,7 @@ export default function AdminPGManagement() {
             <Button
               onClick={() => selectedPg && approveMutation.mutate(selectedPg.id)}
               disabled={approveMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
               data-testid="button-confirm-approve"
             >
               {approveMutation.isPending ? "Approving..." : "Approve"}
@@ -352,6 +563,7 @@ export default function AdminPGManagement() {
         </DialogContent>
       </Dialog>
 
+      {/* Reject Dialog */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <DialogContent data-testid="dialog-reject-pg">
           <DialogHeader>
