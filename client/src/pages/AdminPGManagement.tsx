@@ -37,8 +37,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PG {
   id: number;
-  name: string;
-  address: string;
+  pgName: string;
+  pgAddress: string;
   totalRooms: number;
   status: string;
   isActive: boolean;
@@ -162,7 +162,7 @@ export default function AdminPGManagement() {
   });
 
   const filteredPgs = pgs?.filter((pg) => {
-    const matchesSearch = pg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = pg.pgName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pg.owner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pg.owner.email.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -256,7 +256,7 @@ export default function AdminPGManagement() {
                 <TableBody>
                   {filteredPgs?.map((pg) => (
                     <TableRow key={pg.id} data-testid={`row-pg-${pg.id}`}>
-                      <TableCell className="font-medium">{pg.name}</TableCell>
+                      <TableCell className="font-medium">{pg.pgName}</TableCell>
                       <TableCell>{pg.owner.name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {pg.owner.email}
@@ -334,7 +334,7 @@ export default function AdminPGManagement() {
           <DialogHeader>
             <DialogTitle>Approve PG</DialogTitle>
             <DialogDescription>
-              Are you sure you want to approve "{selectedPg?.name}"? The owner will be able to access all features.
+              Are you sure you want to approve "{selectedPg?.pgName}"? The owner will be able to access all features.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -357,7 +357,7 @@ export default function AdminPGManagement() {
           <DialogHeader>
             <DialogTitle>Reject PG</DialogTitle>
             <DialogDescription>
-              Provide a reason for rejecting "{selectedPg?.name}". This will be shown to the owner.
+              Provide a reason for rejecting "{selectedPg?.pgName}". This will be shown to the owner.
             </DialogDescription>
           </DialogHeader>
           <Textarea
