@@ -232,78 +232,98 @@ export default function PGSearchPage() {
 
   return (
     <MobileLayout title="Search PGs" showNav={true}>
-      {/* Search Input Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Find Your PG</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="search-query">Search by PG Name or Area</Label>
-            <Input
-              id="search-query"
-              type="text"
-              placeholder="Enter PG name or location..."
-              value={tempFilters.searchQuery || ""}
-              onChange={(e) =>
-                setTempFilters({ ...tempFilters, searchQuery: e.target.value })
-              }
-              data-testid="input-search-query"
-            />
+      {/* Hero Search Section with Gradient */}
+      <div className="relative -mx-4 -mt-6 mb-6 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-purple-700 opacity-90" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
+        
+        <div className="relative px-6 py-8 space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-3xl font-bold text-white tracking-tight">
+              Find Your Perfect PG
+            </h2>
+            <p className="text-white/90 text-sm">
+              Discover comfortable stays near you
+            </p>
           </div>
 
-          {isGettingLocation && (
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
-              <Navigation className="w-4 h-4 animate-pulse" />
-              Getting your location...
-            </p>
-          )}
-
-          {tempFilters.latitude && tempFilters.longitude && (
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              Location detected - showing nearby PGs
-            </p>
-          )}
-
-          <div>
-            <Label className="text-xs mb-2 block">Search Within</Label>
-            <div className="grid grid-cols-4 gap-2">
-              {DISTANCE_PRESETS.map((preset) => (
-                <Button
-                  key={preset.value}
-                  variant={tempFilters.maxDistance === preset.value ? "default" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    setTempFilters({ ...tempFilters, maxDistance: preset.value })
+          <Card className="backdrop-blur-sm bg-white/95 border-white/20 shadow-2xl">
+            <CardContent className="p-5 space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="search-query"
+                  type="text"
+                  placeholder="Search by PG name or area..."
+                  value={tempFilters.searchQuery || ""}
+                  onChange={(e) =>
+                    setTempFilters({ ...tempFilters, searchQuery: e.target.value })
                   }
-                  data-testid={`button-distance-${preset.value}`}
-                >
-                  {preset.label}
-                </Button>
-              ))}
-            </div>
-          </div>
+                  className="pl-11 h-12 text-base border-2 focus:border-purple-500"
+                  data-testid="input-search-query"
+                />
+              </div>
 
-          <Button
-            onClick={handleSearch}
-            className="w-full"
-            size="lg"
-            disabled={isGettingLocation}
-            data-testid="button-search-pgs"
-          >
-            <Search className="w-4 h-4 mr-2" />
-            {isGettingLocation ? "Getting location..." : "Search PGs"}
-          </Button>
-        </CardContent>
-      </Card>
+              {isGettingLocation && (
+                <div className="flex items-center gap-2 text-sm text-purple-700 bg-purple-50 px-3 py-2 rounded-lg">
+                  <Navigation className="w-4 h-4 animate-pulse" />
+                  Getting your location...
+                </div>
+              )}
+
+              {tempFilters.latitude && tempFilters.longitude && (
+                <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-2 rounded-lg">
+                  <MapPin className="w-4 h-4" />
+                  Location detected - showing nearby PGs
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">Search Within</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {DISTANCE_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.value}
+                      variant={tempFilters.maxDistance === preset.value ? "default" : "outline"}
+                      size="sm"
+                      onClick={() =>
+                        setTempFilters({ ...tempFilters, maxDistance: preset.value })
+                      }
+                      className={cn(
+                        "font-semibold transition-all",
+                        tempFilters.maxDistance === preset.value 
+                          ? "bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-200" 
+                          : "hover:border-purple-300 hover:bg-purple-50"
+                      )}
+                      data-testid={`button-distance-${preset.value}`}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSearch}
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg shadow-purple-200"
+                size="lg"
+                disabled={isGettingLocation}
+                data-testid="button-search-pgs"
+              >
+                <Search className="w-5 h-5 mr-2" />
+                {isGettingLocation ? "Getting location..." : "Search PGs"}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Filter Toggle Button - Mobile */}
       <div className="lg:hidden">
         <Button
           onClick={() => setShowFilters(!showFilters)}
           variant="outline"
-          className="w-full"
+          className="w-full border-2 hover:border-purple-300 hover:bg-purple-50"
           data-testid="button-toggle-filters"
         >
           <SlidersHorizontal className="w-4 h-4 mr-2" />
@@ -313,23 +333,26 @@ export default function PGSearchPage() {
 
       {/* Filters Section */}
       <div className={cn("space-y-4", !showFilters && "hidden lg:block")}>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Filters</CardTitle>
+        <Card className="border-2 shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-purple-50 to-blue-50 border-b">
+            <CardTitle className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5 text-purple-600" />
+              Filters
+            </CardTitle>
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden"
+              className="lg:hidden hover:bg-white/50"
               onClick={() => setShowFilters(false)}
               data-testid="button-close-filters"
             >
               <X className="w-4 h-4" />
             </Button>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 pt-6">
             {/* PG Type */}
             <div>
-              <Label className="text-sm font-semibold mb-3 block">PG Type</Label>
+              <Label className="text-sm font-bold mb-3 block text-gray-800">PG Type</Label>
               <RadioGroup
                 value={tempFilters.pgType || "all"}
                 onValueChange={(value) =>
@@ -338,28 +361,29 @@ export default function PGSearchPage() {
                     pgType: value === "all" ? undefined : value,
                   })
                 }
+                className="space-y-2"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="all" id="type-all" data-testid="radio-type-all" />
-                  <Label htmlFor="type-all" className="font-normal cursor-pointer">
-                    All
+                <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-purple-50 transition-colors">
+                  <RadioGroupItem value="all" id="type-all" data-testid="radio-type-all" className="border-2" />
+                  <Label htmlFor="type-all" className="font-medium cursor-pointer flex-1">
+                    All Types
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="male" id="type-male" data-testid="radio-type-male" />
-                  <Label htmlFor="type-male" className="font-normal cursor-pointer">
-                    Male
+                <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-blue-50 transition-colors">
+                  <RadioGroupItem value="male" id="type-male" data-testid="radio-type-male" className="border-2" />
+                  <Label htmlFor="type-male" className="font-medium cursor-pointer flex-1">
+                    Male Only
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="female" id="type-female" data-testid="radio-type-female" />
-                  <Label htmlFor="type-female" className="font-normal cursor-pointer">
-                    Female
+                <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-pink-50 transition-colors">
+                  <RadioGroupItem value="female" id="type-female" data-testid="radio-type-female" className="border-2" />
+                  <Label htmlFor="type-female" className="font-medium cursor-pointer flex-1">
+                    Female Only
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="common" id="type-common" data-testid="radio-type-common" />
-                  <Label htmlFor="type-common" className="font-normal cursor-pointer">
+                <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-purple-50 transition-colors">
+                  <RadioGroupItem value="common" id="type-common" data-testid="radio-type-common" className="border-2" />
+                  <Label htmlFor="type-common" className="font-medium cursor-pointer flex-1">
                     Common
                   </Label>
                 </div>
@@ -368,10 +392,10 @@ export default function PGSearchPage() {
 
             {/* Amenities */}
             <div>
-              <Label className="text-sm font-semibold mb-3 block">Amenities</Label>
-              <div className="space-y-3">
+              <Label className="text-sm font-bold mb-3 block text-gray-800">Amenities</Label>
+              <div className="grid grid-cols-1 gap-2">
                 {Object.entries(AMENITY_ICONS).map(([key, { icon: Icon, label }]) => (
-                  <div key={key} className="flex items-center space-x-2">
+                  <div key={key} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-blue-50 transition-colors">
                     <Checkbox
                       id={key}
                       checked={!!tempFilters[key as keyof PGSearchFilters]}
@@ -381,13 +405,14 @@ export default function PGSearchPage() {
                           [key]: checked || undefined,
                         })
                       }
+                      className="border-2"
                       data-testid={`checkbox-${key}`}
                     />
                     <Label
                       htmlFor={key}
-                      className="font-normal cursor-pointer flex items-center gap-2"
+                      className="font-medium cursor-pointer flex items-center gap-2 flex-1"
                     >
-                      <Icon className="w-4 h-4 text-muted-foreground" />
+                      <Icon className="w-4 h-4 text-purple-600" />
                       {label}
                     </Label>
                   </div>
@@ -396,14 +421,14 @@ export default function PGSearchPage() {
             </div>
 
             {/* Filter Actions */}
-            <div className="pt-4">
+            <div className="pt-4 border-t">
               <Button
                 onClick={clearFilters}
                 variant="outline"
-                className="w-full"
+                className="w-full border-2 hover:border-purple-300 hover:bg-purple-50 font-semibold"
                 data-testid="button-clear-filters"
               >
-                Clear Filters
+                Clear All Filters
               </Button>
             </div>
           </CardContent>
@@ -462,87 +487,100 @@ export default function PGSearchPage() {
               return (
                 <Card
                   key={pg.id}
-                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-purple-200 group"
                   data-testid={`card-pg-${pg.id}`}
+                  onClick={() => navigate(`/pg/${pg.id}`)}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-1" data-testid={`text-pg-name-${pg.id}`}>
+                  {pg.imageUrl && (
+                    <div className="relative h-48 overflow-hidden bg-gradient-to-br from-purple-100 to-blue-100">
+                      <img
+                        src={pg.imageUrl}
+                        alt={pg.pgName}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute top-3 right-3 flex gap-2">
+                        {rating > 0 && (
+                          <Badge className="bg-white/95 text-yellow-700 border-0 shadow-lg backdrop-blur-sm" data-testid={`badge-rating-${pg.id}`}>
+                            <Star className="w-3 h-3 mr-1 fill-yellow-500 text-yellow-500" />
+                            {rating.toFixed(1)}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
+                    </div>
+                  )}
+                  
+                  <CardContent className="p-5 space-y-4">
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="font-bold text-xl text-gray-800 leading-tight" data-testid={`text-pg-name-${pg.id}`}>
                           {pg.pgName}
                         </h3>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
-                          <MapPin className="w-3 h-3" />
-                          {pg.pgAddress}
-                        </p>
+                        <Badge
+                          className={cn(
+                            "text-xs font-semibold px-2.5 py-1 capitalize shrink-0",
+                            pg.pgType === "male" && "bg-blue-100 text-blue-700 border-blue-300",
+                            pg.pgType === "female" && "bg-pink-100 text-pink-700 border-pink-300",
+                            pg.pgType === "common" && "bg-purple-100 text-purple-700 border-purple-300"
+                          )}
+                          data-testid={`badge-type-${pg.id}`}
+                        >
+                          {pg.pgType}
+                        </Badge>
                       </div>
-                      {pg.imageUrl && (
-                        <img
-                          src={pg.imageUrl}
-                          alt={pg.pgName}
-                          className="w-16 h-16 rounded-lg object-cover ml-3"
-                        />
-                      )}
+                      
+                      <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4 text-purple-600" />
+                        {pg.pgAddress}
+                      </p>
                     </div>
 
-                    <div className="flex items-center gap-3 mb-3">
+                    <div className="flex items-center gap-2">
                       {pg.distance != null && (
-                        <Badge variant="secondary" className="text-xs" data-testid={`badge-distance-${pg.id}`}>
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {pg.distance.toFixed(1)} km away
-                        </Badge>
+                        <div className="flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-xs font-semibold" data-testid={`badge-distance-${pg.id}`}>
+                          <Navigation className="w-3 h-3" />
+                          {pg.distance.toFixed(1)} km
+                        </div>
                       )}
-                      {rating > 0 && (
-                        <Badge variant="secondary" className="text-xs" data-testid={`badge-rating-${pg.id}`}>
-                          <Star className="w-3 h-3 mr-1 fill-yellow-400 text-yellow-400" />
-                          {rating.toFixed(1)} ({pg.totalRatings})
-                        </Badge>
+                      {rating > 0 && pg.totalRatings > 0 && (
+                        <div className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-3 py-1.5 rounded-full text-xs font-semibold">
+                          {pg.totalRatings} {pg.totalRatings === 1 ? 'review' : 'reviews'}
+                        </div>
                       )}
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-xs capitalize",
-                          pg.pgType === "male" && "bg-blue-50 text-blue-700 border-blue-200",
-                          pg.pgType === "female" && "bg-pink-50 text-pink-700 border-pink-200",
-                          pg.pgType === "common" && "bg-purple-50 text-purple-700 border-purple-200"
-                        )}
-                        data-testid={`badge-type-${pg.id}`}
-                      >
-                        {pg.pgType}
-                      </Badge>
                     </div>
 
                     {amenities.length > 0 && (
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {amenities.map(([key, { icon: Icon, label }]) => (
                           <div
                             key={key}
-                            className="flex items-center gap-1 text-xs text-muted-foreground bg-secondary px-2 py-1 rounded"
+                            className="flex items-center gap-1.5 text-xs font-medium text-purple-700 bg-purple-50 px-2.5 py-1.5 rounded-lg border border-purple-100"
                             data-testid={`amenity-${key}-${pg.id}`}
                           >
-                            <Icon className="w-3 h-3" />
+                            <Icon className="w-3.5 h-3.5" />
                             <span>{label}</span>
                           </div>
                         ))}
                         {Object.entries(AMENITY_ICONS).filter(([key]) => pg[key as keyof PGResult])
                           .length > 4 && (
-                          <span className="text-xs text-muted-foreground">
+                          <div className="text-xs font-medium text-gray-500 bg-gray-50 px-2.5 py-1.5 rounded-lg">
                             +{Object.entries(AMENITY_ICONS).filter(([key]) => pg[key as keyof PGResult])
-                              .length - 4}{" "}
-                            more
-                          </span>
+                              .length - 4} more
+                          </div>
                         )}
                       </div>
                     )}
 
                     <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => navigate(`/pg/${pg.id}`)}
+                      className="w-full h-11 font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-md hover:shadow-lg transition-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/pg/${pg.id}`);
+                      }}
                       data-testid={`button-view-details-${pg.id}`}
                     >
                       View Details
-                      <ChevronRight className="w-4 h-4 ml-2" />
+                      <ChevronRight className="w-5 h-5 ml-2" />
                     </Button>
                   </CardContent>
                 </Card>
@@ -563,18 +601,35 @@ export default function PGSearchPage() {
           )}
         </>
       ) : (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Building2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2" data-testid="text-empty-state">
-              No PGs found matching your criteria
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Try adjusting your filters or search in a different location
-            </p>
-            <Button onClick={clearFilters} variant="outline" data-testid="button-clear-from-empty">
-              Clear Filters
-            </Button>
+        <Card className="text-center py-16 border-2 border-dashed">
+          <CardContent className="space-y-6">
+            <div className="w-24 h-24 mx-auto bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
+              <Building2 className="w-12 h-12 text-purple-600" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-gray-800" data-testid="text-empty-state">
+                No PGs Found
+              </h3>
+              <p className="text-sm text-gray-600 max-w-sm mx-auto">
+                We couldn't find any PGs matching your search. Try adjusting your filters or expanding your search area.
+              </p>
+            </div>
+            <div className="flex gap-3 justify-center flex-wrap">
+              <Button 
+                onClick={clearFilters} 
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-md"
+                data-testid="button-clear-from-empty"
+              >
+                Clear Filters
+              </Button>
+              <Button 
+                onClick={() => setTempFilters({ ...tempFilters, maxDistance: 50 })}
+                variant="outline"
+                className="border-2 hover:border-purple-300 hover:bg-purple-50"
+              >
+                Expand Search Area
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
