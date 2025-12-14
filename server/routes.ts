@@ -2861,7 +2861,12 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
         return res.status(403).json({ error: "Owner access required" });
       }
 
-      const visitRequests = await storage.getVisitRequestsByOwner(userId);
+      const selectedPgId = req.session?.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected. Please select a PG first." });
+      }
+
+      const visitRequests = await storage.getVisitRequestsByOwner(userId, selectedPgId);
       res.json(visitRequests);
     } catch (error) {
       console.error("Get visit requests error:", error);
@@ -3012,7 +3017,12 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
         return res.status(403).json({ error: "Owner access required" });
       }
 
-      const onboardingRequests = await storage.getOnboardingRequestsByOwner(userId);
+      const selectedPgId = req.session?.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected. Please select a PG first." });
+      }
+
+      const onboardingRequests = await storage.getOnboardingRequestsByOwner(userId, selectedPgId);
       res.json(onboardingRequests);
     } catch (error) {
       console.error("Get onboarding requests error:", error);

@@ -157,7 +157,7 @@ export interface IStorage {
   // Visit Request Methods
   createVisitRequest(data: InsertVisitRequest): Promise<VisitRequest>;
   getVisitRequestsByTenant(tenantUserId: number): Promise<any[]>;
-  getVisitRequestsByOwner(ownerId: number): Promise<any[]>;
+  getVisitRequestsByOwner(ownerId: number, pgId?: number): Promise<any[]>;
   approveVisitRequest(id: number): Promise<VisitRequest | undefined>;
   rescheduleVisitRequest(id: number, newDate: Date, newTime: string, rescheduledBy: string): Promise<VisitRequest | undefined>;
   acceptReschedule(id: number): Promise<VisitRequest | undefined>;
@@ -166,7 +166,7 @@ export interface IStorage {
 
   // Onboarding Request Methods
   createOnboardingRequest(data: InsertOnboardingRequest): Promise<OnboardingRequest>;
-  getOnboardingRequestsByOwner(ownerId: number): Promise<OnboardingRequest[]>;
+  getOnboardingRequestsByOwner(ownerId: number, pgId?: number): Promise<OnboardingRequest[]>;
   getOnboardingRequestByTenant(tenantUserId: number, pgId: number): Promise<OnboardingRequest | undefined>;
   approveOnboardingRequest(id: number): Promise<OnboardingRequest | undefined>;
   rejectOnboardingRequest(id: number, reason: string): Promise<OnboardingRequest | undefined>;
@@ -1102,7 +1102,12 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getVisitRequestsByOwner(ownerId: number): Promise<any[]> {
+  async getVisitRequestsByOwner(ownerId: number, pgId?: number): Promise<any[]> {
+    const conditions = [eq(visitRequests.ownerId, ownerId)];
+    if (pgId) {
+      conditions.push(eq(visitRequests.pgId, pgId));
+    }
+
     const results = await db.select({
       visitRequest: visitRequests,
       pgName: pgMaster.pgName,
@@ -1115,7 +1120,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(pgMaster, eq(visitRequests.pgId, pgMaster.id))
       .leftJoin(rooms, eq(visitRequests.roomId, rooms.id))
       .leftJoin(users, eq(visitRequests.tenantUserId, users.id))
-      .where(eq(visitRequests.ownerId, ownerId))
+      .where(and(...conditions))
       .orderBy(desc(visitRequests.createdAt));
 
     return results.map(row => ({
@@ -1217,10 +1222,15 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getOnboardingRequestsByOwner(ownerId: number): Promise<OnboardingRequest[]> {
+  async getOnboardingRequestsByOwner(ownerId: number, pgId?: number): Promise<OnboardingRequest[]> {
+    const conditions = [eq(onboardingRequests.ownerId, ownerId)];
+    if (pgId) {
+      conditions.push(eq(onboardingRequests.pgId, pgId));
+    }
+
     return await db.select()
       .from(onboardingRequests)
-      .where(eq(onboardingRequests.ownerId, ownerId))
+      .where(and(...conditions))
       .orderBy(desc(onboardingRequests.createdAt));
   }
 
