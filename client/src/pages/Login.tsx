@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
+import appIcon from "/winkstay-logo.png";
 
 export default function Login() {
   const [, setLocation] = useLocation();

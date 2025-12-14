@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
+import appIcon from "/winkstay-logo.png";
 import { Users, Building2, TrendingUp, Lock } from "lucide-react";
 
 export default function Home() {

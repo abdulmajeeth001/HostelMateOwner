@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { PGSwitcher } from "@/components/PGSwitcher";
-import appIcon from "@assets/generated_images/app_icon_for_pg_management.png";
+import appIcon from "/winkstay-logo.png";
 import { useState } from "react";
 import {
   AlertDialog,
