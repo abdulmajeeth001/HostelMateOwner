@@ -69,6 +69,8 @@ export default function MobileLayout({
     { icon: DoorOpen, label: "Rooms", path: "/rooms" },
     { icon: Users, label: "Tenants", path: "/tenants" },
     { icon: CreditCard, label: "Payments", path: "/payments" },
+    { icon: CalendarCheck, label: "Visit Requests", path: "/owner-visit-requests" },
+    { icon: Users, label: "Onboarding", path: "/owner-onboarding-requests" },
     { icon: AlertCircle, label: "Complaints", path: "/complaints" },
     { icon: Wrench, label: "Maintenance", path: "/maintenance" },
     { icon: BarChart3, label: "Reports", path: "/reports" },
@@ -96,8 +98,8 @@ export default function MobileLayout({
 
   const ownerBottomNavItems = [
     { icon: Home, label: "Home", path: "/dashboard" },
+    { icon: CalendarCheck, label: "Visits", path: "/owner-visit-requests" },
     { icon: Users, label: "Tenants", path: "/tenants" },
-    { icon: CreditCard, label: "Payments", path: "/payments" },
     { icon: Bell, label: "Alerts", path: "/notifications" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
