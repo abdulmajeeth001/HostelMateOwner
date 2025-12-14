@@ -95,6 +95,8 @@ export function usePG() {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["available-tenants"] });
       queryClient.invalidateQueries({ queryKey: ["active-rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/visit-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/onboarding-requests"] });
       
       return data.pg;
     } catch (err) {

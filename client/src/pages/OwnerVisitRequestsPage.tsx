@@ -35,6 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { usePG } from "@/hooks/use-pg";
 
 interface VisitRequest {
   id: number;
@@ -96,6 +97,7 @@ const TIME_SLOTS = [
 
 export default function OwnerVisitRequestsPage() {
   const queryClient = useQueryClient();
+  const { pg, isLoading: pgLoading } = usePG();
   
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"recent" | "date">("recent");
@@ -227,6 +229,35 @@ export default function OwnerVisitRequestsPage() {
   };
 
   const counts = getStatusCounts();
+
+  if (pgLoading) {
+    return (
+      <DesktopLayout title="Visit Requests">
+        <div className="space-y-4">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </div>
+      </DesktopLayout>
+    );
+  }
+
+  if (!pg) {
+    return (
+      <DesktopLayout title="Visit Requests">
+        <Card className="text-center py-12">
+          <CardContent>
+            <Building2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2" data-testid="text-no-pg">
+              No PG Selected
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Please select a PG to view visit requests
+            </p>
+          </CardContent>
+        </Card>
+      </DesktopLayout>
+    );
+  }
 
   if (error) {
     return (
