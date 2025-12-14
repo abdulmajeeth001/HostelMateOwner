@@ -37,6 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 
 interface PGSearchFilters {
+  searchQuery?: string;
   latitude?: number;
   longitude?: number;
   maxDistance?: number;
@@ -101,9 +102,11 @@ export default function PGSearchPage() {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<"distance" | "rating" | "both">("both");
+  const [hasSearched, setHasSearched] = useState(false);
 
   const { data: pgs, isLoading, refetch } = useQuery<PGResult[]>({
     queryKey: ["/api/tenant/pgs/search", filters],
+    enabled: hasSearched,
     queryFn: async () => {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
@@ -118,6 +121,37 @@ export default function PGSearchPage() {
       return res.json();
     },
   });
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      setIsGettingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setTempFilters(prev => ({
+            ...prev,
+            latitude: lat,
+            longitude: lng,
+          }));
+          setIsGettingLocation(false);
+          
+          // Auto-update filters if search was already triggered
+          if (hasSearched) {
+            setFilters(prev => ({
+              ...prev,
+              latitude: lat,
+              longitude: lng,
+            }));
+          }
+        },
+        (error) => {
+          setIsGettingLocation(false);
+          console.log("Location access denied or unavailable");
+        }
+      );
+    }
+  }, [hasSearched]);
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -148,8 +182,9 @@ export default function PGSearchPage() {
     );
   };
 
-  const applyFilters = () => {
+  const handleSearch = () => {
     setFilters({ ...tempFilters });
+    setHasSearched(true);
     setShowFilters(false);
   };
 
@@ -158,9 +193,12 @@ export default function PGSearchPage() {
       maxDistance: 10,
       limit: 20,
       offset: 0,
+      latitude: tempFilters.latitude,
+      longitude: tempFilters.longitude,
     };
     setTempFilters(resetFilters);
     setFilters(resetFilters);
+    setHasSearched(false);
   };
 
   const loadMore = () => {
@@ -194,35 +232,43 @@ export default function PGSearchPage() {
 
   return (
     <MobileLayout title="Search PGs" showNav={true}>
-      {/* Location Section */}
+      {/* Search Input Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <MapPin className="w-5 h-5" />
-            Location
-          </CardTitle>
+          <CardTitle className="text-lg">Find Your PG</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button
-            onClick={getCurrentLocation}
-            disabled={isGettingLocation}
-            className="w-full"
-            variant="outline"
-            data-testid="button-get-location"
-          >
-            <Navigation className="w-4 h-4 mr-2" />
-            {isGettingLocation ? "Getting your location..." : "Use Current Location"}
-          </Button>
+          <div>
+            <Label htmlFor="search-query">Search by PG Name or Area</Label>
+            <Input
+              id="search-query"
+              type="text"
+              placeholder="Enter PG name or location..."
+              value={tempFilters.searchQuery || ""}
+              onChange={(e) =>
+                setTempFilters({ ...tempFilters, searchQuery: e.target.value })
+              }
+              data-testid="input-search-query"
+            />
+          </div>
+
+          {isGettingLocation && (
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
+              <Navigation className="w-4 h-4 animate-pulse" />
+              Getting your location...
+            </p>
+          )}
 
           {tempFilters.latitude && tempFilters.longitude && (
-            <p className="text-xs text-muted-foreground text-center">
-              Location set ({tempFilters.latitude.toFixed(4)}, {tempFilters.longitude.toFixed(4)})
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              Location detected - showing nearby PGs
             </p>
           )}
 
           <div>
-            <Label className="text-xs mb-2 block">Max Distance</Label>
-            <div className="grid grid-cols-4 gap-2 mb-2">
+            <Label className="text-xs mb-2 block">Search Within</Label>
+            <div className="grid grid-cols-4 gap-2">
               {DISTANCE_PRESETS.map((preset) => (
                 <Button
                   key={preset.value}
@@ -237,19 +283,18 @@ export default function PGSearchPage() {
                 </Button>
               ))}
             </div>
-            <Input
-              type="number"
-              placeholder="Custom distance (km)"
-              value={tempFilters.maxDistance || ""}
-              onChange={(e) =>
-                setTempFilters({
-                  ...tempFilters,
-                  maxDistance: e.target.value ? parseInt(e.target.value) : undefined,
-                })
-              }
-              data-testid="input-custom-distance"
-            />
           </div>
+
+          <Button
+            onClick={handleSearch}
+            className="w-full"
+            size="lg"
+            disabled={isGettingLocation}
+            data-testid="button-search-pgs"
+          >
+            <Search className="w-4 h-4 mr-2" />
+            {isGettingLocation ? "Getting location..." : "Search PGs"}
+          </Button>
         </CardContent>
       </Card>
 
@@ -351,49 +396,47 @@ export default function PGSearchPage() {
             </div>
 
             {/* Filter Actions */}
-            <div className="flex gap-2 pt-4">
-              <Button onClick={applyFilters} className="flex-1" size="lg" data-testid="button-search-pgs">
-                <Search className="w-4 h-4 mr-2" />
-                Search PGs
-              </Button>
+            <div className="pt-4">
               <Button
                 onClick={clearFilters}
                 variant="outline"
-                className="flex-1"
+                className="w-full"
                 data-testid="button-clear-filters"
               >
-                Clear
+                Clear Filters
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Sort & Results Count */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1">
-          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-            <SelectTrigger data-testid="select-sort">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="both" data-testid="sort-both">Best Match</SelectItem>
-              <SelectItem value="rating" data-testid="sort-rating">Rating</SelectItem>
-              {filters.latitude && filters.longitude && (
-                <SelectItem value="distance" data-testid="sort-distance">Distance</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-        {!isLoading && sortedPgs && (
-          <p className="text-sm text-muted-foreground" data-testid="text-results-count">
-            {sortedPgs.length} PG{sortedPgs.length !== 1 ? "s" : ""} found
-          </p>
-        )}
-      </div>
+      {/* Results Section - Only show after search */}
+      {hasSearched && (
+        <>
+          {/* Sort & Results Count */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger data-testid="select-sort">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="both" data-testid="sort-both">Best Match</SelectItem>
+                  <SelectItem value="rating" data-testid="sort-rating">Rating</SelectItem>
+                  {filters.latitude && filters.longitude && (
+                    <SelectItem value="distance" data-testid="sort-distance">Distance</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            {!isLoading && sortedPgs && (
+              <p className="text-sm text-muted-foreground" data-testid="text-results-count">
+                {sortedPgs.length} PG{sortedPgs.length !== 1 ? "s" : ""} found
+              </p>
+            )}
+          </div>
 
-      {/* Results Section */}
-      {isLoading ? (
+          {isLoading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <Card key={i}>
@@ -534,6 +577,8 @@ export default function PGSearchPage() {
             </Button>
           </CardContent>
         </Card>
+      )}
+        </>
       )}
     </MobileLayout>
   );

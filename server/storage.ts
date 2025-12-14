@@ -137,6 +137,7 @@ export interface IStorage {
 
   // PG Search Methods
   searchPgs(filters: { 
+    searchQuery?: string;
     latitude?: number; 
     longitude?: number; 
     maxDistance?: number; 
@@ -917,6 +918,7 @@ export class DatabaseStorage implements IStorage {
 
   // PG Search Methods
   async searchPgs(filters: { 
+    searchQuery?: string;
     latitude?: number; 
     longitude?: number; 
     maxDistance?: number; 
@@ -932,6 +934,7 @@ export class DatabaseStorage implements IStorage {
     offset?: number 
   }): Promise<any[]> {
     const { 
+      searchQuery,
       latitude, 
       longitude, 
       maxDistance = 50, 
@@ -948,6 +951,17 @@ export class DatabaseStorage implements IStorage {
     } = filters;
 
     let conditions = [eq(pgMaster.status, "approved"), eq(pgMaster.isActive, true)];
+
+    if (searchQuery) {
+      const searchPattern = `%${searchQuery}%`;
+      conditions.push(
+        or(
+          sql`${pgMaster.pgName} ILIKE ${searchPattern}`,
+          sql`${pgMaster.pgLocation} ILIKE ${searchPattern}`,
+          sql`${pgMaster.pgAddress} ILIKE ${searchPattern}`
+        )!
+      );
+    }
 
     if (pgType) {
       conditions.push(eq(pgMaster.pgType, pgType));

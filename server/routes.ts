@@ -2609,6 +2609,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const filters = {
+        searchQuery: req.query.searchQuery as string | undefined,
         latitude: req.query.latitude ? parseFloat(req.query.latitude as string) : undefined,
         longitude: req.query.longitude ? parseFloat(req.query.longitude as string) : undefined,
         maxDistance: req.query.maxDistance ? parseFloat(req.query.maxDistance as string) : 10,
