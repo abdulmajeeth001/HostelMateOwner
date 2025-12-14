@@ -101,6 +101,39 @@ const createTenantSchema = z.object({
   relationship: z.string().optional(),
 });
 
+const createVisitRequestSchema = z.object({
+  pgId: z.number().int().positive(),
+  roomId: z.number().int().positive().optional(),
+  requestedDate: z.string(),
+  requestedTime: z.string(),
+  notes: z.string().optional(),
+});
+
+const rescheduleVisitSchema = z.object({
+  newDate: z.string(),
+  newTime: z.string(),
+  ownerNotes: z.string().optional(),
+});
+
+const createOnboardingRequestSchema = z.object({
+  visitRequestId: z.number().int().positive().optional(),
+  pgId: z.number().int().positive(),
+  roomId: z.number().int().positive(),
+  name: z.string().min(2),
+  email: z.string().email(),
+  phone: z.string().min(10),
+  monthlyRent: z.number().positive(),
+  tenantImage: z.string().optional(),
+  aadharCard: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  emergencyContactRelationship: z.string().optional(),
+});
+
+const rejectOnboardingSchema = z.object({
+  reason: z.string().min(1),
+});
+
 // Helper function to generate OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -2433,6 +2466,468 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
     } catch (error) {
       console.error("Update PG subscription error:", error);
       res.status(500).json({ error: "Failed to update PG subscription" });
+    }
+  });
+
+  // TENANT ONBOARDING JOURNEY ENDPOINTS
+
+  // 1. Tenant Dashboard Status (Check onboarding)
+  app.get("/api/tenant/onboarding-status", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const pgId = await storage.checkTenantOnboardingStatus(userId);
+      
+      if (!pgId) {
+        return res.json({ 
+          isOnboarded: false, 
+          pgId: null, 
+          pgName: null 
+        });
+      }
+
+      const pg = await storage.getPgById(pgId);
+      return res.json({ 
+        isOnboarded: true, 
+        pgId: pgId, 
+        pgName: pg?.pgName || null 
+      });
+    } catch (error) {
+      console.error("Get onboarding status error:", error);
+      res.status(500).json({ error: "Failed to get onboarding status" });
+    }
+  });
+
+  // 2. PG Search Endpoints
+  app.get("/api/tenant/pgs/search", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const filters = {
+        latitude: req.query.latitude ? parseFloat(req.query.latitude as string) : undefined,
+        longitude: req.query.longitude ? parseFloat(req.query.longitude as string) : undefined,
+        maxDistance: req.query.maxDistance ? parseFloat(req.query.maxDistance as string) : 10,
+        pgType: req.query.pgType as string | undefined,
+        hasFood: req.query.hasFood === 'true' ? true : undefined,
+        hasParking: req.query.hasParking === 'true' ? true : undefined,
+        hasAC: req.query.hasAC === 'true' ? true : undefined,
+        hasCCTV: req.query.hasCCTV === 'true' ? true : undefined,
+        hasWifi: req.query.hasWifi === 'true' ? true : undefined,
+        hasLaundry: req.query.hasLaundry === 'true' ? true : undefined,
+        hasGym: req.query.hasGym === 'true' ? true : undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
+      };
+
+      const pgs = await storage.searchPgs(filters);
+      res.json(pgs);
+    } catch (error) {
+      console.error("Search PGs error:", error);
+      res.status(500).json({ error: "Failed to search PGs" });
+    }
+  });
+
+  app.get("/api/tenant/pgs/:id", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const pgId = parseInt(req.params.id);
+      const pgWithRooms = await storage.getPgWithRooms(pgId);
+
+      if (!pgWithRooms) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+
+      res.json(pgWithRooms);
+    } catch (error) {
+      console.error("Get PG details error:", error);
+      res.status(500).json({ error: "Failed to get PG details" });
+    }
+  });
+
+  // 3. Visit Request Endpoints (Tenant)
+  app.post("/api/tenant/visit-requests", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const body = createVisitRequestSchema.parse(req.body);
+      
+      const pg = await storage.getPgById(body.pgId);
+      if (!pg) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+
+      const visitRequest = await storage.createVisitRequest({
+        pgId: body.pgId,
+        ownerId: pg.ownerId,
+        tenantUserId: userId,
+        roomId: body.roomId || null,
+        requestedDate: new Date(body.requestedDate),
+        requestedTime: body.requestedTime,
+        notes: body.notes || null,
+        status: "pending",
+      });
+
+      res.status(201).json(visitRequest);
+    } catch (error) {
+      console.error("Create visit request error:", error);
+      res.status(400).json({ error: "Failed to create visit request" });
+    }
+  });
+
+  app.get("/api/tenant/visit-requests", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const visitRequests = await storage.getVisitRequestsByTenant(userId);
+      res.json(visitRequests);
+    } catch (error) {
+      console.error("Get visit requests error:", error);
+      res.status(500).json({ error: "Failed to get visit requests" });
+    }
+  });
+
+  app.patch("/api/tenant/visit-requests/:id/accept-reschedule", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const visitRequestId = parseInt(req.params.id);
+      const visitRequest = await storage.acceptReschedule(visitRequestId);
+
+      if (!visitRequest) {
+        return res.status(404).json({ error: "Visit request not found" });
+      }
+
+      res.json(visitRequest);
+    } catch (error) {
+      console.error("Accept reschedule error:", error);
+      res.status(500).json({ error: "Failed to accept reschedule" });
+    }
+  });
+
+  app.patch("/api/tenant/visit-requests/:id/complete", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const visitRequestId = parseInt(req.params.id);
+      const visitRequest = await storage.completeVisitRequest(visitRequestId);
+
+      if (!visitRequest) {
+        return res.status(404).json({ error: "Visit request not found" });
+      }
+
+      res.json(visitRequest);
+    } catch (error) {
+      console.error("Complete visit request error:", error);
+      res.status(500).json({ error: "Failed to complete visit request" });
+    }
+  });
+
+  app.delete("/api/tenant/visit-requests/:id", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const visitRequestId = parseInt(req.params.id);
+      const visitRequest = await storage.cancelVisitRequest(visitRequestId);
+
+      if (!visitRequest) {
+        return res.status(404).json({ error: "Visit request not found" });
+      }
+
+      res.json({ success: true, message: "Visit request cancelled" });
+    } catch (error) {
+      console.error("Cancel visit request error:", error);
+      res.status(500).json({ error: "Failed to cancel visit request" });
+    }
+  });
+
+  // 4. Visit Request Endpoints (Owner)
+  app.get("/api/visit-requests", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const visitRequests = await storage.getVisitRequestsByOwner(userId);
+      res.json(visitRequests);
+    } catch (error) {
+      console.error("Get visit requests error:", error);
+      res.status(500).json({ error: "Failed to get visit requests" });
+    }
+  });
+
+  app.post("/api/visit-requests/:id/approve", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const visitRequestId = parseInt(req.params.id);
+      const visitRequest = await storage.approveVisitRequest(visitRequestId);
+
+      if (!visitRequest) {
+        return res.status(404).json({ error: "Visit request not found" });
+      }
+
+      res.json(visitRequest);
+    } catch (error) {
+      console.error("Approve visit request error:", error);
+      res.status(500).json({ error: "Failed to approve visit request" });
+    }
+  });
+
+  app.post("/api/visit-requests/:id/reschedule", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const body = rescheduleVisitSchema.parse(req.body);
+      const visitRequestId = parseInt(req.params.id);
+      
+      const visitRequest = await storage.rescheduleVisitRequest(
+        visitRequestId,
+        new Date(body.newDate),
+        body.newTime,
+        "owner"
+      );
+
+      if (!visitRequest) {
+        return res.status(404).json({ error: "Visit request not found" });
+      }
+
+      res.json(visitRequest);
+    } catch (error) {
+      console.error("Reschedule visit request error:", error);
+      res.status(400).json({ error: "Failed to reschedule visit request" });
+    }
+  });
+
+  // 5. Onboarding Request Endpoints (Tenant)
+  app.post("/api/tenant/onboarding-requests", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const body = createOnboardingRequestSchema.parse(req.body);
+      
+      const pg = await storage.getPgById(body.pgId);
+      if (!pg) {
+        return res.status(404).json({ error: "PG not found" });
+      }
+
+      const onboardingRequest = await storage.createOnboardingRequest({
+        pgId: body.pgId,
+        ownerId: pg.ownerId,
+        tenantUserId: userId,
+        visitRequestId: body.visitRequestId || null,
+        roomId: body.roomId,
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        monthlyRent: body.monthlyRent.toString(),
+        tenantImage: body.tenantImage || null,
+        aadharCard: body.aadharCard || null,
+        emergencyContactName: body.emergencyContactName || null,
+        emergencyContactPhone: body.emergencyContactPhone || null,
+        emergencyContactRelationship: body.emergencyContactRelationship || null,
+        status: "pending",
+      });
+
+      res.status(201).json(onboardingRequest);
+    } catch (error) {
+      console.error("Create onboarding request error:", error);
+      res.status(400).json({ error: "Failed to create onboarding request" });
+    }
+  });
+
+  app.get("/api/tenant/onboarding-requests/:pgId", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "tenant") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const pgId = parseInt(req.params.pgId);
+      const onboardingRequest = await storage.getOnboardingRequestByTenant(userId, pgId);
+
+      if (!onboardingRequest) {
+        return res.status(404).json({ error: "Onboarding request not found" });
+      }
+
+      res.json(onboardingRequest);
+    } catch (error) {
+      console.error("Get onboarding request error:", error);
+      res.status(500).json({ error: "Failed to get onboarding request" });
+    }
+  });
+
+  // 6. Onboarding Request Endpoints (Owner)
+  app.get("/api/onboarding-requests", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const onboardingRequests = await storage.getOnboardingRequestsByOwner(userId);
+      res.json(onboardingRequests);
+    } catch (error) {
+      console.error("Get onboarding requests error:", error);
+      res.status(500).json({ error: "Failed to get onboarding requests" });
+    }
+  });
+
+  app.post("/api/onboarding-requests/:id/approve", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const onboardingRequestId = parseInt(req.params.id);
+      const onboardingRequest = await storage.approveOnboardingRequest(onboardingRequestId);
+
+      if (!onboardingRequest) {
+        return res.status(404).json({ error: "Onboarding request not found" });
+      }
+
+      res.json(onboardingRequest);
+    } catch (error) {
+      console.error("Approve onboarding request error:", error);
+      res.status(500).json({ error: "Failed to approve onboarding request" });
+    }
+  });
+
+  app.post("/api/onboarding-requests/:id/reject", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const body = rejectOnboardingSchema.parse(req.body);
+      const onboardingRequestId = parseInt(req.params.id);
+      
+      const onboardingRequest = await storage.rejectOnboardingRequest(onboardingRequestId, body.reason);
+
+      if (!onboardingRequest) {
+        return res.status(404).json({ error: "Onboarding request not found" });
+      }
+
+      res.json(onboardingRequest);
+    } catch (error) {
+      console.error("Reject onboarding request error:", error);
+      res.status(400).json({ error: "Failed to reject onboarding request" });
     }
   });
 
