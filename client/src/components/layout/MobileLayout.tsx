@@ -33,7 +33,7 @@ export default function MobileLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { user } = useUser();
+  const { user, isTenantOnboarded } = useUser();
   
   const isOwner = user?.userType === "owner";
   const isAdmin = user?.userType === "admin";
@@ -77,15 +77,20 @@ export default function MobileLayout({
   ];
 
   // Tenant navigation items
-  const tenantSideNavItems = [
+  const allTenantSideNavItems = [
     { icon: Home, label: "Dashboard", path: "/tenant-dashboard" },
-    { icon: Search, label: "Search PGs", path: "/tenant-search-pgs" },
-    { icon: CalendarCheck, label: "Visit Requests", path: "/tenant-visit-requests" },
+    { icon: Search, label: "Search PGs", path: "/tenant-search-pgs", onlyForApplicants: true },
+    { icon: CalendarCheck, label: "Visit Requests", path: "/tenant-visit-requests", onlyForApplicants: true },
     { icon: DoorOpen, label: "Room", path: "/tenant-room" },
     { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
+
+  // Filter navigation based on onboarding status
+  const tenantSideNavItems = isTenantOnboarded 
+    ? allTenantSideNavItems.filter(item => !item.onlyForApplicants)
+    : allTenantSideNavItems;
 
   const ownerBottomNavItems = [
     { icon: Home, label: "Home", path: "/dashboard" },
@@ -95,13 +100,18 @@ export default function MobileLayout({
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
-  const tenantBottomNavItems = [
+  const allTenantBottomNavItems = [
     { icon: Home, label: "Home", path: "/tenant-dashboard" },
-    { icon: Search, label: "Search", path: "/tenant-search-pgs" },
-    { icon: CalendarCheck, label: "Visits", path: "/tenant-visit-requests" },
+    { icon: Search, label: "Search", path: "/tenant-search-pgs", onlyForApplicants: true },
+    { icon: CalendarCheck, label: "Visits", path: "/tenant-visit-requests", onlyForApplicants: true },
     { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
+
+  // Filter bottom nav based on onboarding status
+  const tenantBottomNavItems = isTenantOnboarded 
+    ? allTenantBottomNavItems.filter(item => !item.onlyForApplicants)
+    : allTenantBottomNavItems;
 
   // Admin navigation items
   const adminSideNavItems = [
