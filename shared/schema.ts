@@ -10,7 +10,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   mobile: text("mobile").notNull(),
   password: text("password"), // nullable for OAuth users
-  userType: text("user_type").default("owner"), // owner, tenant, admin
+  userType: text("user_type").default("owner"), // owner, tenant, admin, applicant
   pgAddress: text("pg_address"),
   pgLocation: text("pg_location"),
   isVerified: boolean("is_verified").default(false),

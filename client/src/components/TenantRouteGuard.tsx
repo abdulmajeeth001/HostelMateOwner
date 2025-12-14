@@ -9,32 +9,32 @@ interface TenantRouteGuardProps {
 
 export function TenantRouteGuard({ children, requiresOnboarding = false }: TenantRouteGuardProps) {
   const [location, setLocation] = useLocation();
-  const { user, isLoading, isTenantOnboarded, isTenantNotOnboarded } = useUser();
+  const { user, isLoading, isTenantOnboarded, isApplicant } = useUser();
 
   useEffect(() => {
     // Wait for user to load
     if (isLoading || !user) return;
 
-    // Only apply guard to tenants
-    if (user.userType !== "tenant") return;
-
-    // If route requires NOT being onboarded (e.g., search page)
+    // If route requires NOT being onboarded (applicant-only routes like search)
     if (requiresOnboarding === false) {
-      if (isTenantOnboarded) {
-        // Already onboarded tenant trying to access search/onboarding pages
-        // Redirect to tenant dashboard
+      // Only applicants should access these routes
+      if (user.userType === "tenant") {
+        // Any tenant (onboarded or not) trying to access applicant pages
         setLocation("/tenant-dashboard");
       }
     } 
-    // If route requires being onboarded (e.g., dashboard, profile, etc.)
+    // If route requires being onboarded (tenant-only routes like dashboard)
     else if (requiresOnboarding === true) {
-      if (isTenantNotOnboarded) {
-        // Not onboarded tenant trying to access dashboard pages
-        // Redirect to search page
+      // Only onboarded tenants should access these routes
+      if (user.userType === "applicant") {
+        // Applicant trying to access tenant-only pages
+        setLocation("/tenant-search-pgs");
+      } else if (user.userType === "tenant" && !isTenantOnboarded) {
+        // Not onboarded tenant trying to access dashboard
         setLocation("/tenant-search-pgs");
       }
     }
-  }, [isLoading, user, isTenantOnboarded, isTenantNotOnboarded, requiresOnboarding, location, setLocation]);
+  }, [isLoading, user, isTenantOnboarded, isApplicant, requiresOnboarding, location, setLocation]);
 
   return <>{children}</>;
 }

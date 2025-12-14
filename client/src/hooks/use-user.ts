@@ -12,7 +12,7 @@ export interface CurrentUser {
   name: string;
   email: string;
   mobile: string;
-  userType: "owner" | "tenant" | "admin";
+  userType: "owner" | "tenant" | "admin" | "applicant";
   tenantProfile?: TenantProfile;
 }
 
@@ -46,7 +46,7 @@ export function useUser() {
     fetchUser();
   }, []);
 
-  // Derived tenant flags for easier access
+  // Derived flags for easier access
   const isTenantOnboarded = user?.userType === "tenant" && 
     user?.tenantProfile?.onboardingStatus === "onboarded" &&
     user?.tenantProfile?.status === "active";
@@ -56,11 +56,14 @@ export function useUser() {
      user?.tenantProfile?.onboardingStatus !== "onboarded" ||
      user?.tenantProfile?.status !== "active");
 
+  const isApplicant = user?.userType === "applicant";
+
   return { 
     user, 
     isLoading, 
     error,
     isTenantOnboarded,
-    isTenantNotOnboarded
+    isTenantNotOnboarded,
+    isApplicant
   };
 }

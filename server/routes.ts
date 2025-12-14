@@ -68,7 +68,7 @@ const registrationSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   mobile: z.string().min(10),
-  userType: z.enum(["owner", "tenant", "admin"]).default("owner"),
+  userType: z.enum(["owner", "tenant", "admin", "applicant"]).default("applicant"),
   password: z.string().min(8),
   pgAddress: z.string().optional(),
   pgLocation: z.string().optional(),
@@ -429,6 +429,8 @@ export async function registerRoutes(
         let redirectUrl = "/dashboard";
         if (user.userType === "tenant") {
           redirectUrl = "/tenant-dashboard";
+        } else if (user.userType === "applicant") {
+          redirectUrl = "/tenant-search-pgs";
         } else if (user.userType === "admin") {
           redirectUrl = "/admin-dashboard";
         }

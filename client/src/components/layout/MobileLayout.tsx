@@ -33,10 +33,11 @@ export default function MobileLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { user, isTenantOnboarded } = useUser();
+  const { user, isTenantOnboarded, isApplicant } = useUser();
   
   const isOwner = user?.userType === "owner";
   const isAdmin = user?.userType === "admin";
+  const isTenant = user?.userType === "tenant";
 
   // Close sidebar when location changes
   useEffect(() => {
@@ -76,21 +77,22 @@ export default function MobileLayout({
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
-  // Tenant navigation items
-  const allTenantSideNavItems = [
+  // Applicant navigation items (searching for PG)
+  const applicantSideNavItems = [
+    { icon: Search, label: "Search PGs", path: "/tenant-search-pgs" },
+    { icon: CalendarCheck, label: "Visit Requests", path: "/tenant-visit-requests" },
+    { icon: Bell, label: "Notifications", path: "/notifications" },
+    { icon: Settings, label: "Settings", path: "/settings" },
+  ];
+
+  // Tenant navigation items (already living in PG)
+  const tenantSideNavItems = [
     { icon: Home, label: "Dashboard", path: "/tenant-dashboard" },
-    { icon: Search, label: "Search PGs", path: "/tenant-search-pgs", onlyForApplicants: true },
-    { icon: CalendarCheck, label: "Visit Requests", path: "/tenant-visit-requests", onlyForApplicants: true },
     { icon: DoorOpen, label: "Room", path: "/tenant-room" },
     { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
-
-  // Filter navigation based on onboarding status
-  const tenantSideNavItems = isTenantOnboarded 
-    ? allTenantSideNavItems.filter(item => !item.onlyForApplicants)
-    : allTenantSideNavItems;
 
   const ownerBottomNavItems = [
     { icon: Home, label: "Home", path: "/dashboard" },
@@ -100,18 +102,21 @@ export default function MobileLayout({
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
-  const allTenantBottomNavItems = [
-    { icon: Home, label: "Home", path: "/tenant-dashboard" },
-    { icon: Search, label: "Search", path: "/tenant-search-pgs", onlyForApplicants: true },
-    { icon: CalendarCheck, label: "Visits", path: "/tenant-visit-requests", onlyForApplicants: true },
-    { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
+  // Applicant bottom navigation
+  const applicantBottomNavItems = [
+    { icon: Search, label: "Search", path: "/tenant-search-pgs" },
+    { icon: CalendarCheck, label: "Visits", path: "/tenant-visit-requests" },
+    { icon: Bell, label: "Alerts", path: "/notifications" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
-  // Filter bottom nav based on onboarding status
-  const tenantBottomNavItems = isTenantOnboarded 
-    ? allTenantBottomNavItems.filter(item => !item.onlyForApplicants)
-    : allTenantBottomNavItems;
+  // Tenant bottom navigation
+  const tenantBottomNavItems = [
+    { icon: Home, label: "Home", path: "/tenant-dashboard" },
+    { icon: DoorOpen, label: "Room", path: "/tenant-room" },
+    { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
+    { icon: Settings, label: "Settings", path: "/settings" },
+  ];
 
   // Admin navigation items
   const adminSideNavItems = [
@@ -131,8 +136,14 @@ export default function MobileLayout({
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
-  const sideNavItems = user?.userType === "admin" ? adminSideNavItems : user?.userType === "tenant" ? tenantSideNavItems : ownerSideNavItems;
-  const bottomNavItems = user?.userType === "admin" ? adminBottomNavItems : user?.userType === "tenant" ? tenantBottomNavItems : ownerBottomNavItems;
+  const sideNavItems = user?.userType === "admin" ? adminSideNavItems 
+    : user?.userType === "applicant" ? applicantSideNavItems
+    : user?.userType === "tenant" ? tenantSideNavItems 
+    : ownerSideNavItems;
+  const bottomNavItems = user?.userType === "admin" ? adminBottomNavItems 
+    : user?.userType === "applicant" ? applicantBottomNavItems
+    : user?.userType === "tenant" ? tenantBottomNavItems 
+    : ownerBottomNavItems;
 
   return (
     <div className="min-h-screen bg-background max-w-4xl mx-auto border-x border-border shadow-2xl relative flex overflow-hidden">
