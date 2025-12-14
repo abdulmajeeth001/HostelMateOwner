@@ -5,7 +5,7 @@ import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotifi
 import { z } from "zod";
 import multer from "multer";
 import Papa from "papaparse";
-import { sendOtpEmail } from "./email";
+import { sendOtpEmail, sendTenantWelcomeEmail, sendOwnerPgWelcomeEmail } from "./email";
 
 // Configure multer for file upload (memory storage for CSV processing)
 const upload = multer({ 
@@ -1066,6 +1066,30 @@ export async function registerRoutes(
       const pg = await storage.createPgMaster({ ownerId: userId, ...req.body });
       // Auto-select the newly created PG
       (req.session as any).selectedPgId = pg.id;
+      
+      // Send welcome email to owner for the new PG
+      // This runs asynchronously and won't block the response
+      Promise.allSettled([
+        (async () => {
+          try {
+            const owner = await storage.getUser(userId);
+            if (owner) {
+              await sendOwnerPgWelcomeEmail({
+                ownerName: owner.name,
+                ownerEmail: owner.email,
+                pgName: pg.pgName,
+                pgAddress: pg.pgAddress,
+                totalRooms: pg.totalRooms || 0,
+              });
+            }
+          } catch (emailError) {
+            console.error("Failed to send owner PG welcome email:", emailError);
+          }
+        })()
+      ]).catch(errors => {
+        console.error("Promise.allSettled errors:", errors);
+      });
+      
       res.json(pg);
     } catch (error) {
       res.status(400).json({ error: "Failed to create PG" });
@@ -3083,6 +3107,39 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const onboardingRequest = await storage.approveOnboardingRequest(onboardingRequestId);
+      
+      // Send welcome email to the newly onboarded tenant
+      // This runs asynchronously and won't block the response
+      if (onboardingRequest?.tenantUserId) {
+        Promise.allSettled([
+          (async () => {
+            try {
+              const tenant = await storage.getTenantByUserId(onboardingRequest.tenantUserId!);
+              if (tenant) {
+                const room = await storage.getRoom(tenant.roomId);
+                const pg = await storage.getPgById(selectedPgId);
+                
+                if (room && pg && room.sharing && tenant.monthlyRent) {
+                  await sendTenantWelcomeEmail({
+                    tenantName: tenant.name,
+                    tenantEmail: tenant.email,
+                    pgName: pg.pgName,
+                    pgAddress: pg.pgAddress,
+                    roomNumber: room.roomNumber,
+                    monthlyRent: tenant.monthlyRent,
+                    sharing: room.sharing,
+                  });
+                }
+              }
+            } catch (emailError) {
+              console.error("Failed to send tenant welcome email:", emailError);
+            }
+          })()
+        ]).catch(errors => {
+          console.error("Promise.allSettled errors:", errors);
+        });
+      }
+      
       res.json(onboardingRequest);
     } catch (error) {
       console.error("Approve onboarding request error:", error);
