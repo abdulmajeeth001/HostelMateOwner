@@ -21,6 +21,10 @@ import {
   type InsertSubscriptionPlan,
   type PgSubscription,
   type InsertPgSubscription,
+  type VisitRequest,
+  type InsertVisitRequest,
+  type OnboardingRequest,
+  type InsertOnboardingRequest,
   users,
   otpCodes,
   tenants,
@@ -31,10 +35,12 @@ import {
   emergencyContacts,
   complaints,
   subscriptionPlans,
-  pgSubscriptions
+  pgSubscriptions,
+  visitRequests,
+  onboardingRequests
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte } from "drizzle-orm";
+import { eq, and, desc, gte, sql, or, lte } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface IStorage {
@@ -128,6 +134,45 @@ export interface IStorage {
   createPgSubscription(subscription: InsertPgSubscription): Promise<PgSubscription>;
   updatePgSubscription(id: number, updates: Partial<PgSubscription>): Promise<PgSubscription | undefined>;
   deletePgSubscription(id: number): Promise<void>;
+
+  // PG Search Methods
+  searchPgs(filters: { 
+    latitude?: number; 
+    longitude?: number; 
+    maxDistance?: number; 
+    pgType?: string; 
+    hasFood?: boolean; 
+    hasParking?: boolean; 
+    hasAC?: boolean; 
+    hasCCTV?: boolean; 
+    hasWifi?: boolean; 
+    hasLaundry?: boolean; 
+    hasGym?: boolean; 
+    limit?: number; 
+    offset?: number 
+  }): Promise<any[]>;
+  getPgWithRooms(pgId: number): Promise<any>;
+
+  // Visit Request Methods
+  createVisitRequest(data: InsertVisitRequest): Promise<VisitRequest>;
+  getVisitRequestsByTenant(tenantUserId: number): Promise<VisitRequest[]>;
+  getVisitRequestsByOwner(ownerId: number): Promise<VisitRequest[]>;
+  approveVisitRequest(id: number): Promise<VisitRequest | undefined>;
+  rescheduleVisitRequest(id: number, newDate: Date, newTime: string, rescheduledBy: string): Promise<VisitRequest | undefined>;
+  acceptReschedule(id: number): Promise<VisitRequest | undefined>;
+  completeVisitRequest(id: number): Promise<VisitRequest | undefined>;
+  cancelVisitRequest(id: number): Promise<VisitRequest | undefined>;
+
+  // Onboarding Request Methods
+  createOnboardingRequest(data: InsertOnboardingRequest): Promise<OnboardingRequest>;
+  getOnboardingRequestsByOwner(ownerId: number): Promise<OnboardingRequest[]>;
+  getOnboardingRequestByTenant(tenantUserId: number, pgId: number): Promise<OnboardingRequest | undefined>;
+  approveOnboardingRequest(id: number): Promise<OnboardingRequest | undefined>;
+  rejectOnboardingRequest(id: number, reason: string): Promise<OnboardingRequest | undefined>;
+
+  // Helper Methods
+  checkTenantOnboardingStatus(userId: number): Promise<number | null>;
+  getAvailableRoomsByPg(pgId: number): Promise<Room[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -868,6 +913,409 @@ export class DatabaseStorage implements IStorage {
 
   async deletePgSubscription(id: number): Promise<void> {
     await db.delete(pgSubscriptions).where(eq(pgSubscriptions.id, id));
+  }
+
+  // PG Search Methods
+  async searchPgs(filters: { 
+    latitude?: number; 
+    longitude?: number; 
+    maxDistance?: number; 
+    pgType?: string; 
+    hasFood?: boolean; 
+    hasParking?: boolean; 
+    hasAC?: boolean; 
+    hasCCTV?: boolean; 
+    hasWifi?: boolean; 
+    hasLaundry?: boolean; 
+    hasGym?: boolean; 
+    limit?: number; 
+    offset?: number 
+  }): Promise<any[]> {
+    const { 
+      latitude, 
+      longitude, 
+      maxDistance = 50, 
+      pgType, 
+      hasFood, 
+      hasParking, 
+      hasAC, 
+      hasCCTV, 
+      hasWifi, 
+      hasLaundry, 
+      hasGym,
+      limit = 20,
+      offset = 0
+    } = filters;
+
+    let conditions = [eq(pgMaster.status, "approved"), eq(pgMaster.isActive, true)];
+
+    if (pgType) {
+      conditions.push(eq(pgMaster.pgType, pgType));
+    }
+    if (hasFood !== undefined) {
+      conditions.push(eq(pgMaster.hasFood, hasFood));
+    }
+    if (hasParking !== undefined) {
+      conditions.push(eq(pgMaster.hasParking, hasParking));
+    }
+    if (hasAC !== undefined) {
+      conditions.push(eq(pgMaster.hasAC, hasAC));
+    }
+    if (hasCCTV !== undefined) {
+      conditions.push(eq(pgMaster.hasCCTV, hasCCTV));
+    }
+    if (hasWifi !== undefined) {
+      conditions.push(eq(pgMaster.hasWifi, hasWifi));
+    }
+    if (hasLaundry !== undefined) {
+      conditions.push(eq(pgMaster.hasLaundry, hasLaundry));
+    }
+    if (hasGym !== undefined) {
+      conditions.push(eq(pgMaster.hasGym, hasGym));
+    }
+
+    let query = db.select().from(pgMaster);
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+
+    const pgs = await query;
+
+    let results = pgs.map(pg => {
+      let distance = null;
+      
+      if (latitude !== undefined && longitude !== undefined && pg.latitude && pg.longitude) {
+        const lat1 = parseFloat(pg.latitude.toString());
+        const lon1 = parseFloat(pg.longitude.toString());
+        const lat2 = latitude;
+        const lon2 = longitude;
+        
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        distance = R * c;
+      }
+
+      return {
+        ...pg,
+        distance
+      };
+    });
+
+    if (latitude !== undefined && longitude !== undefined) {
+      results = results.filter(pg => pg.distance !== null && pg.distance <= maxDistance);
+      
+      results.sort((a, b) => {
+        if (a.distance !== b.distance) {
+          return (a.distance || 0) - (b.distance || 0);
+        }
+        const ratingA = parseFloat(a.averageRating?.toString() || "0");
+        const ratingB = parseFloat(b.averageRating?.toString() || "0");
+        return ratingB - ratingA;
+      });
+    } else {
+      results.sort((a, b) => {
+        const ratingA = parseFloat(a.averageRating?.toString() || "0");
+        const ratingB = parseFloat(b.averageRating?.toString() || "0");
+        return ratingB - ratingA;
+      });
+    }
+
+    return results.slice(offset, offset + limit);
+  }
+
+  async getPgWithRooms(pgId: number): Promise<any> {
+    const pg = await this.getPgById(pgId);
+    if (!pg) return null;
+
+    const availableRooms = await this.getAvailableRoomsByPg(pgId);
+
+    return {
+      ...pg,
+      availableRooms
+    };
+  }
+
+  // Visit Request Methods
+  async createVisitRequest(data: InsertVisitRequest): Promise<VisitRequest> {
+    const existingRequest = await db.select()
+      .from(visitRequests)
+      .where(
+        and(
+          eq(visitRequests.tenantUserId, data.tenantUserId),
+          eq(visitRequests.pgId, data.pgId),
+          or(
+            eq(visitRequests.status, "pending"),
+            eq(visitRequests.status, "approved"),
+            eq(visitRequests.status, "rescheduled")
+          )
+        )
+      )
+      .limit(1);
+
+    if (existingRequest.length > 0) {
+      throw new Error("You already have a pending visit request for this PG");
+    }
+
+    const result = await db.insert(visitRequests).values(data).returning();
+    return result[0];
+  }
+
+  async getVisitRequestsByTenant(tenantUserId: number): Promise<VisitRequest[]> {
+    return await db.select()
+      .from(visitRequests)
+      .where(eq(visitRequests.tenantUserId, tenantUserId))
+      .orderBy(desc(visitRequests.createdAt));
+  }
+
+  async getVisitRequestsByOwner(ownerId: number): Promise<VisitRequest[]> {
+    return await db.select()
+      .from(visitRequests)
+      .where(eq(visitRequests.ownerId, ownerId))
+      .orderBy(desc(visitRequests.createdAt));
+  }
+
+  async approveVisitRequest(id: number): Promise<VisitRequest | undefined> {
+    const request = await db.select()
+      .from(visitRequests)
+      .where(eq(visitRequests.id, id))
+      .limit(1);
+
+    if (!request[0]) return undefined;
+
+    const result = await db.update(visitRequests)
+      .set({ 
+        status: "approved",
+        confirmedDate: request[0].requestedDate,
+        confirmedTime: request[0].requestedTime,
+        updatedAt: new Date()
+      })
+      .where(eq(visitRequests.id, id))
+      .returning();
+    
+    return result[0];
+  }
+
+  async rescheduleVisitRequest(id: number, newDate: Date, newTime: string, rescheduledBy: string): Promise<VisitRequest | undefined> {
+    const result = await db.update(visitRequests)
+      .set({ 
+        status: "rescheduled",
+        rescheduledDate: newDate,
+        rescheduledTime: newTime,
+        rescheduledBy: rescheduledBy,
+        updatedAt: new Date()
+      })
+      .where(eq(visitRequests.id, id))
+      .returning();
+    
+    return result[0];
+  }
+
+  async acceptReschedule(id: number): Promise<VisitRequest | undefined> {
+    const request = await db.select()
+      .from(visitRequests)
+      .where(eq(visitRequests.id, id))
+      .limit(1);
+
+    if (!request[0] || !request[0].rescheduledDate || !request[0].rescheduledTime) {
+      return undefined;
+    }
+
+    const result = await db.update(visitRequests)
+      .set({ 
+        status: "approved",
+        confirmedDate: request[0].rescheduledDate,
+        confirmedTime: request[0].rescheduledTime,
+        updatedAt: new Date()
+      })
+      .where(eq(visitRequests.id, id))
+      .returning();
+    
+    return result[0];
+  }
+
+  async completeVisitRequest(id: number): Promise<VisitRequest | undefined> {
+    const result = await db.update(visitRequests)
+      .set({ 
+        status: "completed",
+        updatedAt: new Date()
+      })
+      .where(eq(visitRequests.id, id))
+      .returning();
+    
+    return result[0];
+  }
+
+  async cancelVisitRequest(id: number): Promise<VisitRequest | undefined> {
+    const result = await db.update(visitRequests)
+      .set({ 
+        status: "cancelled",
+        updatedAt: new Date()
+      })
+      .where(eq(visitRequests.id, id))
+      .returning();
+    
+    return result[0];
+  }
+
+  // Onboarding Request Methods
+  async createOnboardingRequest(data: InsertOnboardingRequest): Promise<OnboardingRequest> {
+    const result = await db.insert(onboardingRequests).values(data).returning();
+    return result[0];
+  }
+
+  async getOnboardingRequestsByOwner(ownerId: number): Promise<OnboardingRequest[]> {
+    return await db.select()
+      .from(onboardingRequests)
+      .where(eq(onboardingRequests.ownerId, ownerId))
+      .orderBy(desc(onboardingRequests.createdAt));
+  }
+
+  async getOnboardingRequestByTenant(tenantUserId: number, pgId: number): Promise<OnboardingRequest | undefined> {
+    const result = await db.select()
+      .from(onboardingRequests)
+      .where(
+        and(
+          eq(onboardingRequests.tenantUserId, tenantUserId),
+          eq(onboardingRequests.pgId, pgId)
+        )
+      )
+      .orderBy(desc(onboardingRequests.createdAt))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async approveOnboardingRequest(id: number): Promise<OnboardingRequest | undefined> {
+    return await db.transaction(async (tx) => {
+      const request = await tx.select()
+        .from(onboardingRequests)
+        .where(eq(onboardingRequests.id, id))
+        .limit(1);
+
+      if (!request[0]) {
+        throw new Error("Onboarding request not found");
+      }
+
+      const onboardingReq = request[0];
+
+      const room = await tx.select()
+        .from(rooms)
+        .where(eq(rooms.id, onboardingReq.roomId))
+        .limit(1);
+
+      if (!room[0]) {
+        throw new Error("Room not found");
+      }
+
+      const currentTenantIds = Array.isArray(room[0].tenantIds) ? room[0].tenantIds : [];
+      const roomSharing = room[0].sharing || 1;
+      if (currentTenantIds.length >= roomSharing) {
+        throw new Error("Room is fully occupied");
+      }
+
+      const newTenant = await tx.insert(tenants).values({
+        ownerId: onboardingReq.ownerId,
+        pgId: onboardingReq.pgId,
+        roomId: onboardingReq.roomId,
+        userId: onboardingReq.tenantUserId,
+        name: onboardingReq.name,
+        email: onboardingReq.email,
+        phone: onboardingReq.phone,
+        roomNumber: room[0].roomNumber,
+        monthlyRent: onboardingReq.monthlyRent,
+        tenantImage: onboardingReq.tenantImage,
+        aadharCard: onboardingReq.aadharCard,
+        emergencyContactName: onboardingReq.emergencyContactName,
+        emergencyContactPhone: onboardingReq.emergencyContactPhone,
+        relationship: onboardingReq.emergencyContactRelationship,
+        status: "active",
+        onboardingStatus: "onboarded"
+      }).returning();
+
+      const updatedTenantIds = [...currentTenantIds, newTenant[0].id];
+      
+      let newStatus = "vacant";
+      if (updatedTenantIds.length >= roomSharing) {
+        newStatus = "occupied";
+      } else if (updatedTenantIds.length > 0) {
+        newStatus = "partially_occupied";
+      }
+
+      await tx.update(rooms)
+        .set({ 
+          tenantIds: updatedTenantIds,
+          status: newStatus
+        })
+        .where(eq(rooms.id, onboardingReq.roomId));
+
+      await tx.update(users)
+        .set({ userType: "tenant" })
+        .where(eq(users.id, onboardingReq.tenantUserId));
+
+      const updatedRequest = await tx.update(onboardingRequests)
+        .set({ 
+          status: "approved",
+          approvedAt: new Date()
+        })
+        .where(eq(onboardingRequests.id, id))
+        .returning();
+
+      return updatedRequest[0];
+    });
+  }
+
+  async rejectOnboardingRequest(id: number, reason: string): Promise<OnboardingRequest | undefined> {
+    const result = await db.update(onboardingRequests)
+      .set({ 
+        status: "rejected",
+        rejectionReason: reason
+      })
+      .where(eq(onboardingRequests.id, id))
+      .returning();
+    
+    return result[0];
+  }
+
+  // Helper Methods
+  async checkTenantOnboardingStatus(userId: number): Promise<number | null> {
+    const tenant = await db.select()
+      .from(tenants)
+      .where(
+        and(
+          eq(tenants.userId, userId),
+          eq(tenants.onboardingStatus, "onboarded"),
+          eq(tenants.status, "active")
+        )
+      )
+      .limit(1);
+
+    if (tenant.length > 0 && tenant[0].pgId) {
+      return tenant[0].pgId;
+    }
+
+    return null;
+  }
+
+  async getAvailableRoomsByPg(pgId: number): Promise<Room[]> {
+    const allRooms = await db.select()
+      .from(rooms)
+      .where(eq(rooms.pgId, pgId))
+      .orderBy(desc(rooms.createdAt));
+
+    const availableRooms = allRooms.filter(room => {
+      const currentTenantCount = Array.isArray(room.tenantIds) ? room.tenantIds.length : 0;
+      const roomSharing = room.sharing || 1;
+      return currentTenantCount < roomSharing;
+    });
+
+    return availableRooms;
   }
 }
 
