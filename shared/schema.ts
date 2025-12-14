@@ -66,6 +66,21 @@ export const pgMaster = pgTable("pg_master", {
   isActive: boolean("is_active").default(true), // Can be deactivated by admin for non-payment
   subscriptionStatus: text("subscription_status").default("trial"), // trial, active, expired, suspended
   subscriptionExpiresAt: timestamp("subscription_expires_at"),
+  
+  // Amenities and filters for tenant search
+  pgType: text("pg_type").default("common"), // male, female, common
+  hasFood: boolean("has_food").default(false),
+  hasParking: boolean("has_parking").default(false),
+  hasAC: boolean("has_ac").default(false),
+  hasCCTV: boolean("has_cctv").default(false),
+  hasWifi: boolean("has_wifi").default(false),
+  hasLaundry: boolean("has_laundry").default(false),
+  hasGym: boolean("has_gym").default(false),
+  
+  // Rating aggregates (updated when ratings are added)
+  averageRating: decimal("average_rating", { precision: 3, scale: 2 }).default("0"),
+  totalRatings: integer("total_ratings").default(0),
+  
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -81,6 +96,7 @@ export const tenants = pgTable("tenants", {
   id: serial("id").primaryKey(),
   ownerId: integer("owner_id").notNull().references(() => users.id),
   pgId: integer("pg_id").references(() => pgMaster.id),
+  roomId: integer("room_id").references(() => rooms.id), // Direct room assignment
   userId: integer("user_id").references(() => users.id), // Link to tenant user account
   name: text("name").notNull(),
   email: text("email").default(""), // Email of tenant (when added by owner)
@@ -95,6 +111,7 @@ export const tenants = pgTable("tenants", {
   emergencyContactPhone: text("emergency_contact_phone"),
   relationship: text("relationship"), // Father, Mother, Brother, Sister, Spouse, Other
   status: text("status").default("active"), // active, inactive
+  onboardingStatus: text("onboarding_status").default("not_onboarded"), // not_onboarded, pending, onboarded
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -258,3 +275,100 @@ export const insertPgSubscriptionSchema = createInsertSchema(pgSubscriptions).om
 });
 export type InsertPgSubscription = z.infer<typeof insertPgSubscriptionSchema>;
 export type PgSubscription = typeof pgSubscriptions.$inferSelect;
+
+// PG Ratings table (tenant reviews of PGs)
+export const pgRatings = pgTable("pg_ratings", {
+  id: serial("id").primaryKey(),
+  pgId: integer("pg_id").notNull().references(() => pgMaster.id, { onDelete: "cascade" }),
+  tenantUserId: integer("tenant_user_id").notNull().references(() => users.id),
+  rating: integer("rating").notNull(), // 1-5 stars
+  review: text("review"),
+  cleanliness: integer("cleanliness"), // 1-5
+  safety: integer("safety"), // 1-5
+  facilities: integer("facilities"), // 1-5
+  valueForMoney: integer("value_for_money"), // 1-5
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPgRatingSchema = createInsertSchema(pgRatings).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertPgRating = z.infer<typeof insertPgRatingSchema>;
+export type PgRating = typeof pgRatings.$inferSelect;
+
+// Visit Requests table (tenant requests to visit PG)
+export const visitRequests = pgTable("visit_requests", {
+  id: serial("id").primaryKey(),
+  tenantUserId: integer("tenant_user_id").notNull().references(() => users.id),
+  pgId: integer("pg_id").notNull().references(() => pgMaster.id, { onDelete: "cascade" }),
+  roomId: integer("room_id").references(() => rooms.id), // Optional: specific room interest
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  
+  // Visit scheduling
+  requestedDate: timestamp("requested_date").notNull(),
+  requestedTime: text("requested_time").notNull(), // e.g., "10:00 AM"
+  status: text("status").default("pending"), // pending, approved, rescheduled, completed, cancelled
+  
+  // Rescheduling by owner
+  rescheduledDate: timestamp("rescheduled_date"),
+  rescheduledTime: text("rescheduled_time"),
+  rescheduledBy: text("rescheduled_by"), // owner or tenant
+  
+  // Confirmation
+  confirmedDate: timestamp("confirmed_date"), // Final confirmed date after any rescheduling
+  confirmedTime: text("confirmed_time"),
+  
+  notes: text("notes"), // Additional notes from tenant
+  ownerNotes: text("owner_notes"), // Notes from owner
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertVisitRequestSchema = createInsertSchema(visitRequests).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true
+});
+export type InsertVisitRequest = z.infer<typeof insertVisitRequestSchema>;
+export type VisitRequest = typeof visitRequests.$inferSelect;
+
+// Onboarding Requests table (tenant requests to join PG after visit)
+export const onboardingRequests = pgTable("onboarding_requests", {
+  id: serial("id").primaryKey(),
+  tenantUserId: integer("tenant_user_id").notNull().references(() => users.id),
+  visitRequestId: integer("visit_request_id").references(() => visitRequests.id),
+  pgId: integer("pg_id").notNull().references(() => pgMaster.id, { onDelete: "cascade" }),
+  roomId: integer("room_id").notNull().references(() => rooms.id),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  
+  // Tenant details for onboarding
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  monthlyRent: decimal("monthly_rent", { precision: 10, scale: 2 }).notNull(),
+  
+  // Documents (base64 encoded)
+  tenantImage: text("tenant_image"),
+  aadharCard: text("aadhar_card"),
+  
+  // Emergency contacts
+  emergencyContactName: text("emergency_contact_name"),
+  emergencyContactPhone: text("emergency_contact_phone"),
+  emergencyContactRelationship: text("emergency_contact_relationship"),
+  
+  status: text("status").default("pending"), // pending, approved, rejected
+  rejectionReason: text("rejection_reason"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  approvedAt: timestamp("approved_at"),
+});
+
+export const insertOnboardingRequestSchema = createInsertSchema(onboardingRequests).omit({ 
+  id: true, 
+  createdAt: true,
+  approvedAt: true
+});
+export type InsertOnboardingRequest = z.infer<typeof insertOnboardingRequestSchema>;
+export type OnboardingRequest = typeof onboardingRequests.$inferSelect;
