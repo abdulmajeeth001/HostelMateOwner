@@ -274,12 +274,28 @@ export default function TenantVisitRequestsPage() {
         </Button>
       }
     >
+      {/* Hero Section */}
+      <div className="relative -mx-4 -mt-6 mb-6 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-purple-700" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.1),transparent_50%)]" />
+        <div className="relative px-6 py-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-white mb-2">
+              My Visits
+            </h1>
+            <p className="text-purple-100 text-sm">
+              Track your PG visit requests and schedules
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-4">
-        {/* Sort Controls */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
+        {/* Controls Bar */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex-1 max-w-[200px]">
             <Select value={sortBy} onValueChange={(value: "recent" | "date") => setSortBy(value)}>
-              <SelectTrigger data-testid="select-sort">
+              <SelectTrigger data-testid="select-sort" className="h-9 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -290,7 +306,7 @@ export default function TenantVisitRequestsPage() {
           </div>
           <Button
             onClick={() => navigate("/tenant-search-pgs")}
-            variant="outline"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg h-9 text-sm"
             data-testid="button-new-visit"
           >
             + New Visit
@@ -299,17 +315,17 @@ export default function TenantVisitRequestsPage() {
 
         {/* Status Filter Tabs */}
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
-            <TabsTrigger value="all" data-testid="tab-all" className="text-xs md:text-sm">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 h-auto p-1">
+            <TabsTrigger value="all" data-testid="tab-all" className="text-xs md:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">
               All ({counts.all})
             </TabsTrigger>
-            <TabsTrigger value="pending" data-testid="tab-pending" className="text-xs md:text-sm">
+            <TabsTrigger value="pending" data-testid="tab-pending" className="text-xs md:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">
               Pending ({counts.pending})
             </TabsTrigger>
-            <TabsTrigger value="approved" data-testid="tab-approved" className="text-xs md:text-sm">
+            <TabsTrigger value="approved" data-testid="tab-approved" className="text-xs md:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">
               Approved ({counts.approved})
             </TabsTrigger>
-            <TabsTrigger value="completed" data-testid="tab-completed" className="text-xs md:text-sm">
+            <TabsTrigger value="completed" data-testid="tab-completed" className="text-xs md:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">
               Completed ({counts.completed})
             </TabsTrigger>
           </TabsList>
@@ -317,22 +333,28 @@ export default function TenantVisitRequestsPage() {
 
         {/* Visit Request Cards */}
         {filteredRequests.length === 0 ? (
-          <Card className="text-center py-12">
+          <Card className="text-center py-12 border-2 border-dashed">
             <CardContent>
-              <Building2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2" data-testid="text-no-requests">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+                <Building2 className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-gray-800" data-testid="text-no-requests">
                 {statusFilter === "all"
                   ? "No visit requests yet"
-                  : `No ${statusFilter} visit requests`}
+                  : `No ${statusFilter} visits`}
               </h3>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
                 {statusFilter === "all"
-                  ? "Start by searching for PGs and requesting a visit"
+                  ? "Start exploring PGs and schedule your first visit to find your perfect home"
                   : `You don't have any ${statusFilter} visit requests at the moment`}
               </p>
               {statusFilter === "all" && (
-                <Button onClick={() => navigate("/tenant-search-pgs")} data-testid="button-search-pgs-empty">
-                  Search PGs
+                <Button 
+                  onClick={() => navigate("/tenant-search-pgs")} 
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg"
+                  data-testid="button-search-pgs-empty"
+                >
+                  Explore PGs
                 </Button>
               )}
             </CardContent>
@@ -349,105 +371,134 @@ export default function TenantVisitRequestsPage() {
                 (request.status === "approved" || request.status === "completed") && request.roomId;
 
               return (
-                <Card key={request.id} data-testid={`card-visit-${request.id}`}>
-                  <CardHeader>
+                <Card 
+                  key={request.id} 
+                  data-testid={`card-visit-${request.id}`}
+                  className="border-2 hover:border-purple-200 hover:shadow-xl transition-all duration-300 group overflow-hidden"
+                >
+                  <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <CardTitle className="text-lg mb-2" data-testid={`text-pg-name-${request.id}`}>
+                        <CardTitle className="text-xl font-bold mb-2 text-gray-800" data-testid={`text-pg-name-${request.id}`}>
                           {request.pgName || "PG"}
                         </CardTitle>
                         {request.pgAddress && (
-                          <p className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
-                            <MapPin className="w-3 h-3" />
+                          <p className="text-sm text-gray-600 flex items-center gap-1.5 mb-1.5">
+                            <MapPin className="w-4 h-4 text-gray-500" />
                             <span data-testid={`text-address-${request.id}`}>{request.pgAddress}</span>
                           </p>
                         )}
                         {request.roomNumber && (
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <HomeIcon className="w-3 h-3" />
+                          <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                            <HomeIcon className="w-4 h-4 text-gray-500" />
                             Room {request.roomNumber}
                           </p>
                         )}
                       </div>
                       <Badge
                         variant="outline"
-                        className={cn("gap-1", statusConfig.color)}
+                        className={cn("gap-1.5 px-3 py-1 font-semibold border-2", statusConfig.color)}
                         data-testid={`badge-status-${request.id}`}
                       >
-                        <StatusIcon className="w-3 h-3" />
+                        <StatusIcon className="w-4 h-4" />
                         {statusConfig.label}
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Visit Details */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium">Requested:</span>
-                        <span data-testid={`text-requested-date-${request.id}`}>
-                          {format(new Date(request.requestedDate), "MMM dd, yyyy")}
-                        </span>
-                        <span className="text-muted-foreground">at</span>
-                        <span data-testid={`text-requested-time-${request.id}`}>{request.requestedTime}</span>
+                  <CardContent className="space-y-5">
+                    {/* Visit Details Timeline */}
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3 text-sm">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                          <Calendar className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <p className="font-semibold text-gray-800 mb-1">Requested Time</p>
+                          <p className="text-gray-600">
+                            <span data-testid={`text-requested-date-${request.id}`}>
+                              {format(new Date(request.requestedDate), "MMM dd, yyyy")}
+                            </span>
+                            {" at "}
+                            <span data-testid={`text-requested-time-${request.id}`}>{request.requestedTime}</span>
+                          </p>
+                        </div>
                       </div>
 
                       {request.confirmedDate && request.confirmedTime && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span className="font-medium">Confirmed:</span>
-                          <span data-testid={`text-confirmed-date-${request.id}`}>
-                            {format(new Date(request.confirmedDate), "MMM dd, yyyy")}
-                          </span>
-                          <span className="text-muted-foreground">at</span>
-                          <span data-testid={`text-confirmed-time-${request.id}`}>{request.confirmedTime}</span>
+                        <div className="flex items-start gap-3 text-sm">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div className="flex-1 pt-1">
+                            <p className="font-semibold text-gray-800 mb-1">Confirmed Time</p>
+                            <p className="text-gray-600">
+                              <span data-testid={`text-confirmed-date-${request.id}`}>
+                                {format(new Date(request.confirmedDate), "MMM dd, yyyy")}
+                              </span>
+                              {" at "}
+                              <span data-testid={`text-confirmed-time-${request.id}`}>{request.confirmedTime}</span>
+                            </p>
+                          </div>
                         </div>
                       )}
 
                       {request.status === "rescheduled" &&
                         request.rescheduledDate &&
                         request.rescheduledTime && (
-                          <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 p-2 rounded">
-                            <Clock className="w-4 h-4" />
-                            <span className="font-medium">New Time:</span>
-                            <span data-testid={`text-rescheduled-date-${request.id}`}>
-                              {format(new Date(request.rescheduledDate), "MMM dd, yyyy")}
-                            </span>
-                            <span>at</span>
-                            <span data-testid={`text-rescheduled-time-${request.id}`}>
-                              {request.rescheduledTime}
-                            </span>
+                          <div className="flex items-start gap-3 text-sm bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg border-2 border-blue-200">
+                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                              <Clock className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1 pt-1">
+                              <p className="font-semibold text-blue-900 mb-1">New Proposed Time</p>
+                              <p className="text-blue-700 font-medium">
+                                <span data-testid={`text-rescheduled-date-${request.id}`}>
+                                  {format(new Date(request.rescheduledDate), "MMM dd, yyyy")}
+                                </span>
+                                {" at "}
+                                <span data-testid={`text-rescheduled-time-${request.id}`}>
+                                  {request.rescheduledTime}
+                                </span>
+                              </p>
+                            </div>
                           </div>
                         )}
                     </div>
 
                     {/* Notes */}
                     {request.notes && (
-                      <div className="text-sm">
-                        <p className="font-medium mb-1">Your Notes:</p>
-                        <p className="text-muted-foreground" data-testid={`text-notes-${request.id}`}>
+                      <div className="text-sm bg-purple-50 p-4 rounded-lg border border-purple-100">
+                        <p className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                          Your Notes
+                        </p>
+                        <p className="text-gray-700" data-testid={`text-notes-${request.id}`}>
                           {request.notes}
                         </p>
                       </div>
                     )}
 
                     {request.ownerNotes && (
-                      <div className="text-sm bg-secondary p-3 rounded">
-                        <p className="font-medium mb-1">Owner's Notes:</p>
-                        <p className="text-muted-foreground" data-testid={`text-owner-notes-${request.id}`}>
+                      <div className="text-sm bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border-2 border-blue-200">
+                        <p className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                          Owner's Message
+                        </p>
+                        <p className="text-gray-700" data-testid={`text-owner-notes-${request.id}`}>
                           {request.ownerNotes}
                         </p>
                       </div>
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 pt-2">
                       {request.status === "pending" && (
                         <Button
                           onClick={() => cancelVisitMutation.mutate(request.id)}
                           variant="destructive"
                           size="sm"
                           disabled={cancelVisitMutation.isPending}
+                          className="shadow-md hover:shadow-lg transition-all"
                           data-testid={`button-cancel-${request.id}`}
                         >
                           {cancelVisitMutation.isPending ? "Cancelling..." : "Cancel Request"}
@@ -457,9 +508,9 @@ export default function TenantVisitRequestsPage() {
                       {request.status === "rescheduled" && (
                         <Button
                           onClick={() => acceptRescheduleMutation.mutate(request.id)}
-                          variant="default"
                           size="sm"
                           disabled={acceptRescheduleMutation.isPending}
+                          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all"
                           data-testid={`button-accept-reschedule-${request.id}`}
                         >
                           {acceptRescheduleMutation.isPending ? "Accepting..." : "Accept New Time"}
@@ -472,6 +523,7 @@ export default function TenantVisitRequestsPage() {
                           variant="outline"
                           size="sm"
                           disabled={completeVisitMutation.isPending}
+                          className="border-2 hover:border-purple-300 hover:bg-purple-50 transition-all"
                           data-testid={`button-complete-${request.id}`}
                         >
                           {completeVisitMutation.isPending ? "Marking..." : "Mark as Completed"}
@@ -481,8 +533,8 @@ export default function TenantVisitRequestsPage() {
                       {showOnboardingButton && (
                         <Button
                           onClick={() => handleOpenOnboarding(request)}
-                          variant="default"
                           size="sm"
+                          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all"
                           data-testid={`button-onboarding-${request.id}`}
                         >
                           Request Onboarding
@@ -495,6 +547,7 @@ export default function TenantVisitRequestsPage() {
                           variant="outline"
                           size="sm"
                           disabled={cancelVisitMutation.isPending}
+                          className="border-2 hover:border-red-300 hover:bg-red-50 hover:text-red-700 transition-all"
                           data-testid={`button-delete-${request.id}`}
                         >
                           {cancelVisitMutation.isPending ? "Deleting..." : "Delete Request"}
