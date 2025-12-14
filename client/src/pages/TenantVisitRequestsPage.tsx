@@ -299,17 +299,17 @@ export default function TenantVisitRequestsPage() {
 
         {/* Status Filter Tabs */}
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all" data-testid="tab-all">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
+            <TabsTrigger value="all" data-testid="tab-all" className="text-xs md:text-sm">
               All ({counts.all})
             </TabsTrigger>
-            <TabsTrigger value="pending" data-testid="tab-pending">
+            <TabsTrigger value="pending" data-testid="tab-pending" className="text-xs md:text-sm">
               Pending ({counts.pending})
             </TabsTrigger>
-            <TabsTrigger value="approved" data-testid="tab-approved">
+            <TabsTrigger value="approved" data-testid="tab-approved" className="text-xs md:text-sm">
               Approved ({counts.approved})
             </TabsTrigger>
-            <TabsTrigger value="completed" data-testid="tab-completed">
+            <TabsTrigger value="completed" data-testid="tab-completed" className="text-xs md:text-sm">
               Completed ({counts.completed})
             </TabsTrigger>
           </TabsList>
@@ -486,6 +486,18 @@ export default function TenantVisitRequestsPage() {
                           data-testid={`button-onboarding-${request.id}`}
                         >
                           Request Onboarding
+                        </Button>
+                      )}
+
+                      {(request.status === "approved" || request.status === "completed") && (
+                        <Button
+                          onClick={() => cancelVisitMutation.mutate(request.id)}
+                          variant="outline"
+                          size="sm"
+                          disabled={cancelVisitMutation.isPending}
+                          data-testid={`button-delete-${request.id}`}
+                        >
+                          {cancelVisitMutation.isPending ? "Deleting..." : "Delete Request"}
                         </Button>
                       )}
                     </div>

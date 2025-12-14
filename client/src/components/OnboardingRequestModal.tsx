@@ -69,15 +69,14 @@ export default function OnboardingRequestModal({
 
   // Fetch room details to get monthly rent
   const { data: roomData } = useQuery({
-    queryKey: ["/api/rooms", roomId],
+    queryKey: ["/api/tenant/rooms", roomId],
     queryFn: async () => {
       if (!roomId) return null;
-      const res = await fetch(`/api/rooms`, {
+      const res = await fetch(`/api/tenant/rooms/${roomId}`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch room details");
-      const rooms = await res.json();
-      return rooms.find((r: any) => r.id === roomId);
+      return res.json();
     },
     enabled: !!roomId && open,
   });
