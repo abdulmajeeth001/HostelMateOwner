@@ -287,7 +287,7 @@ export default function OwnerVisitRequestsPage() {
         {/* Header Stats */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-6 shadow-lg">
           <h1 className="text-3xl font-bold mb-4">Visit Requests</h1>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-white rounded-lg p-3">
               <p className="text-xs text-blue-600 font-medium mb-1">Total</p>
               <p className="text-2xl font-bold text-blue-900">{counts.all}</p>
@@ -426,7 +426,7 @@ export default function OwnerVisitRequestsPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Visit Details */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Requested Date & Time</p>
                         <div className="flex items-center gap-2">

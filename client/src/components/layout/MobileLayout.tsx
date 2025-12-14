@@ -92,6 +92,7 @@ export default function MobileLayout({
     { icon: Home, label: "Dashboard", path: "/tenant-dashboard" },
     { icon: DoorOpen, label: "Room", path: "/tenant-room" },
     { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
+    { icon: AlertCircle, label: "Complaints", path: "/tenant-complaints" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
@@ -117,6 +118,7 @@ export default function MobileLayout({
     { icon: Home, label: "Home", path: "/tenant-dashboard" },
     { icon: DoorOpen, label: "Room", path: "/tenant-room" },
     { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
+    { icon: AlertCircle, label: "Issues", path: "/tenant-complaints" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
