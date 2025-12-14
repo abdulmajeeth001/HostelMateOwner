@@ -388,7 +388,7 @@ export default function PGDetailsPage() {
           ) : (
             <div className="space-y-4">
               {pg.availableRooms.map((room) => {
-                const availableBeds = room.sharing - room.tenantIds.length;
+                const availableBeds = room.sharing - (room.tenantIds?.length || 0);
                 const isFullyOccupied = availableBeds === 0;
 
                 return (
