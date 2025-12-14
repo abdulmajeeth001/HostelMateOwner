@@ -472,7 +472,7 @@ export default function PGSearchPage() {
                     </div>
 
                     <div className="flex items-center gap-3 mb-3">
-                      {pg.distance !== undefined && (
+                      {pg.distance != null && (
                         <Badge variant="secondary" className="text-xs" data-testid={`badge-distance-${pg.id}`}>
                           <MapPin className="w-3 h-3 mr-1" />
                           {pg.distance.toFixed(1)} km away
