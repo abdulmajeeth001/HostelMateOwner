@@ -620,12 +620,63 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Tenant record not found" });
       }
 
+      // Get PG details
+      let pgInfo = null;
+      if (tenant.pgId) {
+        const pg = await storage.getPgById(tenant.pgId);
+        if (pg) {
+          pgInfo = {
+            id: pg.id,
+            pgName: pg.pgName,
+            pgAddress: pg.pgAddress,
+            pgLocation: pg.pgLocation,
+            hasFood: pg.hasFood,
+            hasParking: pg.hasParking,
+            hasAC: pg.hasAC,
+            hasCCTV: pg.hasCCTV,
+            hasWifi: pg.hasWifi,
+            hasLaundry: pg.hasLaundry,
+            hasGym: pg.hasGym,
+          };
+        }
+      }
+
+      // Get room details
+      let roomDetails = null;
+      if (tenant.roomId) {
+        const room = await storage.getRoom(tenant.roomId);
+        if (room) {
+          roomDetails = {
+            id: room.id,
+            roomNumber: room.roomNumber,
+            floor: room.floor,
+            sharing: room.sharing,
+            hasAttachedBathroom: room.hasAttachedBathroom,
+            hasAC: room.hasAC,
+            amenities: room.amenities,
+          };
+        }
+      }
+
+      // Get payment summary
+      const payments = await storage.getPaymentsByTenant(tenant.id);
+      const paymentSummary = {
+        totalPaid: payments.filter(p => p.status === "paid").reduce((sum, p) => sum + parseFloat(p.amount.toString()), 0),
+        totalPending: payments.filter(p => p.status === "pending").reduce((sum, p) => sum + parseFloat(p.amount.toString()), 0),
+        totalOverdue: payments.filter(p => p.status === "overdue").reduce((sum, p) => sum + parseFloat(p.amount.toString()), 0),
+        recentPayments: payments.slice(0, 5),
+      };
+
       res.json({
         name: tenant.name,
         roomNumber: tenant.roomNumber,
         monthlyRent: tenant.monthlyRent,
+        pgInfo,
+        roomDetails,
+        paymentSummary,
       });
     } catch (error) {
+      console.error("Tenant dashboard error:", error);
       res.status(400).json({ error: "Failed to fetch dashboard data" });
     }
   });
@@ -677,6 +728,44 @@ export async function registerRoutes(
 
       res.json(room);
     } catch (error) {
+      res.status(400).json({ error: "Failed to fetch room details" });
+    }
+  });
+
+  // Get room details by ID for tenant (tenant-safe - for onboarding)
+  app.get("/api/tenant/rooms/:id", async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const roomId = parseInt(req.params.id);
+      const room = await storage.getRoom(roomId);
+      
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+
+      // Return tenant-safe room data (no sensitive owner info)
+      res.json({
+        id: room.id,
+        roomNumber: room.roomNumber,
+        monthlyRent: room.monthlyRent,
+        sharing: room.sharing,
+        floor: room.floor,
+        hasAttachedBathroom: room.hasAttachedBathroom,
+        hasAC: room.hasAC,
+        amenities: room.amenities,
+        status: room.status,
+      });
+    } catch (error) {
+      console.error("Fetch room by ID error:", error);
       res.status(400).json({ error: "Failed to fetch room details" });
     }
   });

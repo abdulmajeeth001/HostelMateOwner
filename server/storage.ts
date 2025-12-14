@@ -155,8 +155,8 @@ export interface IStorage {
 
   // Visit Request Methods
   createVisitRequest(data: InsertVisitRequest): Promise<VisitRequest>;
-  getVisitRequestsByTenant(tenantUserId: number): Promise<VisitRequest[]>;
-  getVisitRequestsByOwner(ownerId: number): Promise<VisitRequest[]>;
+  getVisitRequestsByTenant(tenantUserId: number): Promise<any[]>;
+  getVisitRequestsByOwner(ownerId: number): Promise<any[]>;
   approveVisitRequest(id: number): Promise<VisitRequest | undefined>;
   rescheduleVisitRequest(id: number, newDate: Date, newTime: string, rescheduledBy: string): Promise<VisitRequest | undefined>;
   acceptReschedule(id: number): Promise<VisitRequest | undefined>;
@@ -1067,18 +1067,51 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getVisitRequestsByTenant(tenantUserId: number): Promise<VisitRequest[]> {
-    return await db.select()
+  async getVisitRequestsByTenant(tenantUserId: number): Promise<any[]> {
+    const results = await db.select({
+      visitRequest: visitRequests,
+      pgName: pgMaster.pgName,
+      pgAddress: pgMaster.pgAddress,
+      roomNumber: rooms.roomNumber,
+    })
       .from(visitRequests)
+      .leftJoin(pgMaster, eq(visitRequests.pgId, pgMaster.id))
+      .leftJoin(rooms, eq(visitRequests.roomId, rooms.id))
       .where(eq(visitRequests.tenantUserId, tenantUserId))
       .orderBy(desc(visitRequests.createdAt));
+
+    return results.map(row => ({
+      ...row.visitRequest,
+      pgName: row.pgName,
+      pgAddress: row.pgAddress,
+      roomNumber: row.roomNumber,
+    }));
   }
 
-  async getVisitRequestsByOwner(ownerId: number): Promise<VisitRequest[]> {
-    return await db.select()
+  async getVisitRequestsByOwner(ownerId: number): Promise<any[]> {
+    const results = await db.select({
+      visitRequest: visitRequests,
+      pgName: pgMaster.pgName,
+      pgAddress: pgMaster.pgAddress,
+      roomNumber: rooms.roomNumber,
+      tenantName: users.name,
+      tenantEmail: users.email,
+    })
       .from(visitRequests)
+      .leftJoin(pgMaster, eq(visitRequests.pgId, pgMaster.id))
+      .leftJoin(rooms, eq(visitRequests.roomId, rooms.id))
+      .leftJoin(users, eq(visitRequests.tenantUserId, users.id))
       .where(eq(visitRequests.ownerId, ownerId))
       .orderBy(desc(visitRequests.createdAt));
+
+    return results.map(row => ({
+      ...row.visitRequest,
+      pgName: row.pgName,
+      pgAddress: row.pgAddress,
+      roomNumber: row.roomNumber,
+      tenantName: row.tenantName,
+      tenantEmail: row.tenantEmail,
+    }));
   }
 
   async approveVisitRequest(id: number): Promise<VisitRequest | undefined> {
@@ -1214,10 +1247,11 @@ export class DatabaseStorage implements IStorage {
         throw new Error("Room not found");
       }
 
+      // EXPLICIT CAPACITY CHECK - prevent partial commits if room is full
       const currentTenantIds = Array.isArray(room[0].tenantIds) ? room[0].tenantIds : [];
       const roomSharing = room[0].sharing || 1;
       if (currentTenantIds.length >= roomSharing) {
-        throw new Error("Room is fully occupied");
+        throw new Error(`Room ${room[0].roomNumber} is fully occupied (${currentTenantIds.length}/${roomSharing} tenants). Cannot onboard new tenant.`);
       }
 
       const newTenant = await tx.insert(tenants).values({
