@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
 
+export interface TenantProfile {
+  tenantId: number | null;
+  pgId: number | null;
+  onboardingStatus: "not_onboarded" | "pending" | "onboarded";
+  status: "active" | "inactive" | null;
+}
+
 export interface CurrentUser {
   id: number;
   name: string;
   email: string;
   mobile: string;
   userType: "owner" | "tenant" | "admin";
+  tenantProfile?: TenantProfile;
 }
 
 export function useUser() {
@@ -38,5 +46,21 @@ export function useUser() {
     fetchUser();
   }, []);
 
-  return { user, isLoading, error };
+  // Derived tenant flags for easier access
+  const isTenantOnboarded = user?.userType === "tenant" && 
+    user?.tenantProfile?.onboardingStatus === "onboarded" &&
+    user?.tenantProfile?.status === "active";
+
+  const isTenantNotOnboarded = user?.userType === "tenant" && 
+    (!user?.tenantProfile || 
+     user?.tenantProfile?.onboardingStatus !== "onboarded" ||
+     user?.tenantProfile?.status !== "active");
+
+  return { 
+    user, 
+    isLoading, 
+    error,
+    isTenantOnboarded,
+    isTenantNotOnboarded
+  };
 }

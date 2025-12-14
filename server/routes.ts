@@ -391,10 +391,38 @@ export async function registerRoutes(
       }
       
       // Explicitly save session to ensure persistence
-      req.session!.save((err: any) => {
+      req.session!.save(async (err: any) => {
         if (err) {
           console.error("Session save error during login:", err);
           return res.status(500).json({ error: "Failed to save session" });
+        }
+        
+        // Prepare response user object
+        const userResponse: any = {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          userType: user.userType
+        };
+
+        // Include tenant onboarding information if user is a tenant
+        if (user.userType === "tenant") {
+          const tenant = await storage.getTenantByUserId(user.id);
+          if (tenant) {
+            userResponse.tenantProfile = {
+              tenantId: tenant.id,
+              pgId: tenant.pgId,
+              onboardingStatus: tenant.onboardingStatus,
+              status: tenant.status,
+            };
+          } else {
+            userResponse.tenantProfile = {
+              tenantId: null,
+              pgId: null,
+              onboardingStatus: "not_onboarded",
+              status: null,
+            };
+          }
         }
         
         // Redirect based on user type
@@ -405,7 +433,7 @@ export async function registerRoutes(
           redirectUrl = "/admin-dashboard";
         }
         
-        res.json({ success: true, user: { id: user.id, email: user.email, name: user.name, userType: user.userType }, redirectUrl });
+        res.json({ success: true, user: userResponse, redirectUrl });
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -425,13 +453,36 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
 
-      res.json({
+      const response: any = {
         id: user.id,
         name: user.name,
         email: user.email,
         mobile: user.mobile,
         userType: user.userType,
-      });
+      };
+
+      // Include tenant onboarding information if user is a tenant
+      if (user.userType === "tenant") {
+        const tenant = await storage.getTenantByUserId(userId);
+        if (tenant) {
+          response.tenantProfile = {
+            tenantId: tenant.id,
+            pgId: tenant.pgId,
+            onboardingStatus: tenant.onboardingStatus,
+            status: tenant.status,
+          };
+        } else {
+          // Tenant user but no tenant record exists
+          response.tenantProfile = {
+            tenantId: null,
+            pgId: null,
+            onboardingStatus: "not_onboarded",
+            status: null,
+          };
+        }
+      }
+
+      res.json(response);
     } catch (error) {
       console.error("Get user error:", error);
       res.status(500).json({ error: "Failed to get user" });

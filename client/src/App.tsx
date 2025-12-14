@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { TenantRouteGuard } from "@/components/TenantRouteGuard";
 import NotFound from "@/pages/not-found";
 
 import Home from "@/pages/Home";
@@ -72,16 +73,56 @@ function Router() {
       <Route path="/owner-visit-requests" component={OwnerVisitRequestsPage} />
       <Route path="/owner-onboarding-requests" component={OwnerOnboardingRequestsPage} />
       <Route path="/tenant-reset-password" component={TenantResetPassword} />
-      <Route path="/tenant-dashboard" component={TenantDashboard} />
-      <Route path="/tenant-profile" component={TenantProfile} />
-      <Route path="/tenant-room" component={TenantRoomDetails} />
-      <Route path="/tenant-payments" component={TenantPayments} />
-      <Route path="/tenant-complaints" component={TenantComplaints} />
-      <Route path="/tenant-pg" component={TenantPgDetails} />
-      <Route path="/tenant-facilities" component={TenantPgFacilities} />
-      <Route path="/tenant-search-pgs" component={PGSearchPage} />
-      <Route path="/pg/:id" component={PGDetailsPage} />
-      <Route path="/tenant-visit-requests" component={TenantVisitRequestsPage} />
+      <Route path="/tenant-dashboard">
+        <TenantRouteGuard requiresOnboarding={true}>
+          <TenantDashboard />
+        </TenantRouteGuard>
+      </Route>
+      <Route path="/tenant-profile">
+        <TenantRouteGuard requiresOnboarding={true}>
+          <TenantProfile />
+        </TenantRouteGuard>
+      </Route>
+      <Route path="/tenant-room">
+        <TenantRouteGuard requiresOnboarding={true}>
+          <TenantRoomDetails />
+        </TenantRouteGuard>
+      </Route>
+      <Route path="/tenant-payments">
+        <TenantRouteGuard requiresOnboarding={true}>
+          <TenantPayments />
+        </TenantRouteGuard>
+      </Route>
+      <Route path="/tenant-complaints">
+        <TenantRouteGuard requiresOnboarding={true}>
+          <TenantComplaints />
+        </TenantRouteGuard>
+      </Route>
+      <Route path="/tenant-pg">
+        <TenantRouteGuard requiresOnboarding={true}>
+          <TenantPgDetails />
+        </TenantRouteGuard>
+      </Route>
+      <Route path="/tenant-facilities">
+        <TenantRouteGuard requiresOnboarding={true}>
+          <TenantPgFacilities />
+        </TenantRouteGuard>
+      </Route>
+      <Route path="/tenant-search-pgs">
+        <TenantRouteGuard requiresOnboarding={false}>
+          <PGSearchPage />
+        </TenantRouteGuard>
+      </Route>
+      <Route path="/pg/:id">
+        <TenantRouteGuard requiresOnboarding={false}>
+          <PGDetailsPage />
+        </TenantRouteGuard>
+      </Route>
+      <Route path="/tenant-visit-requests">
+        <TenantRouteGuard requiresOnboarding={false}>
+          <TenantVisitRequestsPage />
+        </TenantRouteGuard>
+      </Route>
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route component={NotFound} />
     </Switch>
