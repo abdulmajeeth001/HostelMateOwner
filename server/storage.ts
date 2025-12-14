@@ -156,6 +156,7 @@ export interface IStorage {
 
   // Visit Request Methods
   createVisitRequest(data: InsertVisitRequest): Promise<VisitRequest>;
+  getVisitRequest(id: number): Promise<VisitRequest | undefined>;
   getVisitRequestsByTenant(tenantUserId: number): Promise<any[]>;
   getVisitRequestsByOwner(ownerId: number, pgId?: number): Promise<any[]>;
   approveVisitRequest(id: number): Promise<VisitRequest | undefined>;
@@ -166,6 +167,7 @@ export interface IStorage {
 
   // Onboarding Request Methods
   createOnboardingRequest(data: InsertOnboardingRequest): Promise<OnboardingRequest>;
+  getOnboardingRequest(id: number): Promise<OnboardingRequest | undefined>;
   getOnboardingRequestsByOwner(ownerId: number, pgId?: number): Promise<OnboardingRequest[]>;
   getOnboardingRequestByTenant(tenantUserId: number, pgId: number): Promise<OnboardingRequest | undefined>;
   approveOnboardingRequest(id: number): Promise<OnboardingRequest | undefined>;
@@ -1133,6 +1135,14 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  async getVisitRequest(id: number): Promise<VisitRequest | undefined> {
+    const result = await db.select()
+      .from(visitRequests)
+      .where(eq(visitRequests.id, id))
+      .limit(1);
+    return result[0];
+  }
+
   async approveVisitRequest(id: number): Promise<VisitRequest | undefined> {
     const request = await db.select()
       .from(visitRequests)
@@ -1232,6 +1242,14 @@ export class DatabaseStorage implements IStorage {
       .from(onboardingRequests)
       .where(and(...conditions))
       .orderBy(desc(onboardingRequests.createdAt));
+  }
+
+  async getOnboardingRequest(id: number): Promise<OnboardingRequest | undefined> {
+    const result = await db.select()
+      .from(onboardingRequests)
+      .where(eq(onboardingRequests.id, id))
+      .limit(1);
+    return result[0];
   }
 
   async getOnboardingRequestByTenant(tenantUserId: number, pgId: number): Promise<OnboardingRequest | undefined> {

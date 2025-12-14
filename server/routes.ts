@@ -2886,13 +2886,24 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
         return res.status(403).json({ error: "Owner access required" });
       }
 
-      const visitRequestId = parseInt(req.params.id);
-      const visitRequest = await storage.approveVisitRequest(visitRequestId);
+      const selectedPgId = req.session?.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected" });
+      }
 
-      if (!visitRequest) {
+      const visitRequestId = parseInt(req.params.id);
+      
+      // Verify the request belongs to the selected PG
+      const request = await storage.getVisitRequest(visitRequestId);
+      if (!request) {
         return res.status(404).json({ error: "Visit request not found" });
       }
 
+      if (request.pgId !== selectedPgId) {
+        return res.status(403).json({ error: "This visit request does not belong to your currently selected PG" });
+      }
+
+      const visitRequest = await storage.approveVisitRequest(visitRequestId);
       res.json(visitRequest);
     } catch (error) {
       console.error("Approve visit request error:", error);
@@ -2912,8 +2923,24 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
         return res.status(403).json({ error: "Owner access required" });
       }
 
-      const body = rescheduleVisitSchema.parse(req.body);
+      const selectedPgId = req.session?.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected" });
+      }
+
       const visitRequestId = parseInt(req.params.id);
+      
+      // Verify the request belongs to the selected PG
+      const request = await storage.getVisitRequest(visitRequestId);
+      if (!request) {
+        return res.status(404).json({ error: "Visit request not found" });
+      }
+
+      if (request.pgId !== selectedPgId) {
+        return res.status(403).json({ error: "This visit request does not belong to your currently selected PG" });
+      }
+
+      const body = rescheduleVisitSchema.parse(req.body);
       
       const visitRequest = await storage.rescheduleVisitRequest(
         visitRequestId,
@@ -2921,10 +2948,6 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
         body.newTime,
         "owner"
       );
-
-      if (!visitRequest) {
-        return res.status(404).json({ error: "Visit request not found" });
-      }
 
       res.json(visitRequest);
     } catch (error) {
@@ -3042,13 +3065,24 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
         return res.status(403).json({ error: "Owner access required" });
       }
 
-      const onboardingRequestId = parseInt(req.params.id);
-      const onboardingRequest = await storage.approveOnboardingRequest(onboardingRequestId);
+      const selectedPgId = req.session?.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected" });
+      }
 
-      if (!onboardingRequest) {
+      const onboardingRequestId = parseInt(req.params.id);
+      
+      // Verify the request belongs to the selected PG
+      const request = await storage.getOnboardingRequest(onboardingRequestId);
+      if (!request) {
         return res.status(404).json({ error: "Onboarding request not found" });
       }
 
+      if (request.pgId !== selectedPgId) {
+        return res.status(403).json({ error: "This onboarding request does not belong to your currently selected PG" });
+      }
+
+      const onboardingRequest = await storage.approveOnboardingRequest(onboardingRequestId);
       res.json(onboardingRequest);
     } catch (error) {
       console.error("Approve onboarding request error:", error);
@@ -3068,15 +3102,26 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
         return res.status(403).json({ error: "Owner access required" });
       }
 
-      const body = rejectOnboardingSchema.parse(req.body);
+      const selectedPgId = req.session?.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected" });
+      }
+
       const onboardingRequestId = parseInt(req.params.id);
       
-      const onboardingRequest = await storage.rejectOnboardingRequest(onboardingRequestId, body.reason);
-
-      if (!onboardingRequest) {
+      // Verify the request belongs to the selected PG
+      const request = await storage.getOnboardingRequest(onboardingRequestId);
+      if (!request) {
         return res.status(404).json({ error: "Onboarding request not found" });
       }
 
+      if (request.pgId !== selectedPgId) {
+        return res.status(403).json({ error: "This onboarding request does not belong to your currently selected PG" });
+      }
+
+      const body = rejectOnboardingSchema.parse(req.body);
+      
+      const onboardingRequest = await storage.rejectOnboardingRequest(onboardingRequestId, body.reason);
       res.json(onboardingRequest);
     } catch (error) {
       console.error("Reject onboarding request error:", error);
