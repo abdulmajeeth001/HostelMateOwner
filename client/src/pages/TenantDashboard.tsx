@@ -18,8 +18,27 @@ export default function TenantDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchTenantData();
+    checkOnboardingStatus();
   }, []);
+
+  const checkOnboardingStatus = async () => {
+    try {
+      const res = await fetch("/api/tenant/onboarding-status", {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.isOnboarded) {
+          navigate("/tenant-search-pgs");
+          return;
+        }
+        fetchTenantData();
+      }
+    } catch (err) {
+      console.error("Failed to check onboarding status:", err);
+      setLoading(false);
+    }
+  };
 
   const fetchTenantData = async () => {
     try {

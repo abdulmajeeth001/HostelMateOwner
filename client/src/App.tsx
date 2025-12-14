@@ -37,6 +37,11 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminPGManagement from "@/pages/AdminPGManagement";
 import AdminSubscriptions from "@/pages/AdminSubscriptions";
 import AdminComplaints from "@/pages/AdminComplaints";
+import PGSearchPage from "@/pages/PGSearchPage";
+import PGDetailsPage from "@/pages/PGDetailsPage";
+import TenantVisitRequestsPage from "@/pages/TenantVisitRequestsPage";
+import OwnerVisitRequestsPage from "@/pages/OwnerVisitRequestsPage";
+import OwnerOnboardingRequestsPage from "@/pages/OwnerOnboardingRequestsPage";
 
 function Router() {
   return (
@@ -64,6 +69,8 @@ function Router() {
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
       <Route path="/pg-management" component={PGManagement} />
+      <Route path="/owner-visit-requests" component={OwnerVisitRequestsPage} />
+      <Route path="/owner-onboarding-requests" component={OwnerOnboardingRequestsPage} />
       <Route path="/tenant-reset-password" component={TenantResetPassword} />
       <Route path="/tenant-dashboard" component={TenantDashboard} />
       <Route path="/tenant-profile" component={TenantProfile} />
@@ -72,6 +79,9 @@ function Router() {
       <Route path="/tenant-complaints" component={TenantComplaints} />
       <Route path="/tenant-pg" component={TenantPgDetails} />
       <Route path="/tenant-facilities" component={TenantPgFacilities} />
+      <Route path="/tenant-search-pgs" component={PGSearchPage} />
+      <Route path="/pg/:id" component={PGDetailsPage} />
+      <Route path="/tenant-visit-requests" component={TenantVisitRequestsPage} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route component={NotFound} />
     </Switch>

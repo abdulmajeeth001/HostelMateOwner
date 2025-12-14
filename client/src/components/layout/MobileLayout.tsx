@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X, Building2, LogOut, Shield } from "lucide-react";
+import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, Menu, X, Building2, LogOut, Shield, Search, CalendarCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -79,6 +79,8 @@ export default function MobileLayout({
   // Tenant navigation items
   const tenantSideNavItems = [
     { icon: Home, label: "Dashboard", path: "/tenant-dashboard" },
+    { icon: Search, label: "Search PGs", path: "/tenant-search-pgs" },
+    { icon: CalendarCheck, label: "Visit Requests", path: "/tenant-visit-requests" },
     { icon: DoorOpen, label: "Room", path: "/tenant-room" },
     { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
@@ -95,9 +97,9 @@ export default function MobileLayout({
 
   const tenantBottomNavItems = [
     { icon: Home, label: "Home", path: "/tenant-dashboard" },
-    { icon: DoorOpen, label: "Room", path: "/tenant-room" },
+    { icon: Search, label: "Search", path: "/tenant-search-pgs" },
+    { icon: CalendarCheck, label: "Visits", path: "/tenant-visit-requests" },
     { icon: CreditCard, label: "Payments", path: "/tenant-payments" },
-    { icon: Bell, label: "Alerts", path: "/notifications" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
