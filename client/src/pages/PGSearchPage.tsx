@@ -213,42 +213,11 @@ export default function PGSearchPage() {
             {isGettingLocation ? "Getting your location..." : "Use Current Location"}
           </Button>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="latitude" className="text-xs">Latitude</Label>
-              <Input
-                id="latitude"
-                type="number"
-                step="any"
-                placeholder="19.0760"
-                value={tempFilters.latitude || ""}
-                onChange={(e) =>
-                  setTempFilters({
-                    ...tempFilters,
-                    latitude: e.target.value ? parseFloat(e.target.value) : undefined,
-                  })
-                }
-                data-testid="input-latitude"
-              />
-            </div>
-            <div>
-              <Label htmlFor="longitude" className="text-xs">Longitude</Label>
-              <Input
-                id="longitude"
-                type="number"
-                step="any"
-                placeholder="72.8777"
-                value={tempFilters.longitude || ""}
-                onChange={(e) =>
-                  setTempFilters({
-                    ...tempFilters,
-                    longitude: e.target.value ? parseFloat(e.target.value) : undefined,
-                  })
-                }
-                data-testid="input-longitude"
-              />
-            </div>
-          </div>
+          {tempFilters.latitude && tempFilters.longitude && (
+            <p className="text-xs text-muted-foreground text-center">
+              Location set ({tempFilters.latitude.toFixed(4)}, {tempFilters.longitude.toFixed(4)})
+            </p>
+          )}
 
           <div>
             <Label className="text-xs mb-2 block">Max Distance</Label>
@@ -382,8 +351,9 @@ export default function PGSearchPage() {
 
             {/* Filter Actions */}
             <div className="flex gap-2 pt-4">
-              <Button onClick={applyFilters} className="flex-1" data-testid="button-apply-filters">
-                Apply Filters
+              <Button onClick={applyFilters} className="flex-1" size="lg" data-testid="button-search-pgs">
+                <Search className="w-4 h-4 mr-2" />
+                Search PGs
               </Button>
               <Button
                 onClick={clearFilters}
