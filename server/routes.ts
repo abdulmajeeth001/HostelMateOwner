@@ -2657,7 +2657,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.userType !== "tenant") {
+      if (!user || (user.userType !== "tenant" && user.userType !== "applicant")) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -2694,7 +2694,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.userType !== "tenant") {
+      if (!user || (user.userType !== "tenant" && user.userType !== "applicant")) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -2721,7 +2721,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.userType !== "tenant") {
+      if (!user || (user.userType !== "tenant" && user.userType !== "applicant")) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -2758,7 +2758,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.userType !== "tenant") {
+      if (!user || (user.userType !== "tenant" && user.userType !== "applicant")) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -2778,7 +2778,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.userType !== "tenant") {
+      if (!user || (user.userType !== "tenant" && user.userType !== "applicant")) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -2804,7 +2804,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.userType !== "tenant") {
+      if (!user || (user.userType !== "tenant" && user.userType !== "applicant")) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -2830,7 +2830,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.userType !== "tenant") {
+      if (!user || (user.userType !== "tenant" && user.userType !== "applicant")) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -2928,7 +2928,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
     }
   });
 
-  // 5. Onboarding Request Endpoints (Tenant)
+  // 5. Onboarding Request Endpoints (Tenant/Applicant)
   app.post("/api/tenant/onboarding-requests", async (req, res) => {
     try {
       const userId = req.session?.userId;
@@ -2937,7 +2937,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.userType !== "tenant") {
+      if (!user || (user.userType !== "tenant" && user.userType !== "applicant")) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -2981,7 +2981,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.userType !== "tenant") {
+      if (!user || (user.userType !== "tenant" && user.userType !== "applicant")) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
