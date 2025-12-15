@@ -243,3 +243,30 @@ All API requests include credentials for session management.
 - TypeScript - Type safety
 - ESBuild - Fast JavaScript bundler
 - PostCSS with Autoprefixer - CSS processing
+
+## User Workflows
+
+### Tenant/Applicant Journey
+
+1. **Search & Discovery**: Browse available PG properties with filters (location, rent, amenities)
+2. **View Details**: Explore PG information, room types, amenities, and location on map
+3. **Request Visit**: Submit visit request with preferred date and time
+4. **Track Visit**: Monitor visit request status (pending, approved, rejected, completed)
+5. **Submit Onboarding**: After visit approval, complete 4-step onboarding application:
+   - Step 1: Personal information
+   - Step 2: Emergency contact details
+   - Step 3: Document upload (photo, Aadhar card)
+   - Step 4: Review and submit
+6. **Await Approval**: Owner reviews onboarding request
+7. **Access Dashboard**: Once approved, access tenant dashboard with payment tracking, room details, and notifications
+
+### Owner Journey
+
+1. **Create PG**: Register PG property with name, address, location, and room capacity
+2. **Submit for Approval**: PG enters pending approval status
+3. **Add Rooms**: Configure room details (number, floor, sharing, rent, amenities, occupancy)
+4. **Manage Visit Requests**: Review and approve/reject visit requests from prospective tenants
+5. **Review Onboarding**: Evaluate onboarding applications with tenant documents and information
+6. **Approve Tenants**: Accept onboarding requests to convert applicants to active tenants
+7. **Manage Tenants**: Oversee tenant roster, room assignments, and tenant details
+8. **Track Payments**: Monitor payment history, generate payment records, and manage dues
