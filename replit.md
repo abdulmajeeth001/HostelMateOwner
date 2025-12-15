@@ -135,7 +135,6 @@ Preferred communication style: Simple, everyday language.
    - Status tracking (pending, approved, rescheduled, completed, cancelled)
    - Rescheduling support with rescheduled date/time and initiator tracking
    - Final confirmed date and time after negotiations
-   - Completion and cancellation timestamps
 
 10. **Onboarding Requests Table** - Tenant onboarding applications
     - Links to visit request, user, PG, room, and owner
