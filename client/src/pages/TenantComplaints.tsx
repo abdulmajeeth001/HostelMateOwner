@@ -53,6 +53,8 @@ export default function TenantComplaints() {
       if (!response.ok) throw new Error("Failed to fetch complaints");
       return response.json();
     },
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   // Create complaint mutation

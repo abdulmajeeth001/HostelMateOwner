@@ -65,6 +65,8 @@ export default function Complaints() {
       if (!response.ok) throw new Error("Failed to fetch complaints");
       return response.json();
     },
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   // Fetch rooms for dropdown
