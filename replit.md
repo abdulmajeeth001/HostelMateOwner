@@ -10,6 +10,14 @@ The application is built as a full-stack web application with a React-based fron
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### December 15, 2025
+- **Bug Fixes:**
+  - Fixed onboarding status display for tenants - now correctly shows onboarding request status instead of visit request status
+  - Enhanced owner's onboarding request list to display PG name and room number for better context
+  - Improved data fetching in onboarding requests to include related PG and room information
+
 ## System Architecture
 
 ### Technology Stack
