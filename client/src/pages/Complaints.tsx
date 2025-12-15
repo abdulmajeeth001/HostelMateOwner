@@ -2,7 +2,7 @@ import { useState } from "react";
 import DesktopLayout from "@/components/layout/DesktopLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, Clock, Plus, Filter } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, Plus, Filter, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -208,6 +209,47 @@ export default function Complaints() {
     return tenant ? tenant.name : "Unknown";
   };
 
+  // Calculate stats
+  const openCount = complaints.filter(c => c.status === "open").length;
+  const inProgressCount = complaints.filter(c => c.status === "in-progress").length;
+  const resolvedCount = complaints.filter(c => c.status === "resolved").length;
+  const highPriorityCount = complaints.filter(c => c.priority === "high" && c.status !== "resolved").length;
+
+  const statusStats = [
+    { 
+      label: "Open Issues", 
+      value: openCount, 
+      icon: AlertCircle, 
+      gradient: "from-red-500 to-orange-600",
+      bgColor: "bg-red-100",
+      textColor: "text-red-600"
+    },
+    { 
+      label: "In Progress", 
+      value: inProgressCount, 
+      icon: Clock, 
+      gradient: "from-blue-500 to-cyan-600",
+      bgColor: "bg-blue-100",
+      textColor: "text-blue-600"
+    },
+    { 
+      label: "Resolved", 
+      value: resolvedCount, 
+      icon: CheckCircle, 
+      gradient: "from-emerald-500 to-green-600",
+      bgColor: "bg-green-100",
+      textColor: "text-green-600"
+    },
+    { 
+      label: "High Priority", 
+      value: highPriorityCount, 
+      icon: AlertTriangle, 
+      gradient: "from-orange-500 to-red-600",
+      bgColor: "bg-orange-100",
+      textColor: "text-orange-600"
+    },
+  ];
+
   if (isLoading) {
     return (
       <DesktopLayout title="Complaints & Issues" showNav={false}>
@@ -220,6 +262,125 @@ export default function Complaints() {
 
   return (
     <DesktopLayout title="Complaints & Issues" showNav={false}>
+      {/* Hero Section with Gradient */}
+      <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-b-3xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-purple-700" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+        
+        <div className="relative px-8 py-10 text-white">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-4xl font-bold tracking-tight mb-2">Complaints & Issues</h2>
+              <p className="text-white/80 text-sm">Track and resolve tenant complaints efficiently</p>
+            </div>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  className="bg-white/20 backdrop-blur-sm border-white/30 hover:bg-white/30 text-white transition-all duration-300"
+                  data-testid="button-create-complaint"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Complaint
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Complaint</DialogTitle>
+                  <DialogDescription>Add a new complaint or issue to track</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateComplaint}>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="title">Issue Title</Label>
+                      <Input id="title" name="title" required data-testid="input-complaint-title" />
+                    </div>
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea id="description" name="description" required data-testid="input-complaint-description" />
+                    </div>
+                    <div>
+                      <Label htmlFor="priority">Priority</Label>
+                      <Select name="priority" defaultValue="medium" required>
+                        <SelectTrigger data-testid="select-complaint-priority">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low" data-testid="select-priority-low">Low</SelectItem>
+                          <SelectItem value="medium" data-testid="select-priority-medium">Medium</SelectItem>
+                          <SelectItem value="high" data-testid="select-priority-high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="roomId">Room (Optional)</Label>
+                      <Select name="roomId">
+                        <SelectTrigger data-testid="select-complaint-room">
+                          <SelectValue placeholder="Select room" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rooms.filter(room => room?.id).map((room) => (
+                            <SelectItem key={room.id} value={room.id.toString()}>
+                              {room.roomNumber}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="tenantId">Tenant (Optional)</Label>
+                      <Select name="tenantId">
+                        <SelectTrigger data-testid="select-complaint-tenant">
+                          <SelectValue placeholder="Select tenant" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tenants.filter(tenant => tenant?.id).map((tenant) => (
+                            <SelectItem key={tenant.id} value={tenant.id.toString()}>
+                              {tenant.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter className="mt-4">
+                    <Button type="submit" disabled={createComplaintMutation.isPending} data-testid="button-submit-complaint">
+                      {createComplaintMutation.isPending ? "Creating..." : "Create Complaint"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </div>
+
+      {/* Status Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {statusStats.map((stat, i) => (
+          <Card key={i} className="group relative overflow-hidden border-2 hover:border-purple-200 hover:shadow-2xl transition-all duration-300" data-testid={`card-stat-${stat.label.toLowerCase().replace(/\s+/g, "-")}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <CardContent className="relative p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={cn(
+                  "w-14 h-14 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110",
+                  `bg-gradient-to-br ${stat.gradient}`
+                )}>
+                  <stat.icon className="w-7 h-7 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground font-semibold mb-1">{stat.label}</p>
+                <h3 className={cn(
+                  "text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent",
+                  `${stat.gradient}`
+                )}>{stat.value}</h3>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters and Complaint List */}
       <div className="space-y-4">
         <div className="flex justify-between items-center gap-4">
           <div className="flex gap-2">
@@ -261,116 +422,75 @@ export default function Complaints() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="button-create-complaint">
-                <Plus className="w-4 h-4 mr-2" />
-                New Complaint
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Complaint</DialogTitle>
-                <DialogDescription>Add a new complaint or issue to track</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateComplaint}>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="title">Issue Title</Label>
-                    <Input id="title" name="title" required data-testid="input-complaint-title" />
-                  </div>
-                  <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea id="description" name="description" required data-testid="input-complaint-description" />
-                  </div>
-                  <div>
-                    <Label htmlFor="priority">Priority</Label>
-                    <Select name="priority" defaultValue="medium" required>
-                      <SelectTrigger data-testid="select-complaint-priority">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low" data-testid="select-priority-low">Low</SelectItem>
-                        <SelectItem value="medium" data-testid="select-priority-medium">Medium</SelectItem>
-                        <SelectItem value="high" data-testid="select-priority-high">High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="roomId">Room (Optional)</Label>
-                    <Select name="roomId">
-                      <SelectTrigger data-testid="select-complaint-room">
-                        <SelectValue placeholder="Select room" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {rooms.filter(room => room?.id).map((room) => (
-                          <SelectItem key={room.id} value={room.id.toString()}>
-                            {room.roomNumber}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="tenantId">Tenant (Optional)</Label>
-                    <Select name="tenantId">
-                      <SelectTrigger data-testid="select-complaint-tenant">
-                        <SelectValue placeholder="Select tenant" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tenants.filter(tenant => tenant?.id).map((tenant) => (
-                          <SelectItem key={tenant.id} value={tenant.id.toString()}>
-                            {tenant.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter className="mt-4">
-                  <Button type="submit" disabled={createComplaintMutation.isPending} data-testid="button-submit-complaint">
-                    {createComplaintMutation.isPending ? "Creating..." : "Create Complaint"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
         </div>
 
         {filteredComplaints.length === 0 ? (
-          <Card>
+          <Card className="border-2">
             <CardContent className="p-12 text-center">
-              <p className="text-muted-foreground" data-testid="text-no-complaints">No complaints found</p>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No complaints found</h3>
+              <p className="text-sm text-muted-foreground" data-testid="text-no-complaints">
+                {statusFilter !== "all" || priorityFilter !== "all" 
+                  ? "Try adjusting your filters to see more results" 
+                  : "No complaints have been reported yet"}
+              </p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
             {filteredComplaints.map((complaint) => (
-              <Card key={complaint.id} className="hover:shadow-md transition-shadow" data-testid={`card-complaint-${complaint.id}`}>
-                <CardContent className="p-6">
+              <Card key={complaint.id} className="group relative overflow-hidden border-2 hover:border-purple-200 hover:shadow-xl transition-all duration-300" data-testid={`card-complaint-${complaint.id}`}>
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-50/50 to-blue-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <CardContent className="relative p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${getStatusColor(complaint.status)}`}>
-                        {getStatusIcon(complaint.status)}
+                      <div className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-md transition-transform duration-300 group-hover:scale-110",
+                        complaint.status === "resolved" ? "bg-gradient-to-br from-emerald-500 to-green-600" :
+                        complaint.status === "in-progress" ? "bg-gradient-to-br from-blue-500 to-cyan-600" :
+                        "bg-gradient-to-br from-red-500 to-orange-600"
+                      )}>
+                        <div className="text-white">
+                          {getStatusIcon(complaint.status)}
+                        </div>
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-foreground" data-testid={`text-complaint-title-${complaint.id}`}>{complaint.title}</h3>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getPriorityColor(complaint.priority)}`} data-testid={`text-complaint-priority-${complaint.id}`}>
-                            {getPriorityIcon(complaint.priority)} {complaint.priority}
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-bold text-lg text-foreground" data-testid={`text-complaint-title-${complaint.id}`}>{complaint.title}</h3>
+                          <span className={cn(
+                            "text-xs px-2.5 py-1 rounded-full font-bold shadow-sm",
+                            complaint.priority === "high" ? "bg-gradient-to-r from-red-500 to-orange-500 text-white" :
+                            complaint.priority === "medium" ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white" :
+                            "bg-gradient-to-r from-blue-400 to-cyan-400 text-white"
+                          )} data-testid={`text-complaint-priority-${complaint.id}`}>
+                            {getPriorityIcon(complaint.priority)} {complaint.priority.toUpperCase()}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2" data-testid={`text-complaint-description-${complaint.id}`}>
+                        <p className="text-sm text-muted-foreground mb-3 leading-relaxed" data-testid={`text-complaint-description-${complaint.id}`}>
                           {complaint.description}
                         </p>
-                        <p className="text-xs text-muted-foreground" data-testid={`text-complaint-details-${complaint.id}`}>
-                          Room {getRoomNumber(complaint.roomId)} • {getTenantName(complaint.tenantId)} • {format(new Date(complaint.createdAt), "MMM d, yyyy")}
-                        </p>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground" data-testid={`text-complaint-details-${complaint.id}`}>
+                          <span className="font-medium">Room {getRoomNumber(complaint.roomId)}</span>
+                          <span>•</span>
+                          <span>{getTenantName(complaint.tenantId)}</span>
+                          <span>•</span>
+                          <span>{format(new Date(complaint.createdAt), "MMM d, yyyy")}</span>
+                        </div>
                         {complaint.status === "resolved" && complaint.resolvedAt && (
-                          <p className="text-xs text-green-600 mt-1">
-                            Resolved on {format(new Date(complaint.resolvedAt), "MMM d, yyyy")}
-                          </p>
+                          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 rounded-full">
+                            <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                            <p className="text-xs font-semibold text-green-700">
+                              Resolved on {format(new Date(complaint.resolvedAt), "MMM d, yyyy")}
+                            </p>
+                          </div>
+                        )}
+                        {complaint.resolutionNotes && (
+                          <div className="mt-2 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+                            <p className="text-xs font-semibold text-blue-900 mb-1">Resolution Notes:</p>
+                            <p className="text-xs text-blue-700">{complaint.resolutionNotes}</p>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -379,14 +499,14 @@ export default function Complaints() {
                       {complaint.status !== "resolved" && (
                         <Button
                           size="sm"
-                          variant="default"
+                          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md"
                           onClick={() => {
                             setSelectedComplaint(complaint);
                             setIsUpdateDialogOpen(true);
                           }}
                           data-testid={`button-update-complaint-${complaint.id}`}
                         >
-                          Update
+                          Update Status
                         </Button>
                       )}
                     </div>
