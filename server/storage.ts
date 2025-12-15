@@ -40,7 +40,7 @@ import {
   onboardingRequests
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte, sql, or, lte } from "drizzle-orm";
+import { eq, and, desc, gte, sql, or, lte, isNull } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface IStorage {
@@ -1238,10 +1238,22 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(onboardingRequests.pgId, pgId));
     }
 
-    return await db.select()
+    const results = await db.select({
+      onboardingRequest: onboardingRequests,
+      pgName: pgMaster.pgName,
+      roomNumber: rooms.roomNumber,
+    })
       .from(onboardingRequests)
+      .leftJoin(pgMaster, eq(onboardingRequests.pgId, pgMaster.id))
+      .leftJoin(rooms, eq(onboardingRequests.roomId, rooms.id))
       .where(and(...conditions))
       .orderBy(desc(onboardingRequests.createdAt));
+
+    return results.map(row => ({
+      ...row.onboardingRequest,
+      pgName: row.pgName || undefined,
+      roomNumber: row.roomNumber || undefined,
+    }));
   }
 
   async getOnboardingRequest(id: number): Promise<OnboardingRequest | undefined> {
