@@ -129,6 +129,24 @@ Preferred communication style: Simple, everyday language.
    - User-specific or broadcast messages
    - Read/unread status
 
+9. **Visit Requests Table** - Prospective tenant visit scheduling
+   - Tenant user, PG, room, and owner associations
+   - Requested date and time for visit
+   - Status tracking (pending, approved, rescheduled, completed, cancelled)
+   - Rescheduling support with rescheduled date/time and initiator tracking
+   - Final confirmed date and time after negotiations
+   - Completion and cancellation timestamps
+
+10. **Onboarding Requests Table** - Tenant onboarding applications
+    - Links to visit request, user, PG, room, and owner
+    - Tenant personal details (name, email, phone)
+    - Monthly rent for the assignment
+    - Document storage (tenant image, Aadhar card - base64 encoded)
+    - Emergency contact information (name, phone, relationship)
+    - Status tracking (pending, approved, rejected)
+    - Rejection reason tracking
+    - Approval and creation timestamps
+
 ### Multi-PG Support
 
 The system supports owners managing multiple PG properties:
@@ -270,3 +288,62 @@ All API requests include credentials for session management.
 6. **Approve Tenants**: Accept onboarding requests to convert applicants to active tenants
 7. **Manage Tenants**: Oversee tenant roster, room assignments, and tenant details
 8. **Track Payments**: Monitor payment history, generate payment records, and manage dues
+
+## Onboarding System
+
+The application implements a two-stage process for converting prospective tenants into active tenants:
+
+### Visit Request Flow
+
+1. **Request Submission**: Prospective tenants browse available PGs and submit visit requests with:
+   - Preferred visit date and time
+   - Optional specific room interest
+   - Automatic owner and PG association
+
+2. **Owner Review**: Owners receive visit requests and can:
+   - Approve the requested date/time
+   - Reschedule to a different date/time
+   - Cancel the request
+
+3. **Rescheduling**: Either party can reschedule with:
+   - New proposed date and time
+   - Tracking of who initiated the reschedule
+   - Status updates to reflect rescheduling
+
+4. **Confirmation**: Once both parties agree:
+   - Visit is confirmed with final date/time
+   - Status changes to "approved"
+   - System tracks completion when visit occurs
+
+### Onboarding Request Flow
+
+1. **Eligibility**: After visit approval or completion, prospective tenants can submit onboarding requests
+
+2. **4-Step Onboarding Form**:
+   - **Step 1 - Personal Information**: Name, email, phone, selected room, monthly rent
+   - **Step 2 - Emergency Contact**: Contact name, phone number, relationship
+   - **Step 3 - Document Upload**: Tenant photo and Aadhar card (compressed and base64 encoded)
+   - **Step 4 - Review & Submit**: Final review of all information before submission
+
+3. **Owner Review**: Owners evaluate onboarding requests with access to:
+   - Complete tenant information
+   - Uploaded documents
+   - Emergency contact details
+   - Associated PG and room information
+
+4. **Approval Process**: Owners can:
+   - Approve the onboarding request (converts applicant to tenant)
+   - Reject with reason
+   - View all pending requests with PG name and room number context
+
+5. **Status Transitions**:
+   - **Pending**: Initial state after submission
+   - **Approved**: Owner accepts the request, tenant becomes active
+   - **Rejected**: Owner declines with optional rejection reason
+
+### Data Flow
+
+- Visit requests are linked to onboarding requests via `visitRequestId`
+- Approved onboarding creates entry in Tenants table
+- Room occupancy status updates automatically
+- Tenant receives access to tenant dashboard upon approval
