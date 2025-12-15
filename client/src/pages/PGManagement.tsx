@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import LocationMapPicker from "@/components/LocationMapPicker";
 import ImageUploader from "@/components/ImageUploader";
 import {
@@ -162,146 +163,162 @@ export default function PGManagement() {
 
   if (isLoading) {
     return (
-      <DesktopLayout title="My PGs">
+      <DesktopLayout title="My PGs" showNav>
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center animate-pulse">
+            <Building2 className="w-6 h-6 text-purple-600" />
+          </div>
         </div>
       </DesktopLayout>
     );
   }
 
   return (
-    <DesktopLayout title="My PGs">
-      <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            Manage Your Properties
-          </h1>
-          <Button
-            onClick={() => {
-              resetForm();
-              setIsAddDialogOpen(true);
-            }}
-            className="gap-2"
-            data-testid="button-add-new-pg"
-          >
-            <Plus className="h-4 w-4" />
-            Add New PG
-          </Button>
-        </div>
-        <p className="text-muted-foreground">
-          Manage all your PG properties. You can add, edit, or switch between properties.
-        </p>
-      </div>
-
-      {allPgs.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Properties Yet</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Add your first PG property to start managing tenants and rooms.
-            </p>
+    <DesktopLayout title="My PGs" showNav>
+      {/* Hero Section with Gradient */}
+      <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-b-3xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-purple-700" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+        
+        <div className="relative px-8 py-10 text-white">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-4xl font-bold tracking-tight mb-2">My PG Properties</h2>
+              <p className="text-white/80 text-sm">Manage all your properties in one place</p>
+            </div>
             <Button
               onClick={() => {
                 resetForm();
                 setIsAddDialogOpen(true);
               }}
-              className="gap-2"
-              data-testid="button-add-first-property"
+              className="bg-white/20 backdrop-blur-sm border-white/30 hover:bg-white/30 text-white transition-all duration-300"
+              data-testid="button-add-new-pg"
             >
-              <Plus className="h-4 w-4" />
-              Add Your First PG
+              <Plus className="w-4 h-4 mr-2" />
+              Add New PG
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto">
+
+      {allPgs.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+            <Building2 className="w-8 h-8 text-purple-600" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No Properties Yet</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Add your first PG property to start managing tenants and rooms
+          </p>
+          <Button
+            onClick={() => {
+              resetForm();
+              setIsAddDialogOpen(true);
+            }}
+            className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            data-testid="button-add-first-property"
+          >
+            <Plus className="h-4 w-4" />
+            Add Your First PG
+          </Button>
+        </div>
       ) : (
         <div className="grid gap-4">
           {allPgs.map((pg) => (
-            <Card 
+            <div 
               key={pg.id} 
-              className={`transition-all ${
+              className={cn(
+                "group relative overflow-hidden rounded-xl p-6 transition-all duration-300",
+                "bg-gradient-to-r from-white to-gray-50",
                 pg.id === currentPg?.id 
-                  ? "ring-2 ring-primary border-primary" 
-                  : "hover:border-primary/50"
-              }`}
+                  ? "border-2 border-purple-300 shadow-xl hover:shadow-2xl bg-gradient-to-r from-purple-50 to-blue-50" 
+                  : "border-2 border-transparent hover:border-purple-200 shadow-sm hover:shadow-xl hover:from-purple-50 hover:to-blue-50"
+              )}
               data-testid={`card-pg-${pg.id}`}
             >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
-                      pg.id === currentPg?.id 
-                        ? "bg-gradient-to-br from-primary to-primary/80" 
-                        : "bg-muted"
-                    }`}>
-                      <Building2 className={`h-6 w-6 ${
-                        pg.id === currentPg?.id ? "text-primary-foreground" : "text-muted-foreground"
-                      }`} />
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-4 flex-1">
+                  <div className={cn(
+                    "h-14 w-14 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110",
+                    pg.id === currentPg?.id 
+                      ? "bg-gradient-to-br from-purple-500 to-blue-600" 
+                      : "bg-gradient-to-br from-gray-400 to-gray-500"
+                  )}>
+                    <Building2 className="h-7 w-7 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-xl font-bold text-foreground">{pg.pgName}</h3>
+                      {pg.id === currentPg?.id && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-emerald-100 to-green-100 text-green-700">
+                          Active
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        {pg.pgName}
-                        {pg.id === currentPg?.id && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                            Active
-                          </span>
-                        )}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-1 mt-1">
-                        <MapPin className="h-3 w-3" />
-                        {pg.pgLocation}
-                      </CardDescription>
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {pg.pgLocation}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {pg.id !== currentPg?.id && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSelectPG(pg)}
-                        className="gap-1"
-                        data-testid={`button-select-pg-${pg.id}`}
-                      >
-                        <Check className="h-3 w-3" />
-                        Select
-                      </Button>
-                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {pg.id !== currentPg?.id && (
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEditDialog(pg)}
-                      data-testid={`button-edit-pg-${pg.id}`}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSelectPG(pg)}
+                      className="gap-1 hover:bg-purple-50 hover:border-purple-300"
+                      data-testid={`button-select-pg-${pg.id}`}
                     >
-                      <Edit2 className="h-4 w-4" />
+                      <Check className="h-3.5 w-3.5" />
+                      Select
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => openDeleteDialog(pg)}
-                      disabled={allPgs.length === 1}
-                      data-testid={`button-delete-pg-${pg.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEditDialog(pg)}
+                    className="hover:bg-purple-100"
+                    data-testid={`button-edit-pg-${pg.id}`}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive hover:bg-red-50"
+                    onClick={() => openDeleteDialog(pg)}
+                    disabled={allPgs.length === 1}
+                    data-testid={`button-delete-pg-${pg.id}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-4 text-sm pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                    <Home className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total Rooms</p>
+                    <p className="font-bold text-foreground">{pg.totalRooms || 0}</p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Home className="h-4 w-4" />
-                    <span>{pg.totalRooms || 0} rooms</span>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-4 w-4 text-blue-600" />
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span className="truncate max-w-[300px]">{pg.pgAddress}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">Address</p>
+                    <p className="font-medium text-sm text-foreground truncate">{pg.pgAddress}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
