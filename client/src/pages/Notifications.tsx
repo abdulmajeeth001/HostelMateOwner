@@ -1,31 +1,336 @@
+import { useState } from "react";
 import DesktopLayout from "@/components/layout/DesktopLayout";
-import { Bell, MessageSquare, AlertTriangle, Check } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Bell, 
+  MessageSquare, 
+  AlertTriangle, 
+  Check, 
+  CheckCheck,
+  Mail,
+  MailOpen,
+  Trash2,
+  Archive,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const NOTIFICATIONS = [
-  { id: 1, title: "Rent Due Reminder", msg: "Sent to 5 tenants for upcoming month.", time: "Just now", icon: Bell, color: "bg-blue-100 text-blue-600" },
-  { id: 2, title: "New Message", msg: "Rahul: Sir, fan is not working in room 101.", time: "10m ago", icon: MessageSquare, color: "bg-purple-100 text-purple-600" },
-  { id: 3, title: "System Alert", msg: "Your subscription expires in 3 days.", time: "1h ago", icon: AlertTriangle, color: "bg-orange-100 text-orange-600" },
-  { id: 4, title: "Maintenance Completed", msg: "Plumber fixed the leak in Room 202.", time: "Yesterday", icon: Check, color: "bg-green-100 text-green-600" },
+interface Notification {
+  id: number;
+  title: string;
+  msg: string;
+  time: string;
+  icon: typeof Bell;
+  color: string;
+  isRead: boolean;
+  category: "info" | "message" | "alert" | "success";
+}
+
+const NOTIFICATIONS: Notification[] = [
+  { 
+    id: 1, 
+    title: "Rent Due Reminder", 
+    msg: "Sent to 5 tenants for upcoming month.", 
+    time: "Just now", 
+    icon: Bell, 
+    color: "bg-blue-100 text-blue-600", 
+    isRead: false,
+    category: "info"
+  },
+  { 
+    id: 2, 
+    title: "New Message", 
+    msg: "Rahul: Sir, fan is not working in room 101.", 
+    time: "10m ago", 
+    icon: MessageSquare, 
+    color: "bg-purple-100 text-purple-600", 
+    isRead: false,
+    category: "message"
+  },
+  { 
+    id: 3, 
+    title: "System Alert", 
+    msg: "Your subscription expires in 3 days.", 
+    time: "1h ago", 
+    icon: AlertTriangle, 
+    color: "bg-orange-100 text-orange-600", 
+    isRead: true,
+    category: "alert"
+  },
+  { 
+    id: 4, 
+    title: "Maintenance Completed", 
+    msg: "Plumber fixed the leak in Room 202.", 
+    time: "Yesterday", 
+    icon: Check, 
+    color: "bg-green-100 text-green-600", 
+    isRead: true,
+    category: "success"
+  },
+  { 
+    id: 5, 
+    title: "Payment Received", 
+    msg: "₹12,000 received from Tenant in Room 305.", 
+    time: "2 days ago", 
+    icon: CheckCheck, 
+    color: "bg-green-100 text-green-600", 
+    isRead: true,
+    category: "success"
+  },
 ];
 
 export default function Notifications() {
+  const [filter, setFilter] = useState<string>("all");
+  const [notifications, setNotifications] = useState<Notification[]>(NOTIFICATIONS);
+
+  // Filter notifications
+  const filteredNotifications = notifications.filter((notif) => {
+    if (filter === "all") return true;
+    if (filter === "unread") return !notif.isRead;
+    if (filter === "read") return notif.isRead;
+    return true;
+  });
+
+  const getStatusCounts = () => {
+    return {
+      all: notifications.length,
+      unread: notifications.filter((n) => !n.isRead).length,
+      read: notifications.filter((n) => n.isRead).length,
+    };
+  };
+
+  const markAsRead = (id: number) => {
+    setNotifications(notifications.map(n => 
+      n.id === id ? { ...n, isRead: true } : n
+    ));
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+  };
+
+  const counts = getStatusCounts();
+
   return (
-    <DesktopLayout title="Notifications">
-      <div className="space-y-4">
-        {NOTIFICATIONS.map((notif) => (
-          <div key={notif.id} className="flex gap-4 p-4 bg-card rounded-xl border border-border shadow-sm hover:bg-secondary/30 transition-colors">
-            <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center ${notif.color}`}>
-              <notif.icon className="w-5 h-5" />
+    <DesktopLayout title="Notifications" showNav>
+      {/* Gradient Hero Section */}
+      <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-b-3xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-purple-700" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+        <div className="relative px-8 py-10 text-white">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-4xl font-bold tracking-tight mb-2" data-testid="title-notifications">
+                Notifications
+              </h2>
+              <p className="text-white/80 text-sm">
+                Stay updated with important alerts and messages
+              </p>
             </div>
-            <div className="flex-1 space-y-1">
-              <div className="flex justify-between items-start">
-                <h4 className="font-semibold text-sm">{notif.title}</h4>
-                <span className="text-[10px] text-muted-foreground">{notif.time}</span>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">{notif.msg}</p>
+            <div className="flex gap-3">
+              <Button 
+                className="bg-white/20 backdrop-blur-sm border-white/30 hover:bg-white/30 text-white transition-all duration-300"
+                onClick={markAllAsRead}
+                disabled={counts.unread === 0}
+                data-testid="button-mark-all-read"
+              >
+                <CheckCheck className="w-4 h-4 mr-2" />
+                Mark All Read
+              </Button>
             </div>
           </div>
-        ))}
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-stat-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <Bell className="w-7 h-7 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Total</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent" data-testid="stat-all">
+                  {counts.all}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-stat-unread">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <Mail className="w-7 h-7 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Unread</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent" data-testid="stat-unread">
+                  {counts.unread}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-stat-read">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <MailOpen className="w-7 h-7 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Read</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent" data-testid="stat-read">
+                  {counts.read}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filter Controls */}
+        <Card className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex gap-2 overflow-x-auto flex-wrap">
+              <Button
+                variant={filter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("all")}
+                className={filter === "all" ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" : ""}
+                data-testid="filter-all"
+              >
+                All ({counts.all})
+              </Button>
+              <Button
+                variant={filter === "unread" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("unread")}
+                className={filter === "unread" ? "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700" : ""}
+                data-testid="filter-unread"
+              >
+                Unread ({counts.unread})
+              </Button>
+              <Button
+                variant={filter === "read" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("read")}
+                className={filter === "read" ? "bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700" : ""}
+                data-testid="filter-read"
+              >
+                Read ({counts.read})
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Notification Cards */}
+        {filteredNotifications.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+              <Bell className="w-8 h-8 text-purple-600" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2" data-testid="text-no-notifications">
+              {filter === "all"
+                ? "No notifications yet"
+                : `No ${filter} notifications`}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {filter === "all"
+                ? "You're all caught up! New notifications will appear here"
+                : `You don't have any ${filter} notifications at the moment`}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredNotifications.map((notif) => {
+              const Icon = notif.icon;
+
+              return (
+                <Card
+                  key={notif.id}
+                  className={cn(
+                    "group hover:shadow-lg transition-all duration-300 border-2 overflow-hidden relative",
+                    notif.isRead 
+                      ? "border-transparent hover:border-purple-200" 
+                      : "border-purple-200 hover:border-purple-300 bg-purple-50/30"
+                  )}
+                  data-testid={`card-notification-${notif.id}`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <CardContent className="p-5 relative">
+                    <div className="flex gap-4">
+                      <div className={cn(
+                        "w-12 h-12 rounded-xl shrink-0 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform",
+                        notif.isRead 
+                          ? "bg-gradient-to-br from-gray-400 to-gray-500" 
+                          : "bg-gradient-to-br from-purple-500 to-blue-600"
+                      )}>
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-sm" data-testid={`text-title-${notif.id}`}>
+                              {notif.title}
+                            </h4>
+                            {!notif.isRead && (
+                              <Badge 
+                                variant="outline" 
+                                className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0"
+                                data-testid={`badge-unread-${notif.id}`}
+                              >
+                                New
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground" data-testid={`text-time-${notif.id}`}>
+                            {notif.time}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed" data-testid={`text-message-${notif.id}`}>
+                          {notif.msg}
+                        </p>
+                        <div className="flex items-center gap-2 pt-2">
+                          {!notif.isRead && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => markAsRead(notif.id)}
+                              data-testid={`button-mark-read-${notif.id}`}
+                            >
+                              <CheckCheck className="w-3 h-3 mr-1" />
+                              Mark as read
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                            data-testid={`button-delete-${notif.id}`}
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </DesktopLayout>
   );
