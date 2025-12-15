@@ -31,6 +31,10 @@ import {
   AlertCircle,
   MapPin,
   MessageSquare,
+  CalendarCheck,
+  CalendarClock,
+  Users,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -232,8 +236,11 @@ export default function OwnerVisitRequestsPage() {
 
   if (pgLoading) {
     return (
-      <DesktopLayout title="Visit Requests">
+      <DesktopLayout title="Visit Requests" showNav>
         <div className="space-y-4">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center animate-pulse">
+            <CalendarClock className="w-6 h-6 text-purple-600" />
+          </div>
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-48 w-full" />
         </div>
@@ -243,140 +250,216 @@ export default function OwnerVisitRequestsPage() {
 
   if (!pg) {
     return (
-      <DesktopLayout title="Visit Requests">
-        <Card className="text-center py-12">
-          <CardContent>
-            <Building2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2" data-testid="text-no-pg">
-              No PG Selected
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Please select a PG to view visit requests
-            </p>
-          </CardContent>
-        </Card>
+      <DesktopLayout title="Visit Requests" showNav>
+        <div className="text-center py-16">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+            <Building2 className="w-8 h-8 text-purple-600" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2" data-testid="text-no-pg">
+            No PG Selected
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Please select a PG to view visit requests
+          </p>
+        </div>
       </DesktopLayout>
     );
   }
 
   if (error) {
     return (
-      <DesktopLayout title="Visit Requests">
-        <Card className="text-center py-12">
-          <CardContent>
-            <AlertCircle className="w-16 h-16 mx-auto text-destructive mb-4" />
-            <h3 className="text-lg font-semibold mb-2" data-testid="text-error">
-              {error.message === "Owner access required" 
-                ? "Owner Access Required" 
-                : "Failed to load visit requests"}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {error.message === "Owner access required"
-                ? "Only owners can access this page. Please log in as an owner."
-                : error.message || "Please try again later"}
-            </p>
-          </CardContent>
-        </Card>
+      <DesktopLayout title="Visit Requests" showNav>
+        <div className="text-center py-16">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-red-100 to-orange-100 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2" data-testid="text-error">
+            {error.message === "Owner access required" 
+              ? "Owner Access Required" 
+              : "Failed to load visit requests"}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {error.message === "Owner access required"
+              ? "Only owners can access this page. Please log in as an owner."
+              : error.message || "Please try again later"}
+          </p>
+        </div>
       </DesktopLayout>
     );
   }
 
   return (
-    <DesktopLayout title="Visit Requests">
-      <div className="space-y-4">
-        {/* Header Stats */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-6 shadow-lg">
-          <h1 className="text-3xl font-bold mb-4">Visit Requests</h1>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-white rounded-lg p-3">
-              <p className="text-xs text-blue-600 font-medium mb-1">Total</p>
-              <p className="text-2xl font-bold text-blue-900">{counts.all}</p>
-            </div>
-            <div className="bg-white rounded-lg p-3">
-              <p className="text-xs text-orange-600 font-medium mb-1">Pending</p>
-              <p className="text-2xl font-bold text-orange-900">{counts.pending}</p>
-            </div>
-            <div className="bg-white rounded-lg p-3">
-              <p className="text-xs text-green-600 font-medium mb-1">Approved</p>
-              <p className="text-2xl font-bold text-green-900">{counts.approved}</p>
-            </div>
-            <div className="bg-white rounded-lg p-3">
-              <p className="text-xs text-gray-600 font-medium mb-1">Completed</p>
-              <p className="text-2xl font-bold text-gray-900">{counts.completed}</p>
+    <DesktopLayout title="Visit Requests" showNav>
+      {/* Gradient Hero Section */}
+      <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-b-3xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-purple-700" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+        <div className="relative px-8 py-10 text-white">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-4xl font-bold tracking-tight mb-2" data-testid="title-visit-requests">
+                Visit Requests
+              </h2>
+              <p className="text-white/80 text-sm">
+                Manage property tour requests from prospective tenants
+              </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-stat-total">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <Users className="w-7 h-7 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Total Requests</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent" data-testid="stat-total">
+                  {counts.all}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-stat-pending">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <AlertCircle className="w-7 h-7 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Pending Review</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent" data-testid="stat-pending">
+                  {counts.pending}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-stat-approved">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <CalendarCheck className="w-7 h-7 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Approved Visits</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent" data-testid="stat-approved">
+                  {counts.approved}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-stat-completed">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <CheckCircle2 className="w-7 h-7 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Completed</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent" data-testid="stat-completed">
+                  {counts.completed}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sort and Filter Controls */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex gap-2 overflow-x-auto">
-            <Button
-              variant={statusFilter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("all")}
-              data-testid="filter-all"
-            >
-              All ({counts.all})
-            </Button>
-            <Button
-              variant={statusFilter === "pending" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("pending")}
-              data-testid="filter-pending"
-            >
-              Pending ({counts.pending})
-            </Button>
-            <Button
-              variant={statusFilter === "approved" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("approved")}
-              data-testid="filter-approved"
-            >
-              Approved ({counts.approved})
-            </Button>
-            <Button
-              variant={statusFilter === "completed" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter("completed")}
-              data-testid="filter-completed"
-            >
-              Completed ({counts.completed})
-            </Button>
+        <Card className="p-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex gap-2 overflow-x-auto flex-wrap">
+              <Button
+                variant={statusFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("all")}
+                className={statusFilter === "all" ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" : ""}
+                data-testid="filter-all"
+              >
+                All ({counts.all})
+              </Button>
+              <Button
+                variant={statusFilter === "pending" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("pending")}
+                className={statusFilter === "pending" ? "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700" : ""}
+                data-testid="filter-pending"
+              >
+                Pending ({counts.pending})
+              </Button>
+              <Button
+                variant={statusFilter === "approved" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("approved")}
+                className={statusFilter === "approved" ? "bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700" : ""}
+                data-testid="filter-approved"
+              >
+                Approved ({counts.approved})
+              </Button>
+              <Button
+                variant={statusFilter === "completed" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("completed")}
+                className={statusFilter === "completed" ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700" : ""}
+                data-testid="filter-completed"
+              >
+                Completed ({counts.completed})
+              </Button>
+            </div>
+            <Select value={sortBy} onValueChange={(value: "recent" | "date") => setSortBy(value)}>
+              <SelectTrigger className="w-[180px]" data-testid="select-sort">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent" data-testid="sort-recent">Most Recent</SelectItem>
+                <SelectItem value="date" data-testid="sort-date">By Date</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={sortBy} onValueChange={(value: "recent" | "date") => setSortBy(value)}>
-            <SelectTrigger className="w-[180px]" data-testid="select-sort">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent" data-testid="sort-recent">Most Recent</SelectItem>
-              <SelectItem value="date" data-testid="sort-date">By Date</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        </Card>
 
         {/* Visit Request Cards */}
         {isLoading ? (
           <div className="space-y-4">
-            <Skeleton className="h-48 w-full" />
+            <div className="flex items-center justify-center py-8">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center animate-pulse">
+                <CalendarClock className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
             <Skeleton className="h-48 w-full" />
             <Skeleton className="h-48 w-full" />
           </div>
         ) : filteredRequests.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Building2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2" data-testid="text-no-requests">
-                {statusFilter === "all"
-                  ? "No visit requests yet"
-                  : `No ${statusFilter} visit requests`}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {statusFilter === "all"
-                  ? "Visit requests from tenants will appear here"
-                  : `You don't have any ${statusFilter} visit requests at the moment`}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="text-center py-16">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+              <CalendarClock className="w-8 h-8 text-purple-600" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2" data-testid="text-no-requests">
+              {statusFilter === "all"
+                ? "No visit requests yet"
+                : `No ${statusFilter} visit requests`}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {statusFilter === "all"
+                ? "Visit requests from prospective tenants will appear here"
+                : `You don't have any ${statusFilter} visit requests at the moment`}
+            </p>
+          </div>
         ) : (
           <div className="space-y-4">
             {filteredRequests.map((request) => {
@@ -386,20 +469,29 @@ export default function OwnerVisitRequestsPage() {
               const visitTime = request.confirmedTime || request.requestedTime;
 
               return (
-                <Card key={request.id} data-testid={`card-visit-${request.id}`}>
-                  <CardHeader>
+                <Card 
+                  key={request.id} 
+                  className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative"
+                  data-testid={`card-visit-${request.id}`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <CardHeader className="relative">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <h3 className="font-semibold" data-testid={`text-tenant-name-${request.id}`}>
-                            {request.tenantName || "Tenant"}
-                          </h3>
-                          {request.tenantEmail && (
-                            <span className="text-sm text-muted-foreground">
-                              ({request.tenantEmail})
-                            </span>
-                          )}
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                            <User className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg" data-testid={`text-tenant-name-${request.id}`}>
+                              {request.tenantName || "Tenant"}
+                            </h3>
+                            {request.tenantEmail && (
+                              <span className="text-sm text-muted-foreground">
+                                {request.tenantEmail}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
@@ -416,7 +508,7 @@ export default function OwnerVisitRequestsPage() {
                       </div>
                       <Badge
                         variant="outline"
-                        className={cn("flex items-center gap-1", statusConfig.color)}
+                        className={cn("flex items-center gap-1 font-medium", statusConfig.color)}
                         data-testid={`badge-status-${request.id}`}
                       >
                         <StatusIcon className="w-3 h-3" />
@@ -424,33 +516,35 @@ export default function OwnerVisitRequestsPage() {
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 relative">
                     {/* Visit Details */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Requested Date & Time</p>
+                      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-lg">
+                        <p className="text-xs font-medium text-blue-700 mb-2 flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          Requested Date & Time
+                        </p>
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm font-medium" data-testid={`text-requested-date-${request.id}`}>
+                          <span className="text-sm font-semibold text-blue-900" data-testid={`text-requested-date-${request.id}`}>
                             {format(new Date(request.requestedDate), "MMM dd, yyyy")}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm" data-testid={`text-requested-time-${request.id}`}>
+                          <Clock className="w-3 h-3 text-blue-600" />
+                          <span className="text-sm text-blue-700" data-testid={`text-requested-time-${request.id}`}>
                             {request.requestedTime}
                           </span>
                         </div>
                       </div>
 
                       {(request.confirmedDate || request.rescheduledDate) && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">
+                        <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-lg">
+                          <p className="text-xs font-medium text-emerald-700 mb-2 flex items-center gap-1">
+                            <CalendarCheck className="w-3 h-3" />
                             {request.status === "rescheduled" ? "Rescheduled" : "Confirmed"} Date & Time
                           </p>
                           <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-700" data-testid={`text-confirmed-date-${request.id}`}>
+                            <span className="text-sm font-semibold text-emerald-900" data-testid={`text-confirmed-date-${request.id}`}>
                               {format(
                                 new Date(request.confirmedDate || request.rescheduledDate!),
                                 "MMM dd, yyyy"
@@ -458,8 +552,8 @@ export default function OwnerVisitRequestsPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-1">
-                            <Clock className="w-4 h-4 text-green-600" />
-                            <span className="text-sm text-green-700" data-testid={`text-confirmed-time-${request.id}`}>
+                            <Clock className="w-3 h-3 text-emerald-600" />
+                            <span className="text-sm text-emerald-700" data-testid={`text-confirmed-time-${request.id}`}>
                               {request.confirmedTime || request.rescheduledTime}
                             </span>
                           </div>
@@ -499,15 +593,17 @@ export default function OwnerVisitRequestsPage() {
                             size="sm"
                             onClick={() => handleApprove(request.id)}
                             disabled={approveMutation.isPending}
+                            className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
                             data-testid={`button-approve-${request.id}`}
                           >
                             <CheckCircle2 className="w-4 h-4 mr-2" />
-                            Approve
+                            Approve Visit
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => openRescheduleModal(request)}
+                            className="border-purple-200 hover:bg-gradient-to-r hover:from-purple-600 hover:to-blue-600 hover:text-white transition-all"
                             data-testid={`button-reschedule-${request.id}`}
                           >
                             <Clock className="w-4 h-4 mr-2" />
@@ -517,16 +613,16 @@ export default function OwnerVisitRequestsPage() {
                       )}
 
                       {request.status === "approved" && (
-                        <div className="flex items-center gap-2 text-sm text-green-700">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Visit confirmed for {format(new Date(visitDate), "MMM dd")} at {visitTime}</span>
+                        <div className="flex items-center gap-2 text-sm font-medium bg-gradient-to-r from-emerald-50 to-green-50 px-3 py-2 rounded-lg border border-emerald-200">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span className="text-emerald-700">Visit confirmed for {format(new Date(visitDate), "MMM dd")} at {visitTime}</span>
                         </div>
                       )}
 
                       {request.status === "completed" && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Visit completed</span>
+                        <div className="flex items-center gap-2 text-sm font-medium bg-gradient-to-r from-gray-50 to-slate-50 px-3 py-2 rounded-lg border border-gray-200">
+                          <CheckCircle2 className="w-4 h-4 text-gray-600" />
+                          <span className="text-gray-700">Visit completed</span>
                         </div>
                       )}
                     </div>
@@ -536,10 +632,11 @@ export default function OwnerVisitRequestsPage() {
             })}
           </div>
         )}
+      </div>
 
-        {/* Reschedule Modal */}
-        <Dialog open={rescheduleModal.open} onOpenChange={(open) => !open && setRescheduleModal({ open: false, newDate: "", newTime: "", ownerNotes: "" })}>
-          <DialogContent data-testid="dialog-reschedule">
+      {/* Reschedule Modal */}
+      <Dialog open={rescheduleModal.open} onOpenChange={(open) => !open && setRescheduleModal({ open: false, newDate: "", newTime: "", ownerNotes: "" })}>
+        <DialogContent data-testid="dialog-reschedule">
             <DialogHeader>
               <DialogTitle>Reschedule Visit Request</DialogTitle>
             </DialogHeader>
@@ -570,7 +667,11 @@ export default function OwnerVisitRequestsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {TIME_SLOTS.map((time) => (
-                      <SelectItem key={time} value={time}>
+                      <SelectItem 
+                        key={time} 
+                        value={time}
+                        data-testid={`option-reschedule-time-${time.replace(/\s+/g, '-').toLowerCase()}`}
+                      >
                         {time}
                       </SelectItem>
                     ))}
@@ -609,7 +710,6 @@ export default function OwnerVisitRequestsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
     </DesktopLayout>
   );
 }
