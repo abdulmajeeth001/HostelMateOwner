@@ -183,17 +183,48 @@ export default function Settings() {
     }
   };
 
-  if (loading) return <div className="p-8">Loading...</div>;
+  if (loading) {
+    return (
+      <DesktopLayout title="Settings" showNav>
+        <div className="flex items-center justify-center py-16">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center animate-pulse">
+            <User className="w-6 h-6 text-purple-600" />
+          </div>
+        </div>
+      </DesktopLayout>
+    );
+  }
 
   return (
-    <DesktopLayout title="Settings" showNav={true}>
+    <DesktopLayout title="Settings" showNav>
+      {/* Gradient Hero Section */}
+      <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-b-3xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-purple-700" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+        <div className="relative px-8 py-10 text-white">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-4xl font-bold tracking-tight mb-2" data-testid="title-settings">
+                Settings
+              </h2>
+              <p className="text-white/80 text-sm">
+                Manage your account preferences and PG details
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-3xl space-y-6">
         {/* Profile Settings */}
-        <Card>
-          <CardHeader>
+        <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-profile-settings">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardHeader className="relative">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <User className="w-5 h-5 text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-md">
+                  <User className="w-6 h-6 text-white" />
+                </div>
                 <div>
                   <CardTitle>Profile Settings</CardTitle>
                   <CardDescription>Manage your personal information</CardDescription>
@@ -269,11 +300,14 @@ export default function Settings() {
 
         {/* PG Settings - Only for Owners */}
         {user?.userType === "owner" && (
-        <Card>
-          <CardHeader>
+        <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-pg-settings">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardHeader className="relative">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Building className="w-5 h-5 text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-md">
+                  <Building className="w-6 h-6 text-white" />
+                </div>
                 <div>
                   <CardTitle>PG Details</CardTitle>
                   <CardDescription>Update your property information</CardDescription>
@@ -292,7 +326,7 @@ export default function Settings() {
               )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 relative">
             <div className="space-y-2">
               <Label>PG Name</Label>
               <Input 
@@ -408,11 +442,14 @@ export default function Settings() {
 
         {/* Payment Settings - Only for Owners */}
         {user?.userType === "owner" && (
-        <Card>
-          <CardHeader>
+        <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-payment-settings">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardHeader className="relative">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-md">
+                  <Wallet className="w-6 h-6 text-white" />
+                </div>
                 <div>
                   <CardTitle>Payment Settings</CardTitle>
                   <CardDescription>Manage your UPI payment details for receiving rent</CardDescription>
@@ -431,7 +468,7 @@ export default function Settings() {
               )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 relative">
             <div className="space-y-2">
               <Label>UPI ID</Label>
               <Input 
@@ -469,17 +506,20 @@ export default function Settings() {
         )}
 
         {/* Notification Settings */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-primary" />
+        <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-notification-settings">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardHeader className="relative">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-md">
+                <Bell className="w-6 h-6 text-white" />
+              </div>
               <div>
                 <CardTitle>Notifications</CardTitle>
                 <CardDescription>Manage your notification preferences</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 relative">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-foreground">Payment Reminders</p>
