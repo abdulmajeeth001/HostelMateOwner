@@ -49,6 +49,14 @@ interface VisitRequest {
   createdAt: string;
 }
 
+interface OnboardingRequest {
+  id: number;
+  status: "pending" | "approved" | "rejected";
+  pgId: number;
+  roomId: number;
+  rejectionReason?: string;
+}
+
 const STATUS_CONFIG = {
   pending: {
     label: "Pending",
@@ -99,6 +107,40 @@ export default function TenantVisitRequestsPage() {
       });
       if (!res.ok) throw new Error("Failed to fetch visit requests");
       return res.json();
+    },
+  });
+
+  // Fetch onboarding requests for all unique PG IDs
+  const uniquePgIds = Array.from(new Set(visitRequests.map(req => req.pgId)));
+  
+  const { data: onboardingRequestsMap = {} } = useQuery<Record<number, OnboardingRequest>>({
+    queryKey: ["/api/tenant/onboarding-requests", uniquePgIds],
+    enabled: uniquePgIds.length > 0,
+    queryFn: async () => {
+      const requests = await Promise.all(
+        uniquePgIds.map(async (pgId) => {
+          try {
+            const res = await fetch(`/api/tenant/onboarding-requests/${pgId}`, {
+              credentials: "include",
+            });
+            if (res.ok) {
+              const data = await res.json();
+              return { pgId, data };
+            }
+            return { pgId, data: null };
+          } catch {
+            return { pgId, data: null };
+          }
+        })
+      );
+      
+      const map: Record<number, OnboardingRequest> = {};
+      requests.forEach(({ pgId, data }) => {
+        if (data) {
+          map[pgId] = data;
+        }
+      });
+      return map;
     },
   });
 
@@ -367,8 +409,17 @@ export default function TenantVisitRequestsPage() {
               const visitDate = request.confirmedDate || request.requestedDate;
               const visitTime = request.confirmedTime || request.requestedTime;
               const isPastVisit = visitDate ? isPast(new Date(visitDate)) : false;
+              
+              // Check if onboarding request exists for this PG
+              const onboardingRequest = onboardingRequestsMap[request.pgId];
+              const hasOnboardingRequest = onboardingRequest && 
+                (onboardingRequest.status === "pending" || onboardingRequest.status === "approved");
+              
+              // Show onboarding button only if visit is approved/completed, has roomId, and NO existing onboarding request
               const showOnboardingButton =
-                (request.status === "approved" || request.status === "completed") && request.roomId;
+                (request.status === "approved" || request.status === "completed") && 
+                request.roomId && 
+                !hasOnboardingRequest;
 
               return (
                 <Card 
@@ -554,6 +605,58 @@ export default function TenantVisitRequestsPage() {
                         </Button>
                       )}
                     </div>
+
+                    {/* Onboarding Status Badge */}
+                    {onboardingRequest && (
+                      <div className="pt-3 border-t">
+                        {onboardingRequest.status === "pending" && (
+                          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 p-4 rounded-lg border-2 border-orange-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                              <span className="font-semibold text-orange-900" data-testid={`text-onboarding-status-${request.id}`}>
+                                Onboarding Request Pending
+                              </span>
+                            </div>
+                            <p className="text-sm text-orange-700">
+                              Your onboarding request is being reviewed by the owner. You'll be notified once it's processed.
+                            </p>
+                          </div>
+                        )}
+                        
+                        {onboardingRequest.status === "approved" && (
+                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CheckCircle2 className="w-5 h-5 text-green-600" />
+                              <span className="font-semibold text-green-900" data-testid={`text-onboarding-status-${request.id}`}>
+                                Onboarding Approved!
+                              </span>
+                            </div>
+                            <p className="text-sm text-green-700">
+                              Congratulations! Your onboarding has been approved. You are now a tenant at this PG.
+                            </p>
+                          </div>
+                        )}
+                        
+                        {onboardingRequest.status === "rejected" && (
+                          <div className="bg-gradient-to-r from-red-50 to-pink-50 p-4 rounded-lg border-2 border-red-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <XCircle className="w-5 h-5 text-red-600" />
+                              <span className="font-semibold text-red-900" data-testid={`text-onboarding-status-${request.id}`}>
+                                Onboarding Request Declined
+                              </span>
+                            </div>
+                            <p className="text-sm text-red-700 mb-2">
+                              Unfortunately, your onboarding request was not approved.
+                            </p>
+                            {onboardingRequest.rejectionReason && (
+                              <p className="text-sm text-red-600 font-medium bg-red-100 p-2 rounded" data-testid={`text-rejection-reason-${request.id}`}>
+                                Reason: {onboardingRequest.rejectionReason}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
