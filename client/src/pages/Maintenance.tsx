@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DesktopLayout from "@/components/layout/DesktopLayout";
+import MobileLayout from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,19 @@ const STATUS_CONFIG = {
 };
 
 export default function Maintenance() {
+  return (
+    <>
+      <div className="hidden lg:block">
+        <MaintenanceDesktop />
+      </div>
+      <div className="lg:hidden">
+        <MaintenanceMobile />
+      </div>
+    </>
+  );
+}
+
+function MaintenanceDesktop() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Filter maintenance tasks
@@ -315,5 +329,237 @@ export default function Maintenance() {
         )}
       </div>
     </DesktopLayout>
+  );
+}
+
+function MaintenanceMobile() {
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Filter maintenance tasks
+  const filteredTasks = MAINTENANCE.filter((task) => {
+    if (statusFilter === "all") return true;
+    return task.status === statusFilter;
+  });
+
+  const getStatusCounts = () => {
+    return {
+      all: MAINTENANCE.length,
+      pending: MAINTENANCE.filter((t) => t.status === "pending").length,
+      scheduled: MAINTENANCE.filter((t) => t.status === "scheduled").length,
+      "in-progress": MAINTENANCE.filter((t) => t.status === "in-progress").length,
+      completed: MAINTENANCE.filter((t) => t.status === "completed").length,
+    };
+  };
+
+  const counts = getStatusCounts();
+
+  return (
+    <MobileLayout 
+      title="Maintenance"
+      action={
+        <Button size="sm" className="bg-gradient-to-r from-purple-600 to-blue-600" data-testid="button-add-maintenance-mobile">
+          <Plus className="w-4 h-4" />
+        </Button>
+      }
+    >
+      <div className="space-y-4 pb-20">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="overflow-hidden border-2" data-testid="card-stat-pending-mobile">
+            <CardContent className="p-4">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center mb-3 shadow-md">
+                <AlertCircle className="w-5 h-5 text-white" />
+              </div>
+              <p className="text-xs text-muted-foreground mb-1">Pending</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent" data-testid="stat-pending-mobile">
+                {counts.pending}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-2" data-testid="card-stat-scheduled-mobile">
+            <CardContent className="p-4">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center mb-3 shadow-md">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
+              <p className="text-xs text-muted-foreground mb-1">Scheduled</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent" data-testid="stat-scheduled-mobile">
+                {counts.scheduled}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-2" data-testid="card-stat-in-progress-mobile">
+            <CardContent className="p-4">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-3 shadow-md">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+              <p className="text-xs text-muted-foreground mb-1">In Progress</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent" data-testid="stat-in-progress-mobile">
+                {counts["in-progress"]}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-2" data-testid="card-stat-completed-mobile">
+            <CardContent className="p-4">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center mb-3 shadow-md">
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </div>
+              <p className="text-xs text-muted-foreground mb-1">Completed</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent" data-testid="stat-completed-mobile">
+                {counts.completed}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filter Buttons */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <Button
+            variant={statusFilter === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("all")}
+            className={cn(
+              "rounded-full whitespace-nowrap",
+              statusFilter === "all" && "bg-gradient-to-r from-purple-600 to-blue-600"
+            )}
+            data-testid="filter-all-mobile"
+          >
+            All ({counts.all})
+          </Button>
+          <Button
+            variant={statusFilter === "pending" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("pending")}
+            className={cn(
+              "rounded-full whitespace-nowrap",
+              statusFilter === "pending" && "bg-gradient-to-r from-orange-600 to-red-600"
+            )}
+            data-testid="filter-pending-mobile"
+          >
+            Pending ({counts.pending})
+          </Button>
+          <Button
+            variant={statusFilter === "scheduled" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("scheduled")}
+            className={cn(
+              "rounded-full whitespace-nowrap",
+              statusFilter === "scheduled" && "bg-gradient-to-r from-blue-600 to-cyan-600"
+            )}
+            data-testid="filter-scheduled-mobile"
+          >
+            Scheduled ({counts.scheduled})
+          </Button>
+          <Button
+            variant={statusFilter === "in-progress" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("in-progress")}
+            className={cn(
+              "rounded-full whitespace-nowrap",
+              statusFilter === "in-progress" && "bg-gradient-to-r from-purple-600 to-pink-600"
+            )}
+            data-testid="filter-in-progress-mobile"
+          >
+            In Progress ({counts["in-progress"]})
+          </Button>
+          <Button
+            variant={statusFilter === "completed" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("completed")}
+            className={cn(
+              "rounded-full whitespace-nowrap",
+              statusFilter === "completed" && "bg-gradient-to-r from-emerald-600 to-green-600"
+            )}
+            data-testid="filter-completed-mobile"
+          >
+            Completed ({counts.completed})
+          </Button>
+        </div>
+
+        {/* Tasks List */}
+        {filteredTasks.length === 0 ? (
+          <div className="text-center py-12 px-4">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+              <Wrench className="w-8 h-8 text-purple-600" />
+            </div>
+            <h3 className="text-base font-semibold mb-2" data-testid="text-no-tasks-mobile">
+              {statusFilter === "all"
+                ? "No tasks scheduled"
+                : `No ${statusFilter} tasks`}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {statusFilter === "all"
+                ? "Schedule your first task"
+                : `No ${statusFilter} tasks at the moment`}
+            </p>
+            <Button 
+              className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600"
+              data-testid="button-empty-add-mobile"
+            >
+              <Plus className="w-4 h-4" />
+              Schedule Task
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredTasks.map((task) => {
+              const statusConfig = STATUS_CONFIG[task.status as keyof typeof STATUS_CONFIG];
+              const StatusIcon = statusConfig.icon;
+
+              return (
+                <Card 
+                  key={task.id} 
+                  className="overflow-hidden border-2"
+                  data-testid={`card-task-${task.id}-mobile`}
+                >
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                        <Wrench className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-base mb-2" data-testid={`text-task-name-${task.id}-mobile`}>
+                          {task.task}
+                        </h3>
+                        <Badge
+                          variant="outline"
+                          className={cn("flex items-center gap-1 font-medium w-fit", statusConfig.color)}
+                          data-testid={`badge-status-${task.id}-mobile`}
+                        >
+                          <StatusIcon className="w-3 h-3" />
+                          {statusConfig.label}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <User className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate" data-testid={`text-assigned-${task.id}-mobile`}>{task.assigned}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                        <span data-testid={`text-date-${task.id}-mobile`}>{task.date}</span>
+                      </div>
+                    </div>
+
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-full"
+                      data-testid={`button-edit-${task.id}-mobile`}
+                    >
+                      Edit Task
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </MobileLayout>
   );
 }

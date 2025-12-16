@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DesktopLayout from "@/components/layout/DesktopLayout";
+import MobileLayout from "@/components/layout/MobileLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +82,19 @@ const NOTIFICATIONS: Notification[] = [
 ];
 
 export default function Notifications() {
+  return (
+    <>
+      <div className="hidden lg:block">
+        <NotificationsDesktop />
+      </div>
+      <div className="lg:hidden">
+        <NotificationsMobile />
+      </div>
+    </>
+  );
+}
+
+function NotificationsDesktop() {
   const [filter, setFilter] = useState<string>("all");
   const [notifications, setNotifications] = useState<Notification[]>(NOTIFICATIONS);
 
@@ -333,5 +347,247 @@ export default function Notifications() {
         )}
       </div>
     </DesktopLayout>
+  );
+}
+
+function NotificationsMobile() {
+  const [filter, setFilter] = useState<string>("all");
+  const [notifications, setNotifications] = useState<Notification[]>(NOTIFICATIONS);
+
+  const filteredNotifications = notifications.filter((notif) => {
+    if (filter === "all") return true;
+    if (filter === "unread") return !notif.isRead;
+    if (filter === "read") return notif.isRead;
+    return true;
+  });
+
+  const getStatusCounts = () => {
+    return {
+      all: notifications.length,
+      unread: notifications.filter((n) => !n.isRead).length,
+      read: notifications.filter((n) => n.isRead).length,
+    };
+  };
+
+  const markAsRead = (id: number) => {
+    setNotifications(notifications.map(n => 
+      n.id === id ? { ...n, isRead: true } : n
+    ));
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+  };
+
+  const counts = getStatusCounts();
+
+  return (
+    <MobileLayout 
+      title="Notifications"
+      action={
+        <Button 
+          size="sm"
+          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white h-9"
+          onClick={markAllAsRead}
+          disabled={counts.unread === 0}
+          data-testid="button-mark-all-read-mobile"
+        >
+          <CheckCheck className="w-4 h-4 mr-1" />
+          Mark All
+        </Button>
+      }
+    >
+      <div className="space-y-4 pb-20">
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-stat-all-mobile">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-3 relative">
+              <div className="flex flex-col items-center justify-center text-center space-y-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg">
+                  <Bell className="w-5 h-5 text-white" />
+                </div>
+                <div className="w-full">
+                  <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Total</p>
+                  <p className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent" data-testid="stat-all-mobile">
+                    {counts.all}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-stat-unread-mobile">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-3 relative">
+              <div className="flex flex-col items-center justify-center text-center space-y-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg">
+                  <Mail className="w-5 h-5 text-white" />
+                </div>
+                <div className="w-full">
+                  <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Unread</p>
+                  <p className="text-lg font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent" data-testid="stat-unread-mobile">
+                    {counts.unread}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200 overflow-hidden relative" data-testid="card-stat-read-mobile">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-3 relative">
+              <div className="flex flex-col items-center justify-center text-center space-y-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg">
+                  <MailOpen className="w-5 h-5 text-white" />
+                </div>
+                <div className="w-full">
+                  <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Read</p>
+                  <p className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent" data-testid="stat-read-mobile">
+                    {counts.read}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <Button
+            variant={filter === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilter("all")}
+            className={cn(
+              "rounded-full px-3 h-8 text-xs flex-shrink-0",
+              filter === "all" && "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            )}
+            data-testid="filter-all-mobile"
+          >
+            All ({counts.all})
+          </Button>
+          <Button
+            variant={filter === "unread" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilter("unread")}
+            className={cn(
+              "rounded-full px-3 h-8 text-xs flex-shrink-0",
+              filter === "unread" && "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+            )}
+            data-testid="filter-unread-mobile"
+          >
+            Unread ({counts.unread})
+          </Button>
+          <Button
+            variant={filter === "read" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilter("read")}
+            className={cn(
+              "rounded-full px-3 h-8 text-xs flex-shrink-0",
+              filter === "read" && "bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
+            )}
+            data-testid="filter-read-mobile"
+          >
+            Read ({counts.read})
+          </Button>
+        </div>
+
+        {filteredNotifications.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+              <Bell className="w-8 h-8 text-purple-600" />
+            </div>
+            <h3 className="text-base font-semibold mb-2" data-testid="text-no-notifications-mobile">
+              {filter === "all"
+                ? "No notifications yet"
+                : `No ${filter} notifications`}
+            </h3>
+            <p className="text-xs text-muted-foreground px-4">
+              {filter === "all"
+                ? "You're all caught up! New notifications will appear here"
+                : `You don't have any ${filter} notifications at the moment`}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredNotifications.map((notif) => {
+              const Icon = notif.icon;
+
+              return (
+                <Card
+                  key={notif.id}
+                  className={cn(
+                    "group active:scale-[0.98] transition-all duration-200 border-2 overflow-hidden relative",
+                    notif.isRead 
+                      ? "border-transparent" 
+                      : "border-purple-200 bg-purple-50/30"
+                  )}
+                  data-testid={`card-notification-${notif.id}-mobile`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-active:opacity-100 transition-opacity" />
+                  <CardContent className="p-4 relative">
+                    <div className="flex gap-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-lg shrink-0 flex items-center justify-center shadow-md",
+                        notif.isRead 
+                          ? "bg-gradient-to-br from-gray-400 to-gray-500" 
+                          : "bg-gradient-to-br from-purple-500 to-blue-600"
+                      )}>
+                        <Icon className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1 space-y-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <h4 className="font-semibold text-xs truncate" data-testid={`text-title-${notif.id}-mobile`}>
+                              {notif.title}
+                            </h4>
+                            {!notif.isRead && (
+                              <Badge 
+                                variant="outline" 
+                                className="bg-orange-100 text-orange-700 border-orange-200 text-[9px] px-1 py-0 flex-shrink-0"
+                                data-testid={`badge-unread-${notif.id}-mobile`}
+                              >
+                                New
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="text-[9px] text-muted-foreground flex-shrink-0" data-testid={`text-time-${notif.id}-mobile`}>
+                            {notif.time}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed" data-testid={`text-message-${notif.id}-mobile`}>
+                          {notif.msg}
+                        </p>
+                        <div className="flex items-center gap-1 pt-1">
+                          {!notif.isRead && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-[10px] px-2"
+                              onClick={() => markAsRead(notif.id)}
+                              data-testid={`button-mark-read-${notif.id}-mobile`}
+                            >
+                              <CheckCheck className="w-3 h-3 mr-0.5" />
+                              Mark read
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-[10px] px-2 text-muted-foreground hover:text-destructive"
+                            data-testid={`button-delete-${notif.id}-mobile`}
+                          >
+                            <Trash2 className="w-3 h-3 mr-0.5" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </MobileLayout>
   );
 }

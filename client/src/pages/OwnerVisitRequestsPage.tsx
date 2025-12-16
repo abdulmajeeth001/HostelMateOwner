@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DesktopLayout from "@/components/layout/DesktopLayout";
+import MobileLayout from "@/components/layout/MobileLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +101,19 @@ const TIME_SLOTS = [
 ];
 
 export default function OwnerVisitRequestsPage() {
+  return (
+    <>
+      <div className="hidden lg:block">
+        <OwnerVisitRequestsDesktop />
+      </div>
+      <div className="lg:hidden">
+        <OwnerVisitRequestsMobile />
+      </div>
+    </>
+  );
+}
+
+function OwnerVisitRequestsDesktop() {
   const queryClient = useQueryClient();
   const { pg, isLoading: pgLoading } = usePG();
   
@@ -711,5 +725,465 @@ export default function OwnerVisitRequestsPage() {
           </DialogContent>
         </Dialog>
     </DesktopLayout>
+  );
+}
+
+function OwnerVisitRequestsMobile() {
+  const queryClient = useQueryClient();
+  const { pg, isLoading: pgLoading } = usePG();
+  
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"recent" | "date">("recent");
+  const [rescheduleModal, setRescheduleModal] = useState<{
+    open: boolean;
+    request?: VisitRequest;
+    newDate: string;
+    newTime: string;
+    ownerNotes: string;
+  }>({
+    open: false,
+    newDate: "",
+    newTime: "",
+    ownerNotes: "",
+  });
+
+  const { data: visitRequests = [], isLoading, error } = useQuery<VisitRequest[]>({
+    queryKey: ["/api/visit-requests"],
+    queryFn: async () => {
+      const res = await fetch("/api/visit-requests", {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to fetch visit requests");
+      }
+      return res.json();
+    },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/visit-requests/${id}/approve`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to approve visit request");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/visit-requests"] });
+      toast.success("Visit request approved successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const rescheduleMutation = useMutation({
+    mutationFn: async ({ id, newDate, newTime }: { id: number; newDate: string; newTime: string }) => {
+      const res = await fetch(`/api/visit-requests/${id}/reschedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ newDate, newTime }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to reschedule visit request");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/visit-requests"] });
+      setRescheduleModal({ open: false, newDate: "", newTime: "", ownerNotes: "" });
+      toast.success("Visit rescheduled successfully. Tenant will be notified.");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleApprove = (id: number) => {
+    approveMutation.mutate(id);
+  };
+
+  const handleReschedule = () => {
+    if (!rescheduleModal.request || !rescheduleModal.newDate || !rescheduleModal.newTime) {
+      toast.error("Please select both date and time");
+      return;
+    }
+
+    rescheduleMutation.mutate({
+      id: rescheduleModal.request.id,
+      newDate: rescheduleModal.newDate,
+      newTime: rescheduleModal.newTime,
+    });
+  };
+
+  const openRescheduleModal = (request: VisitRequest) => {
+    setRescheduleModal({
+      open: true,
+      request,
+      newDate: "",
+      newTime: "",
+      ownerNotes: "",
+    });
+  };
+
+  const filteredRequests = visitRequests
+    .filter((req) => {
+      if (statusFilter === "all") return true;
+      return req.status === statusFilter;
+    })
+    .sort((a, b) => {
+      if (sortBy === "recent") {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      } else {
+        const dateA = new Date(a.requestedDate).getTime();
+        const dateB = new Date(b.requestedDate).getTime();
+        return dateB - dateA;
+      }
+    });
+
+  const getStatusCounts = () => {
+    return {
+      all: visitRequests.length,
+      pending: visitRequests.filter((r) => r.status === "pending").length,
+      approved: visitRequests.filter((r) => r.status === "approved").length,
+      completed: visitRequests.filter((r) => r.status === "completed").length,
+    };
+  };
+
+  const counts = getStatusCounts();
+
+  if (pgLoading) {
+    return (
+      <MobileLayout title="Visit Requests">
+        <div className="flex items-center justify-center h-64">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center animate-pulse">
+            <CalendarClock className="w-6 h-6 text-purple-600" />
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (!pg) {
+    return (
+      <MobileLayout title="Visit Requests">
+        <div className="text-center py-12">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+            <Building2 className="w-6 h-6 text-purple-600" />
+          </div>
+          <p className="text-sm text-muted-foreground" data-testid="text-no-pg-mobile">No PG Selected</p>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <MobileLayout title="Visit Requests">
+        <div className="text-center py-12">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-red-100 to-orange-100 flex items-center justify-center">
+            <AlertCircle className="w-6 h-6 text-red-600" />
+          </div>
+          <p className="text-sm text-muted-foreground" data-testid="text-error-mobile">
+            {error.message === "Owner access required" ? "Owner Access Required" : "Failed to load"}
+          </p>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  return (
+    <MobileLayout title="Visit Requests">
+      <div className="space-y-4">
+        {/* Stats Cards - 2 column grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="border-2" data-testid="card-stat-total-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Total</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">{counts.all}</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2" data-testid="card-stat-pending-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                  <AlertCircle className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Pending</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">{counts.pending}</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2" data-testid="card-stat-approved-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+                  <CalendarCheck className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Approved</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">{counts.approved}</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2" data-testid="card-stat-completed-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Completed</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-600 bg-clip-text text-transparent">{counts.completed}</h3>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters - Scrollable on mobile */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <Button
+            variant={statusFilter === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("all")}
+            className="rounded-full flex-shrink-0"
+            data-testid="filter-all-mobile"
+          >
+            All ({counts.all})
+          </Button>
+          <Button
+            variant={statusFilter === "pending" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("pending")}
+            className="rounded-full flex-shrink-0"
+            data-testid="filter-pending-mobile"
+          >
+            Pending ({counts.pending})
+          </Button>
+          <Button
+            variant={statusFilter === "approved" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("approved")}
+            className="rounded-full flex-shrink-0"
+            data-testid="filter-approved-mobile"
+          >
+            Approved ({counts.approved})
+          </Button>
+          <Button
+            variant={statusFilter === "completed" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("completed")}
+            className="rounded-full flex-shrink-0"
+            data-testid="filter-completed-mobile"
+          >
+            Completed ({counts.completed})
+          </Button>
+        </div>
+
+        {/* Visit Requests List - Stacked cards */}
+        <div className="space-y-3">
+          {isLoading ? (
+            <Card className="text-center py-8">
+              <CardContent>
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center animate-pulse">
+                  <CalendarClock className="w-6 h-6 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+          ) : filteredRequests.length === 0 ? (
+            <Card className="text-center py-8">
+              <CardContent>
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+                  <CalendarClock className="w-6 h-6 text-purple-600" />
+                </div>
+                <p className="text-sm text-muted-foreground" data-testid="text-no-requests-mobile">
+                  {statusFilter === "all" ? "No visit requests yet" : `No ${statusFilter} requests`}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredRequests.map((request) => {
+              const statusConfig = STATUS_CONFIG[request.status];
+              const StatusIcon = statusConfig.icon;
+              const visitDate = request.confirmedDate || request.requestedDate;
+              const visitTime = request.confirmedTime || request.requestedTime;
+
+              return (
+                <Card 
+                  key={request.id}
+                  className="border-2 hover:border-purple-200 transition-colors"
+                  data-testid={`card-visit-mobile-${request.id}`}
+                >
+                  <CardContent className="p-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm" data-testid={`text-tenant-name-mobile-${request.id}`}>
+                            {request.tenantName || "Tenant"}
+                          </h4>
+                          {request.roomNumber && (
+                            <p className="text-xs text-muted-foreground">Room {request.roomNumber}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn("flex items-center gap-1 text-xs", statusConfig.color)}
+                        data-testid={`badge-status-mobile-${request.id}`}
+                      >
+                        <StatusIcon className="w-3 h-3" />
+                        {statusConfig.label}
+                      </Badge>
+                    </div>
+
+                    {/* Visit Date & Time */}
+                    <div className="space-y-2 mb-3">
+                      <div className="p-2 rounded-lg bg-blue-50 border border-blue-200">
+                        <p className="text-xs text-blue-700 mb-1">Requested</p>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3 h-3 text-blue-600" />
+                          <span className="text-sm font-semibold text-blue-900" data-testid={`text-requested-date-mobile-${request.id}`}>
+                            {format(new Date(request.requestedDate), "MMM dd, yyyy")}
+                          </span>
+                          <Clock className="w-3 h-3 text-blue-600 ml-2" />
+                          <span className="text-sm text-blue-700">{request.requestedTime}</span>
+                        </div>
+                      </div>
+
+                      {(request.confirmedDate || request.rescheduledDate) && (
+                        <div className="p-2 rounded-lg bg-green-50 border border-green-200">
+                          <p className="text-xs text-green-700 mb-1">
+                            {request.status === "rescheduled" ? "Rescheduled" : "Confirmed"}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-3 h-3 text-green-600" />
+                            <span className="text-sm font-semibold text-green-900">
+                              {format(new Date(request.confirmedDate || request.rescheduledDate!), "MMM dd, yyyy")}
+                            </span>
+                            <Clock className="w-3 h-3 text-green-600 ml-2" />
+                            <span className="text-sm text-green-700">{request.confirmedTime || request.rescheduledTime}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Notes */}
+                    {request.notes && (
+                      <div className="mb-3 p-2 rounded-lg bg-gray-50 border border-gray-200">
+                        <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                        <p className="text-sm">{request.notes}</p>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    {request.status === "pending" && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApprove(request.id)}
+                          disabled={approveMutation.isPending}
+                          className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
+                          data-testid={`button-approve-mobile-${request.id}`}
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openRescheduleModal(request)}
+                          className="flex-1"
+                          data-testid={`button-reschedule-mobile-${request.id}`}
+                        >
+                          <Clock className="w-4 h-4 mr-1" />
+                          Reschedule
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Reschedule Modal */}
+      <Dialog open={rescheduleModal.open} onOpenChange={(open) => !open && setRescheduleModal({ open: false, newDate: "", newTime: "", ownerNotes: "" })}>
+        <DialogContent data-testid="dialog-reschedule-mobile">
+          <DialogHeader>
+            <DialogTitle>Reschedule Visit</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newDate-mobile">New Date</Label>
+              <Input
+                id="newDate-mobile"
+                type="date"
+                value={rescheduleModal.newDate}
+                onChange={(e) =>
+                  setRescheduleModal({ ...rescheduleModal, newDate: e.target.value })
+                }
+                min={new Date().toISOString().split("T")[0]}
+                data-testid="input-reschedule-date-mobile"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newTime-mobile">New Time</Label>
+              <Select
+                value={rescheduleModal.newTime}
+                onValueChange={(value) =>
+                  setRescheduleModal({ ...rescheduleModal, newTime: value })
+                }
+              >
+                <SelectTrigger id="newTime-mobile" data-testid="select-reschedule-time-mobile">
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIME_SLOTS.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRescheduleModal({ open: false, newDate: "", newTime: "", ownerNotes: "" })}
+              data-testid="button-cancel-reschedule-mobile"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReschedule}
+              disabled={rescheduleMutation.isPending}
+              data-testid="button-confirm-reschedule-mobile"
+            >
+              {rescheduleMutation.isPending ? "Sending..." : "Reschedule"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </MobileLayout>
   );
 }

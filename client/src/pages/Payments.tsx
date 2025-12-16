@@ -1,4 +1,5 @@
 import DesktopLayout from "@/components/layout/DesktopLayout";
+import MobileLayout from "@/components/layout/MobileLayout";
 import { ArrowUpRight, ArrowDownLeft, Calendar, Filter, Plus, Wallet, TrendingUp, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -34,6 +35,19 @@ interface Tenant {
 }
 
 export default function Payments() {
+  return (
+    <>
+      <div className="hidden lg:block">
+        <PaymentsDesktop />
+      </div>
+      <div className="lg:hidden">
+        <PaymentsMobile />
+      </div>
+    </>
+  );
+}
+
+function PaymentsDesktop() {
   const { pg } = usePG();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -422,5 +436,376 @@ export default function Payments() {
         </CardContent>
       </Card>
     </DesktopLayout>
+  );
+}
+
+function PaymentsMobile() {
+  const { pg } = usePG();
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formData, setFormData] = useState({ tenantId: "", amount: "", dueDate: "" });
+
+  useEffect(() => {
+    fetchData();
+  }, [pg]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [paymentsRes, tenantsRes] = await Promise.all([
+        fetch("/api/payments", { credentials: "include" }),
+        fetch("/api/tenants", { credentials: "include" }),
+      ]);
+      
+      if (paymentsRes.ok) {
+        const data = await paymentsRes.json();
+        setPayments(data);
+      }
+      
+      if (tenantsRes.ok) {
+        const data = await tenantsRes.json();
+        setTenants(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+      toast.error("Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreatePayment = async () => {
+    if (!formData.tenantId || !formData.amount || !formData.dueDate) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          tenantId: parseInt(formData.tenantId),
+          amount: parseFloat(formData.amount),
+          dueDate: new Date(formData.dueDate).toISOString(),
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("Payment request created");
+        setDialogOpen(false);
+        setFormData({ tenantId: "", amount: "", dueDate: "" });
+        fetchData();
+      } else {
+        toast.error("Failed to create payment request");
+      }
+    } catch (error) {
+      toast.error("Failed to create payment request");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleAutoGeneratePayments = async () => {
+    if (!pg?.rentPaymentDate) {
+      toast.error("Please set rent payment date in Settings first");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const res = await fetch("/api/payments/auto-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message);
+        fetchData();
+      } else {
+        toast.error("Failed to generate payments");
+      }
+    } catch (error) {
+      toast.error("Failed to generate payments");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const totalBalance = payments.reduce((sum, p) => sum + p.amount, 0);
+  const income = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
+  const expense = payments.filter(p => p.status === "pending").reduce((sum, p) => sum + p.amount, 0);
+
+  const getFilteredTransactions = () => {
+    return payments.map(payment => ({
+      id: payment.id,
+      name: payment.tenant?.name || `Tenant #${payment.tenantId}`,
+      type: payment.status === "paid" ? "received" : "pending",
+      amount: `₹${payment.amount.toLocaleString()}`,
+      date: format(new Date(payment.dueDate), "MMM dd"),
+      status: payment.status === "paid" ? "Success" : "Pending",
+    })).filter(tx => {
+      if (filter === "all") return true;
+      if (filter === "income") return tx.type === "received";
+      if (filter === "expense") return tx.type === "pending";
+      return true;
+    });
+  };
+
+  const transactions = getFilteredTransactions();
+
+  if (loading) {
+    return (
+      <MobileLayout title="Payments">
+        <div className="flex items-center justify-center h-64">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center animate-pulse">
+            <Wallet className="w-6 h-6 text-purple-600" />
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  return (
+    <MobileLayout 
+      title="Payments"
+      action={
+        <Button 
+          size="sm"
+          onClick={() => setDialogOpen(true)}
+          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+          data-testid="button-create-payment-mobile"
+        >
+          <Plus className="w-4 h-4" />
+        </Button>
+      }
+    >
+      <div className="space-y-4">
+        {/* Stats Cards - 2 column grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="border-2" data-testid="card-stat-revenue-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Revenue</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-600 bg-clip-text text-transparent">₹{totalBalance.toLocaleString()}</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2" data-testid="card-stat-received-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+                  <ArrowDownLeft className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Received</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">₹{income.toLocaleString()}</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2" data-testid="card-stat-pending-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                  <ArrowUpRight className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Pending</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">₹{expense.toLocaleString()}</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2" data-testid="card-stat-transactions-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Total</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">{payments.length}</h3>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Auto Generate Button */}
+        <Button 
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={handleAutoGeneratePayments}
+          disabled={creating || !pg?.rentPaymentDate}
+          data-testid="button-auto-generate-mobile"
+        >
+          Auto Generate Payments
+        </Button>
+
+        {/* Filters - Scrollable on mobile */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <Button 
+            variant={filter === "all" ? "default" : "outline"} 
+            size="sm" 
+            className="rounded-full flex-shrink-0"
+            onClick={() => setFilter("all")}
+            data-testid="button-filter-all-mobile"
+          >
+            All
+          </Button>
+          <Button 
+            variant={filter === "income" ? "default" : "outline"} 
+            size="sm" 
+            className="rounded-full flex-shrink-0"
+            onClick={() => setFilter("income")}
+            data-testid="button-filter-income-mobile"
+          >
+            Received
+          </Button>
+          <Button 
+            variant={filter === "expense" ? "default" : "outline"} 
+            size="sm" 
+            className="rounded-full flex-shrink-0"
+            onClick={() => setFilter("expense")}
+            data-testid="button-filter-pending-mobile"
+          >
+            Pending
+          </Button>
+        </div>
+
+        {/* Payments List - Stacked cards */}
+        <div className="space-y-3">
+          {transactions.length === 0 ? (
+            <Card className="text-center py-8">
+              <CardContent>
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+                  <Wallet className="w-6 h-6 text-purple-600" />
+                </div>
+                <p className="text-sm text-muted-foreground" data-testid="text-no-payments-mobile">
+                  {filter !== "all" 
+                    ? "No payments match your filter" 
+                    : "No payments yet"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            transactions.map((tx) => (
+              <Card 
+                key={tx.id}
+                className="border-2 hover:border-purple-200 transition-colors"
+                data-testid={`payment-row-mobile-${tx.id}`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
+                      tx.type === 'received' 
+                        ? 'bg-gradient-to-br from-emerald-500 to-green-600' 
+                        : 'bg-gradient-to-br from-orange-500 to-red-600'
+                    )}>
+                      {tx.type === 'received' ? (
+                        <ArrowDownLeft className="w-6 h-6 text-white" />
+                      ) : (
+                        <ArrowUpRight className="w-6 h-6 text-white" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-sm truncate" data-testid={`text-name-mobile-${tx.id}`}>{tx.name}</h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">{tx.date}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={cn(
+                        "font-bold text-lg",
+                        tx.type === 'received' 
+                          ? 'bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent' 
+                          : 'text-foreground'
+                      )} data-testid={`text-amount-mobile-${tx.id}`}>
+                        {tx.type === 'received' ? '+' : ''}{tx.amount}
+                      </p>
+                      <span className={cn(
+                        "text-xs px-2 py-0.5 rounded-full font-bold inline-block",
+                        tx.status === "Success" 
+                          ? "bg-gradient-to-r from-emerald-100 to-green-100 text-green-700"
+                          : "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
+                      )} data-testid={`text-status-mobile-${tx.id}`}>
+                        {tx.status}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Create Payment Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Payment Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="tenant-mobile">Tenant</Label>
+              <Select value={formData.tenantId} onValueChange={(val) => setFormData({...formData, tenantId: val})}>
+                <SelectTrigger id="tenant-mobile" data-testid="select-tenant-mobile">
+                  <SelectValue placeholder="Select tenant" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tenants.map(t => (
+                    <SelectItem key={t.id} value={t.id.toString()}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="amount-mobile">Amount (₹)</Label>
+              <Input 
+                id="amount-mobile" 
+                type="number" 
+                placeholder="0"
+                value={formData.amount}
+                onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                data-testid="input-amount-mobile"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dueDate-mobile">Due Date</Label>
+              <Input 
+                id="dueDate-mobile" 
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                data-testid="input-due-date-mobile"
+              />
+            </div>
+            <div className="flex gap-2 justify-end pt-4">
+              <Button variant="outline" onClick={() => setDialogOpen(false)} data-testid="button-cancel-mobile">
+                Cancel
+              </Button>
+              <Button onClick={handleCreatePayment} disabled={creating} data-testid="button-submit-mobile">
+                {creating ? "Creating..." : "Create"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </MobileLayout>
   );
 }

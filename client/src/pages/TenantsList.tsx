@@ -1,4 +1,5 @@
 import DesktopLayout from "@/components/layout/DesktopLayout";
+import MobileLayout from "@/components/layout/MobileLayout";
 import { Search, UserPlus, Edit2, Trash2, Eye, Users, Phone, MapPin, IndianRupee, MoreVertical, Upload, UserCheck, UserX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function TenantsList() {
+  return (
+    <>
+      <div className="hidden lg:block">
+        <TenantsListDesktop />
+      </div>
+      <div className="lg:hidden">
+        <TenantsListMobile />
+      </div>
+    </>
+  );
+}
+
+function TenantsListDesktop() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
@@ -387,5 +401,327 @@ export default function TenantsList() {
         }}
       />
     </DesktopLayout>
+  );
+}
+
+function TenantsListMobile() {
+  const [, navigate] = useLocation();
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
+  const [deletingTenantId, setDeletingTenantId] = useState<number | null>(null);
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: tenants = [], isLoading } = useQuery({
+    queryKey: ["tenants"],
+    queryFn: async () => {
+      const res = await fetch("/api/tenants", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch tenants");
+      return res.json();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/tenants/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to delete tenant");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      setDeletingTenantId(null);
+    },
+  });
+
+  const filteredTenants = useMemo(() => {
+    return tenants.filter((t: any) => {
+      const matchSearch = t.name.toLowerCase().includes(search.toLowerCase()) || 
+                         t.roomNumber.includes(search) ||
+                         t.phone.includes(search);
+      const matchFilter = filter === "all" || 
+                         (filter === "active" && t.status === "active") ||
+                         (filter === "inactive" && t.status === "inactive");
+      return matchSearch && matchFilter;
+    }).map((t: any) => ({
+      id: t.id,
+      name: t.name,
+      room: t.roomNumber,
+      rent: parseFloat(t.monthlyRent),
+      phone: t.phone,
+      status: t.status || "active",
+      avatar: t.tenantImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name)}&background=random`
+    }));
+  }, [tenants, search, filter]);
+
+  const stats = {
+    total: tenants.length,
+    active: tenants.filter((t: any) => t.status === "active").length,
+    inactive: tenants.filter((t: any) => t.status === "inactive").length,
+  };
+
+  if (isLoading) {
+    return (
+      <MobileLayout title="Tenants">
+        <div className="flex items-center justify-center h-64">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center animate-pulse">
+            <Users className="w-6 h-6 text-purple-600" />
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  return (
+    <MobileLayout 
+      title="Tenants"
+      action={
+        <div className="flex gap-2">
+          <Button 
+            size="sm"
+            onClick={() => setBulkUploadOpen(true)}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+            data-testid="button-bulk-upload-tenant-mobile"
+          >
+            <Upload className="w-4 h-4" />
+          </Button>
+          <Button 
+            size="sm"
+            onClick={() => navigate("/tenants/add")}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+            data-testid="button-add-tenant-mobile"
+          >
+            <UserPlus className="w-4 h-4" />
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* Stats Cards - 2 column grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="border-2" data-testid="card-stat-total-tenants-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Total</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-600 bg-clip-text text-transparent">{stats.total}</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2" data-testid="card-stat-active-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+                  <UserCheck className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Active</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">{stats.active}</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 col-span-2" data-testid="card-stat-inactive-mobile">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                  <UserX className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold">Inactive</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">{stats.inactive}</h3>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search tenants..." 
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            data-testid="input-search-tenant-mobile"
+          />
+        </div>
+
+        {/* Filters - Scrollable on mobile */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <Button
+            onClick={() => setFilter("all")}
+            variant={filter === "all" ? "default" : "outline"}
+            size="sm"
+            className="rounded-full flex-shrink-0"
+            data-testid="filter-all-mobile"
+          >
+            All ({stats.total})
+          </Button>
+          <Button
+            onClick={() => setFilter("active")}
+            variant={filter === "active" ? "default" : "outline"}
+            size="sm"
+            className="rounded-full flex-shrink-0"
+            data-testid="filter-active-mobile"
+          >
+            Active ({stats.active})
+          </Button>
+          <Button
+            onClick={() => setFilter("inactive")}
+            variant={filter === "inactive" ? "default" : "outline"}
+            size="sm"
+            className="rounded-full flex-shrink-0"
+            data-testid="filter-inactive-mobile"
+          >
+            Inactive ({stats.inactive})
+          </Button>
+        </div>
+
+        {/* Tenants List - Stacked cards */}
+        <div className="space-y-3">
+          {filteredTenants.length === 0 ? (
+            <Card className="text-center py-8">
+              <CardContent>
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-purple-600" />
+                </div>
+                <p className="text-sm text-muted-foreground" data-testid="text-no-tenants-mobile">
+                  {tenants.length === 0 ? "No tenants yet" : "No tenants found"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredTenants.map((tenant: { id: number; name: string; room: string; rent: number; phone: string; status: string; avatar: string }) => (
+              <Card 
+                key={tenant.id}
+                className="border-2 hover:border-purple-200 transition-colors"
+                data-testid={`card-tenant-mobile-${tenant.id}`}
+              >
+                <CardContent className="p-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={tenant.avatar} 
+                        alt={tenant.name} 
+                        className="w-12 h-12 rounded-xl object-cover border-2 border-purple-100 flex-shrink-0"
+                      />
+                      <div>
+                        <h4 className="text-lg font-bold" data-testid={`text-tenant-name-mobile-${tenant.id}`}>{tenant.name}</h4>
+                        <span className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold",
+                          tenant.status === "active"
+                            ? "bg-gradient-to-r from-emerald-100 to-green-100 text-green-700"
+                            : "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
+                        )}>
+                          {tenant.status === "active" ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          data-testid={`button-more-options-mobile-${tenant.id}`}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={() => navigate(`/tenants/view/${tenant.id}`)}
+                          data-testid={`button-view-tenant-mobile-${tenant.id}`}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => navigate(`/tenants/edit/${tenant.id}`)}
+                          data-testid={`button-edit-tenant-mobile-${tenant.id}`}
+                        >
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:bg-red-50 focus:text-red-600"
+                          onClick={() => setDeletingTenantId(tenant.id)}
+                          data-testid={`button-delete-tenant-mobile-${tenant.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Details */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 border border-blue-200">
+                      <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-blue-700">Room Number</p>
+                        <p className="font-bold text-sm text-blue-900" data-testid={`text-room-number-mobile-${tenant.id}`}>{tenant.room}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200">
+                      <IndianRupee className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-green-700">Monthly Rent</p>
+                        <p className="font-bold text-sm text-green-900" data-testid={`text-rent-mobile-${tenant.id}`}>₹{tenant.rent.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-50 border border-purple-200">
+                      <Phone className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-purple-700">Phone</p>
+                        <p className="font-bold text-sm text-purple-900 truncate" data-testid={`text-phone-mobile-${tenant.id}`}>{tenant.phone}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingTenantId} onOpenChange={(open) => !open && setDeletingTenantId(null)}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Delete Tenant</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this tenant? This action cannot be undone.
+          </AlertDialogDescription>
+          <div className="flex gap-3 justify-end">
+            <AlertDialogCancel data-testid="button-cancel-delete-mobile">Cancel</AlertDialogCancel>
+            <Button 
+              variant="destructive"
+              onClick={() => {
+                if (deletingTenantId) {
+                  deleteMutation.mutate(deletingTenantId);
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              data-testid="button-confirm-delete-mobile"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <TenantBulkUploadModal 
+        open={bulkUploadOpen} 
+        onOpenChange={setBulkUploadOpen}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["tenants"] });
+        }}
+      />
+    </MobileLayout>
   );
 }
