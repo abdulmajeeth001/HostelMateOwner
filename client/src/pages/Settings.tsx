@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LocationMapPicker from "@/components/LocationMapPicker";
 import ImageUploader from "@/components/ImageUploader";
-import { Bell, User, Building, Edit2, Wallet } from "lucide-react";
+import { Bell, User, Building, Edit2, Wallet, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 
 export default function Settings() {
   const [user, setUser] = useState<any>(null);
@@ -19,6 +20,7 @@ export default function Settings() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [pgSaveLoading, setPgSaveLoading] = useState(false);
   const [paymentSaveLoading, setPaymentSaveLoading] = useState(false);
+  const [autoGenerateLoading, setAutoGenerateLoading] = useState(false);
 
   const [profileForm, setProfileForm] = useState({ name: "", email: "", mobile: "" });
   const [pgForm, setPgForm] = useState({ pgName: "", pgAddress: "", pgLocation: "", latitude: "", longitude: "", imageUrl: "", totalRooms: 0, rentPaymentDate: null });
@@ -180,6 +182,55 @@ export default function Settings() {
       alert("Failed to update payment details");
     } finally {
       setPaymentSaveLoading(false);
+    }
+  };
+
+  const handleAutoGenerate = async () => {
+    if (!pg?.rentPaymentDate) {
+      toast({
+        title: "Error",
+        description: "Please set a rent payment date first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setAutoGenerateLoading(true);
+    try {
+      const res = await fetch("/api/payments/auto-generate", {
+        method: "POST",
+        credentials: 'include',
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast({
+          title: "Success!",
+          description: data.message
+        });
+        
+        // Refresh PG data to get updated lastPaymentGeneratedAt
+        const pgRes = await fetch("/api/pg", { credentials: 'include' });
+        if (pgRes.ok) {
+          const pgData = await pgRes.json();
+          setPg(pgData);
+        }
+      } else {
+        const errorData = await res.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to generate payments",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate payments",
+        variant: "destructive"
+      });
+    } finally {
+      setAutoGenerateLoading(false);
     }
   };
 
@@ -415,8 +466,40 @@ export default function Settings() {
                 className={!editingPg ? "bg-muted" : ""}
               />
               <p className="text-xs text-muted-foreground">
-                Tenants assigned to this PG will get automatic payment requests on this date each month
+                Payments will be auto-generated on day {pg?.rentPaymentDate || "—"} of each month
               </p>
+              
+              {!editingPg && pg?.rentPaymentDate && (
+                <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="font-semibold text-sm text-gray-900">Payment Generation</h4>
+                      {pg.lastPaymentGeneratedAt && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Last generated: {new Date(pg.lastPaymentGeneratedAt).toLocaleDateString()} at {new Date(pg.lastPaymentGeneratedAt).toLocaleTimeString()}
+                        </p>
+                      )}
+                      {!pg.lastPaymentGeneratedAt && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          No payments generated yet
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Next scheduled: Day {pg.rentPaymentDate} of next month
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleAutoGenerate}
+                    disabled={autoGenerateLoading}
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    data-testid="button-auto-generate"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    {autoGenerateLoading ? "Generating..." : "Auto Generate Now"}
+                  </Button>
+                </div>
+              )}
             </div>
             {editingPg && (
               <div className="flex gap-2">

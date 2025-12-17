@@ -42,6 +42,7 @@ import {
 import { db } from "./db";
 import { eq, and, desc, gte, sql, or, lte, isNull } from "drizzle-orm";
 import bcrypt from "bcrypt";
+import nodemailer from "nodemailer";
 
 export interface IStorage {
   // Users
@@ -75,7 +76,8 @@ export interface IStorage {
   updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined>;
   approvePayment(id: number, ownerId: number): Promise<Payment | undefined>;
   rejectPayment(id: number, ownerId: number, rejectionReason?: string): Promise<Payment | undefined>;
-  generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<Payment[]>;
+  checkPaymentExistsForMonth(tenantId: number, pgId: number, paymentMonth: string): Promise<boolean>;
+  generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<{ created: Payment[], skipped: number, notified: number, emailed: number }>;
   
   // Notifications
   getNotifications(userId: number, pgId?: number): Promise<Notification[]>;
@@ -470,61 +472,131 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<Payment[]> {
-    // Get PG details to check rent payment date
+  async checkPaymentExistsForMonth(tenantId: number, pgId: number, paymentMonth: string): Promise<boolean> {
+    const existingPayment = await db.select().from(payments)
+      .where(and(
+        eq(payments.tenantId, tenantId),
+        eq(payments.pgId, pgId),
+        eq(payments.paymentMonth, paymentMonth)
+      ))
+      .limit(1);
+    return existingPayment.length > 0;
+  }
+
+  async generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<{ created: Payment[], skipped: number, notified: number, emailed: number }> {
     const pg = await this.getPgById(pgId);
     if (!pg || !pg.rentPaymentDate) {
-      return [];
+      return { created: [], skipped: 0, notified: 0, emailed: 0 };
     }
 
-    // Get all active tenants in this PG
     const pgTenants = await db.select().from(tenants)
       .where(and(eq(tenants.pgId, pgId), eq(tenants.ownerId, ownerId), eq(tenants.status, "active")));
 
     const createdPayments: Payment[] = [];
+    let skippedCount = 0;
+    let notifiedCount = 0;
+    let emailedCount = 0;
+
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
+    const paymentMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
 
-    // Determine due date: set to rentPaymentDate of current month
+    // Determine due date
     let dueDate = new Date(currentYear, currentMonth, pg.rentPaymentDate);
-
-    // If due date has passed this month, schedule for next month
     if (dueDate < now) {
       dueDate = new Date(currentYear, currentMonth + 1, pg.rentPaymentDate);
     }
 
-    // Create payment request for each tenant if one doesn't already exist for this month
-    for (const tenant of pgTenants) {
-      // Check if payment already exists for this tenant this month
-      const existingPayment = await db.select().from(payments)
-        .where(and(
-          eq(payments.tenantId, tenant.id),
-          eq(payments.pgId, pgId),
-          eq(payments.type, "rent")
-        ))
-        .orderBy(desc(payments.createdAt))
-        .limit(1);
-
-      const lastPayment = existingPayment[0];
-      const lastPaymentMonth = lastPayment ? new Date(lastPayment.dueDate).getMonth() : -1;
-
-      // Only create if no payment exists for this month
-      if (lastPaymentMonth !== currentMonth) {
-        const payment = await this.createPayment({
-          tenantId: tenant.id,
-          ownerId: ownerId,
-          pgId: pgId,
-          amount: parseFloat(tenant.monthlyRent.toString()),
-          type: "rent",
-          status: "pending",
-          dueDate: dueDate
+    // Setup email transporter only if credentials are available
+    let transporter = null;
+    if (process.env.GMAIL_EMAIL && process.env.GMAIL_APP_PASSWORD) {
+      try {
+        transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.GMAIL_EMAIL,
+            pass: process.env.GMAIL_APP_PASSWORD
+          }
         });
-        createdPayments.push(payment);
+      } catch (error) {
+        console.error('Failed to create email transporter:', error);
       }
     }
 
-    return createdPayments;
+    for (const tenant of pgTenants) {
+      const paymentExists = await this.checkPaymentExistsForMonth(tenant.id, pgId, paymentMonth);
+      
+      if (paymentExists) {
+        skippedCount++;
+        continue;
+      }
+
+      // Create payment
+      const payment = await this.createPayment({
+        tenantId: tenant.id,
+        ownerId: ownerId,
+        pgId: pgId,
+        amount: tenant.monthlyRent.toString(),
+        type: "rent",
+        status: "pending",
+        dueDate: dueDate,
+        paymentMonth: paymentMonth,
+        generatedAt: now
+      });
+      createdPayments.push(payment);
+
+      // Create in-app notification if tenant has userId
+      if (tenant.userId) {
+        try {
+          await this.createNotification({
+            userId: tenant.userId,
+            title: "New Rent Payment Request",
+            message: `Your rent payment of ₹${tenant.monthlyRent} for ${new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long', year: 'numeric' })} is now due. Please pay by ${dueDate.toLocaleDateString()}.`,
+            type: "rent_reminder"
+          });
+          notifiedCount++;
+        } catch (error) {
+          console.error(`Failed to create notification for tenant ${tenant.id}:`, error);
+        }
+      }
+
+      // Send email if tenant has email and transporter is available
+      if (tenant.email && tenant.email.trim() && transporter) {
+        try {
+          await transporter.sendMail({
+            from: process.env.GMAIL_EMAIL,
+            to: tenant.email,
+            subject: `Rent Payment Due - ${pg.pgName}`,
+            html: `
+              <h2>Rent Payment Request</h2>
+              <p>Dear ${tenant.name},</p>
+              <p>Your monthly rent payment for <strong>${pg.pgName}</strong> is now due.</p>
+              <ul>
+                <li><strong>Amount:</strong> ₹${tenant.monthlyRent}</li>
+                <li><strong>Month:</strong> ${new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long', year: 'numeric' })}</li>
+                <li><strong>Due Date:</strong> ${dueDate.toLocaleDateString()}</li>
+              </ul>
+              <p>Please log in to your dashboard to make the payment.</p>
+              <p>Thank you!</p>
+            `
+          });
+          emailedCount++;
+        } catch (error) {
+          console.error(`Failed to send email to tenant ${tenant.id} (${tenant.email}):`, error);
+        }
+      }
+    }
+
+    // Update PG tracking fields
+    await db.update(pgMaster)
+      .set({
+        lastPaymentGeneratedAt: now,
+        lastPaymentGeneratedMonth: paymentMonth
+      })
+      .where(eq(pgMaster.id, pgId));
+
+    return { created: createdPayments, skipped: skippedCount, notified: notifiedCount, emailed: emailedCount };
   }
 
   // Notifications

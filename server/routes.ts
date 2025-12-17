@@ -1500,11 +1500,15 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Please select a PG first" });
       }
 
-      const payments = await storage.generateAutoPaymentsForPg(selectedPgId, userId);
+      const result = await storage.generateAutoPaymentsForPg(selectedPgId, userId);
       res.status(201).json({ 
         success: true, 
-        message: `Generated ${payments.length} payment requests`,
-        payments 
+        message: `Generated ${result.created.length} payment requests, skipped ${result.skipped} already paid. Sent ${result.notified} notifications and ${result.emailed} emails.`,
+        created: result.created.length,
+        skipped: result.skipped,
+        notified: result.notified,
+        emailed: result.emailed,
+        payments: result.created
       });
     } catch (error) {
       console.error("Auto-generate payment error:", error);
@@ -1672,6 +1676,66 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Reject payment error:", error);
       res.status(500).json({ error: "Failed to reject payment" });
+    }
+  });
+
+  // CRON ROUTES - Scheduled tasks
+  // Daily cron job to auto-generate payments for all PGs
+  app.get("/api/cron/generate-payments", async (req, res) => {
+    try {
+      const today = new Date().getDate();
+      const allPgs = await db.select().from(pgMaster)
+        .where(and(
+          eq(pgMaster.rentPaymentDate, today),
+          eq(pgMaster.status, "approved"),
+          eq(pgMaster.isActive, true)
+        ));
+
+      let totalCreated = 0;
+      let totalSkipped = 0;
+      let totalNotified = 0;
+      let totalEmailed = 0;
+      const results = [];
+
+      for (const pg of allPgs) {
+        try {
+          const result = await storage.generateAutoPaymentsForPg(pg.id, pg.ownerId);
+          totalCreated += result.created.length;
+          totalSkipped += result.skipped;
+          totalNotified += result.notified;
+          totalEmailed += result.emailed;
+          
+          results.push({
+            pgId: pg.id,
+            pgName: pg.pgName,
+            created: result.created.length,
+            skipped: result.skipped,
+            notified: result.notified,
+            emailed: result.emailed
+          });
+        } catch (error) {
+          console.error(`Failed to generate payments for PG ${pg.id}:`, error);
+          results.push({
+            pgId: pg.id,
+            pgName: pg.pgName,
+            error: "Failed to generate payments"
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Processed ${allPgs.length} PGs. Created ${totalCreated} payments, skipped ${totalSkipped}. Sent ${totalNotified} notifications and ${totalEmailed} emails.`,
+        totalPgs: allPgs.length,
+        totalCreated,
+        totalSkipped,
+        totalNotified,
+        totalEmailed,
+        results
+      });
+    } catch (error) {
+      console.error("Cron payment generation error:", error);
+      res.status(500).json({ error: "Failed to run scheduled payment generation" });
     }
   });
 

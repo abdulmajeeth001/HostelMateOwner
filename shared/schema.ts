@@ -67,6 +67,10 @@ export const pgMaster = pgTable("pg_master", {
   subscriptionStatus: text("subscription_status").default("trial"), // trial, active, expired, suspended
   subscriptionExpiresAt: timestamp("subscription_expires_at"),
   
+  // Payment generation tracking
+  lastPaymentGeneratedAt: timestamp("last_payment_generated_at"), // When payments were last auto-generated
+  lastPaymentGeneratedMonth: text("last_payment_generated_month"), // Format: YYYY-MM (e.g., "2025-01")
+  
   // Amenities and filters for tenant search
   pgType: text("pg_type").default("common"), // male, female, common
   hasFood: boolean("has_food").default(false),
@@ -151,6 +155,8 @@ export const payments = pgTable("payments", {
   paymentMethod: text("payment_method"), // upi, cash, bank_transfer, other
   transactionId: text("transaction_id"), // UPI transaction ID or reference number
   rejectionReason: text("rejection_reason"), // Reason provided by owner when rejecting payment
+  paymentMonth: text("payment_month"), // Format: YYYY-MM (e.g., "2025-01") for tracking which month this payment is for
+  generatedAt: timestamp("generated_at"), // When this payment was auto-generated
   dueDate: timestamp("due_date"),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow(),
