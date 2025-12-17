@@ -236,7 +236,10 @@ function PaymentsDesktop() {
       return true;
     }).map(payment => ({
       ...payment,
-      name: payment.tenant?.name || `Tenant #${payment.tenantId}`,
+      name: payment.tenant?.name 
+        ? `${payment.tenant.name}${payment.tenant.roomNumber ? ` - Room ${payment.tenant.roomNumber}` : ''}`
+        : `Tenant #${payment.tenantId}`,
+      paymentType: payment.type || 'rent',
     }));
   };
 
@@ -503,6 +506,18 @@ function PaymentsDesktop() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Calendar className="w-3 h-3 text-muted-foreground" />
                       <p className="text-xs text-muted-foreground">{format(new Date(tx.dueDate), "MMM dd")}</p>
+                      <span className={cn(
+                        "text-xs px-2 py-0.5 rounded-full font-bold",
+                        tx.paymentType === "rent"
+                          ? "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700"
+                          : tx.paymentType === "electricity"
+                          ? "bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-700"
+                          : tx.paymentType === "maintenance"
+                          ? "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700"
+                          : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700"
+                      )} data-testid={`text-payment-type-${tx.id}`}>
+                        {tx.paymentType === "rent" ? "Rent" : tx.paymentType === "electricity" ? "Electricity" : tx.paymentType === "maintenance" ? "Maintenance" : tx.paymentType}
+                      </span>
                       <span className={cn(
                         "text-xs px-2 py-0.5 rounded-full font-bold",
                         tx.status === "paid" 
@@ -990,9 +1005,21 @@ function PaymentsMobile() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-sm truncate" data-testid={`text-name-mobile-${tx.id}`}>{tx.name}</h4>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <Calendar className="w-3 h-3 text-muted-foreground" />
                         <p className="text-xs text-muted-foreground">{format(new Date(tx.dueDate), "MMM dd")}</p>
+                        <span className={cn(
+                          "text-xs px-2 py-0.5 rounded-full font-bold",
+                          tx.paymentType === "rent"
+                            ? "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700"
+                            : tx.paymentType === "electricity"
+                            ? "bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-700"
+                            : tx.paymentType === "maintenance"
+                            ? "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700"
+                            : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700"
+                        )} data-testid={`text-payment-type-mobile-${tx.id}`}>
+                          {tx.paymentType === "rent" ? "Rent" : tx.paymentType === "electricity" ? "Electricity" : tx.paymentType === "maintenance" ? "Maintenance" : tx.paymentType}
+                        </span>
                       </div>
                     </div>
                     <div className="text-right">

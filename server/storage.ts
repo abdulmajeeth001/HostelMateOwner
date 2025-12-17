@@ -398,31 +398,89 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPayments(ownerId: number, pgId?: number): Promise<Payment[]> {
+    let results;
     if (pgId) {
-      return await db.select().from(payments)
+      results = await db.select({
+        payment: payments,
+        tenant: tenants
+      }).from(payments)
+        .leftJoin(tenants, eq(payments.tenantId, tenants.id))
         .where(and(eq(payments.ownerId, ownerId), eq(payments.pgId, pgId)))
         .orderBy(desc(payments.createdAt));
+    } else {
+      results = await db.select({
+        payment: payments,
+        tenant: tenants
+      }).from(payments)
+        .leftJoin(tenants, eq(payments.tenantId, tenants.id))
+        .where(eq(payments.ownerId, ownerId))
+        .orderBy(desc(payments.createdAt));
     }
-    return await db.select().from(payments).where(eq(payments.ownerId, ownerId)).orderBy(desc(payments.createdAt));
+    
+    // Flatten the joined data
+    return results.map((r: any) => ({
+      ...r.payment,
+      tenant: r.tenant ? {
+        id: r.tenant.id,
+        name: r.tenant.name,
+        roomNumber: r.tenant.roomNumber
+      } : null
+    })) as Payment[];
   }
 
   async getPaymentsByTenant(tenantId: number): Promise<Payment[]> {
-    return await db.select().from(payments).where(eq(payments.tenantId, tenantId)).orderBy(desc(payments.createdAt));
+    const results = await db.select({
+      payment: payments,
+      tenant: tenants
+    }).from(payments)
+      .leftJoin(tenants, eq(payments.tenantId, tenants.id))
+      .where(eq(payments.tenantId, tenantId))
+      .orderBy(desc(payments.createdAt));
+    
+    // Flatten the joined data
+    return results.map((r: any) => ({
+      ...r.payment,
+      tenant: r.tenant ? {
+        id: r.tenant.id,
+        name: r.tenant.name,
+        roomNumber: r.tenant.roomNumber
+      } : null
+    })) as Payment[];
   }
 
   async getPendingApprovalPayments(ownerId: number, pgId?: number): Promise<Payment[]> {
+    let results;
     if (pgId) {
-      return await db.select().from(payments)
+      results = await db.select({
+        payment: payments,
+        tenant: tenants
+      }).from(payments)
+        .leftJoin(tenants, eq(payments.tenantId, tenants.id))
         .where(and(
           eq(payments.ownerId, ownerId), 
           eq(payments.pgId, pgId),
           eq(payments.status, "pending_approval")
         ))
         .orderBy(desc(payments.createdAt));
+    } else {
+      results = await db.select({
+        payment: payments,
+        tenant: tenants
+      }).from(payments)
+        .leftJoin(tenants, eq(payments.tenantId, tenants.id))
+        .where(and(eq(payments.ownerId, ownerId), eq(payments.status, "pending_approval")))
+        .orderBy(desc(payments.createdAt));
     }
-    return await db.select().from(payments)
-      .where(and(eq(payments.ownerId, ownerId), eq(payments.status, "pending_approval")))
-      .orderBy(desc(payments.createdAt));
+    
+    // Flatten the joined data
+    return results.map((r: any) => ({
+      ...r.payment,
+      tenant: r.tenant ? {
+        id: r.tenant.id,
+        name: r.tenant.name,
+        roomNumber: r.tenant.roomNumber
+      } : null
+    })) as Payment[];
   }
 
   async createPayment(payment: InsertPayment): Promise<Payment> {
