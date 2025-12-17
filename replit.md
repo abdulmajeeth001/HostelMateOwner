@@ -2,347 +2,70 @@
 
 ## Overview
 
-WinkStay is a comprehensive PG (Paying Guest) hostel management application designed for hostel owners and tenants. The system provides tools for managing rooms, tenants, payments, complaints, maintenance schedules, and reporting. It features a dual-interface design with separate dashboards for owners and tenants, enabling efficient hostel operations and transparent communication.
-
-The application is built as a full-stack web application with a React-based frontend and Express.js backend, using PostgreSQL for data persistence through Drizzle ORM.
+WinkStay is a comprehensive PG (Paying Guest) hostel management application for owners and tenants. It provides tools for managing rooms, tenants, payments, complaints, maintenance, and reporting. The system features a dual-interface design for efficient operations and transparent communication. It's a full-stack web application with a React frontend, Express.js backend, and PostgreSQL database managed with Drizzle ORM. The project aims to streamline hostel operations, enhance tenant experience, and provide owners with robust management capabilities.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes
-
-### December 15, 2025
-- **Bug Fixes:**
-  - Fixed onboarding status display for tenants - now correctly shows onboarding request status instead of visit request status
-  - Enhanced owner's onboarding request list to display PG name and room number for better context
-  - Improved data fetching in onboarding requests to include related PG and room information
-
 ## System Architecture
 
 ### Technology Stack
 
-**Frontend:**
-- React 18 with TypeScript for type-safe component development
-- Vite as the build tool and development server
-- Wouter for lightweight client-side routing
-- TanStack Query (React Query) for server state management
-- Radix UI components for accessible UI primitives
-- Tailwind CSS for utility-first styling with custom theming
-- Framer Motion for animations
-- Shadcn UI component library (New York style variant)
-
-**Backend:**
-- Express.js server with TypeScript
-- Session-based authentication using express-session
-- RESTful API architecture
-- Bcrypt for password hashing
-
-**Database:**
-- PostgreSQL as the primary database
-- Drizzle ORM for type-safe database queries
-- Neon serverless PostgreSQL adapter (@neondatabase/serverless)
-- Schema-first design with migrations stored in `/migrations`
+**Frontend:** React 18 (TypeScript, Vite), Wouter, TanStack Query, Radix UI, Tailwind CSS, Framer Motion, Shadcn UI.
+**Backend:** Express.js (TypeScript), session-based authentication, RESTful API, Bcrypt.
+**Database:** PostgreSQL, Drizzle ORM, Neon serverless adapter.
 
 ### Application Structure
 
-**Monorepo Layout:**
-- `/client` - Frontend React application
-  - `/src/pages` - Route-based page components
-  - `/src/components` - Reusable UI components including layouts
-  - `/src/hooks` - Custom React hooks (use-user, use-pg, use-mobile, use-toast)
-  - `/src/lib` - Utility functions and query client setup
-- `/server` - Backend Express application
-  - `routes.ts` - API route definitions
-  - `storage.ts` - Database access layer with IStorage interface
-  - `db.ts` - Database connection setup
-  - `index.ts` - Server entry point
-  - `static.ts` - Static file serving
-  - `vite.ts` - Vite middleware for development
-- `/shared` - Code shared between frontend and backend
-  - `schema.ts` - Drizzle schema definitions and Zod validation schemas
-- `/script` - Build scripts
-- `/attached_assets` - Static assets and generated images
+**Monorepo:**
+- `/client`: React frontend (pages, components, hooks, utilities).
+- `/server`: Express backend (routes, storage, DB setup, entry point).
+- `/shared`: Shared code (Drizzle schema, Zod validation).
+- `/script`: Build scripts.
 
 ### Authentication & Authorization
 
-**Session Management:**
-- Cookie-based sessions with express-session middleware
-- Session data includes userId and temporary registration data
-- Secure cookies with httpOnly and sameSite protection
-- 24-hour session expiration
-
-**User Types:**
-- Owner: Full access to PG management features
-- Tenant: Limited access to personal information and payments
-- Admin: (Defined but not fully implemented)
-
-**Password Reset Flow:**
-- First-time tenant login requires password reset
-- OTP verification for password recovery
-- Email-based password reset requests
+- **Session Management:** Cookie-based sessions (express-session) with secure, httpOnly cookies.
+- **User Types:** Owner (full access), Tenant (limited access), Admin (defined).
+- **Password Reset:** First-time login password reset, OTP verification for recovery, email-based resets.
 
 ### Database Schema
 
-**Core Entities:**
+Core entities include Users, OTP Codes, PG Master, Rooms, Tenants, Emergency Contacts, Payments, Notifications, Visit Requests, and Onboarding Requests.
 
-1. **Users Table** - Stores owner, tenant, and admin accounts
-   - Authentication credentials (email, password hash, googleId for OAuth)
-   - User type differentiation
-   - Email/mobile verification status
-   - Subscription tier tracking
-   - Password reset flags for new accounts
+### Key Features
 
-2. **OTP Codes Table** - Temporary verification codes
-   - Email and mobile verification
-   - Expiration timestamps
-
-3. **PG Master Table** - Multiple PG properties per owner
-   - PG name, address, location coordinates
-   - Total rooms capacity
-   - Owner foreign key
-
-4. **Rooms Table** - Individual room management
-   - Room number, floor, sharing capacity
-   - Monthly rent
-   - Amenities (WiFi, Water, Power)
-   - AC and attached bathroom flags
-   - Occupancy status (vacant, partially_occupied, fully_occupied)
-   - Multiple tenant assignment via tenantIds array
-
-5. **Tenants Table** - Tenant information
-   - Personal details (name, email, phone)
-   - Room assignment
-   - Document storage (compressed tenant images, Aadhar cards using gzip)
-   - Owner and PG associations
-
-6. **Emergency Contacts Table** - Tenant emergency contacts
-   - Multiple contacts per tenant
-   - Relationship tracking
-
-7. **Payments Table** - Financial transactions
-   - Amount, payment method, status
-   - Transaction dates and due dates
-   - Tenant and PG associations
-
-8. **Notifications Table** - System notifications
-   - User-specific or broadcast messages
-   - Read/unread status
-
-9. **Visit Requests Table** - Prospective tenant visit scheduling
-   - Tenant user, PG, room, and owner associations
-   - Requested date and time for visit
-   - Status tracking (pending, approved, rescheduled, completed, cancelled)
-   - Rescheduling support with rescheduled date/time and initiator tracking
-   - Final confirmed date and time after negotiations
-
-10. **Onboarding Requests Table** - Tenant onboarding applications
-    - Links to visit request, user, PG, room, and owner
-    - Tenant personal details (name, email, phone)
-    - Monthly rent for the assignment
-    - Document storage (tenant image, Aadhar card - base64 encoded)
-    - Emergency contact information (name, phone, relationship)
-    - Status tracking (pending, approved, rejected)
-    - Rejection reason tracking
-    - Approval and creation timestamps
-
-### Multi-PG Support
-
-The system supports owners managing multiple PG properties:
-- PG context switching via PGSwitcher component
-- Current PG stored in session and accessed via usePG hook
-- All queries filtered by current PG context
-- PG management interface for CRUD operations
-
-### Data Compression
-
-Large binary data (tenant images, documents) is compressed using pako (gzip) before storage:
-- Reduces database storage requirements
-- Base64 encoding for database compatibility
-- Automatic decompression on retrieval
-
-### Responsive Design
-
-**Mobile-First Approach:**
-- Separate mobile and desktop layouts
-- MobileLayout component for smaller screens
-- DesktopLayout with sidebar for larger screens
-- useIsMobile hook for responsive behavior detection
-- Breakpoint: 768px (lg: prefix in Tailwind)
-
-**Progressive Enhancement:**
-- Mobile PWA manifest for installability
-- Optimized for touch interfaces
-- Drawer-based mobile navigation
-
-### State Management
-
-**Client State:**
-- React Query for server state caching and synchronization
-- Custom hooks for user session (useUser) and PG context (usePG)
-- Optimistic updates for better UX
-
-**Server State:**
-- No caching strategy defined - queries marked with staleTime: Infinity
-- Session-based user context
-- Query invalidation on mutations
+- **Multi-PG Support:** Owners can manage multiple properties with PG context switching.
+- **Data Compression:** Large binary data (images, documents) are gzip-compressed and base64 encoded for storage.
+- **Responsive Design:** Mobile-first approach with separate layouts (MobileLayout, DesktopLayout), `useIsMobile` hook, and PWA manifest.
+- **State Management:** React Query for server state caching, custom hooks for user/PG context.
+- **Automated Payment Generation:** Monthly rent payment generation with duplicate prevention, in-app and email notifications. Configurable per PG with `rentPaymentDate`. Manual trigger available.
+- **Onboarding System:** Two-stage process:
+    1.  **Visit Request Flow:** Prospective tenants request visits, owners approve/reschedule/cancel.
+    2.  **Onboarding Request Flow:** After visit, tenants submit a 4-step application (personal info, emergency contact, documents), owners review and approve/reject.
 
 ### Build & Deployment
 
-**Development:**
-- Vite dev server on port 5000
-- Hot module replacement (HMR)
-- Runtime error overlay via Replit plugin
-- Source maps for debugging
-
-**Production:**
-- Vite builds client to `/dist/public`
-- ESBuild bundles server to `/dist/index.cjs`
-- Selected dependencies bundled to reduce syscalls
-- Static file serving from Express
-
-**Environment Variables:**
-- DATABASE_URL - PostgreSQL connection string (required)
-- NODE_ENV - Development/production mode
+- **Development:** Vite dev server, HMR, Replit plugins.
+- **Production:** Vite builds client, ESBuild bundles server, static file serving.
+- **Environment Variables:** `DATABASE_URL`, `GMAIL_EMAIL`, `GMAIL_APP_PASSWORD`.
 
 ### API Design
 
-RESTful endpoints following resource-based routing:
-- `/api/auth/*` - Authentication (login, register, logout, password reset)
-- `/api/users/*` - User profile management
-- `/api/tenants/*` - Tenant CRUD operations
-- `/api/rooms/*` - Room management
-- `/api/payments/*` - Payment tracking
-- `/api/pg/*` - PG property management
-- `/api/tenant/*` - Tenant-specific endpoints (dashboard, payments, room details)
-
-All API requests include credentials for session management.
+RESTful endpoints for authentication, users, tenants, rooms, payments, and PG management.
 
 ### Error Handling
 
-- Form validation using Zod schemas
-- User-friendly error messages
-- Toast notifications for feedback (Sonner library)
-- Error boundaries for component crashes
+Zod for form validation, Sonner for toast notifications, error boundaries.
 
 ## External Dependencies
 
-**Database:**
-- Neon Serverless PostgreSQL - Hosted PostgreSQL database
-- WebSocket connection for real-time queries
-
-**UI Component Libraries:**
-- Radix UI - Accessible headless components (@radix-ui/react-*)
-- Lucide React - Icon library
-- Shadcn UI - Pre-built component patterns
-
-**Forms & Validation:**
-- React Hook Form - Form state management
-- Zod - Schema validation
-- @hookform/resolvers - Zod integration
-
-**File Handling:**
-- pako - Gzip compression/decompression
-- Base64 encoding for binary data storage
-
-**Maps & Location:**
-- OpenStreetMap Nominatim API - Location search and geocoding (client-side)
-
-**Development Tools:**
-- Replit Vite Plugins - Cartographer, dev banner, runtime error modal, meta images
-
-**Utilities:**
-- date-fns - Date manipulation
-- nanoid - Unique ID generation
-- clsx & tailwind-merge - Conditional CSS classes
-
-**Build Tools:**
-- TypeScript - Type safety
-- ESBuild - Fast JavaScript bundler
-- PostCSS with Autoprefixer - CSS processing
-
-## User Workflows
-
-### Tenant/Applicant Journey
-
-1. **Search & Discovery**: Browse available PG properties with filters (location, rent, amenities)
-2. **View Details**: Explore PG information, room types, amenities, and location on map
-3. **Request Visit**: Submit visit request with preferred date and time
-4. **Track Visit**: Monitor visit request status (pending, approved, rejected, completed)
-5. **Submit Onboarding**: After visit approval, complete 4-step onboarding application:
-   - Step 1: Personal information
-   - Step 2: Emergency contact details
-   - Step 3: Document upload (photo, Aadhar card)
-   - Step 4: Review and submit
-6. **Await Approval**: Owner reviews onboarding request
-7. **Access Dashboard**: Once approved, access tenant dashboard with payment tracking, room details, and notifications
-
-### Owner Journey
-
-1. **Create PG**: Register PG property with name, address, location, and room capacity
-2. **Submit for Approval**: PG enters pending approval status
-3. **Add Rooms**: Configure room details (number, floor, sharing, rent, amenities, occupancy)
-4. **Manage Visit Requests**: Review and approve/reject visit requests from prospective tenants
-5. **Review Onboarding**: Evaluate onboarding applications with tenant documents and information
-6. **Approve Tenants**: Accept onboarding requests to convert applicants to active tenants
-7. **Manage Tenants**: Oversee tenant roster, room assignments, and tenant details
-8. **Track Payments**: Monitor payment history, generate payment records, and manage dues
-
-## Onboarding System
-
-The application implements a two-stage process for converting prospective tenants into active tenants:
-
-### Visit Request Flow
-
-1. **Request Submission**: Prospective tenants browse available PGs and submit visit requests with:
-   - Preferred visit date and time
-   - Optional specific room interest
-   - Automatic owner and PG association
-
-2. **Owner Review**: Owners receive visit requests and can:
-   - Approve the requested date/time
-   - Reschedule to a different date/time
-   - Cancel the request
-
-3. **Rescheduling**: Either party can reschedule with:
-   - New proposed date and time
-   - Tracking of who initiated the reschedule
-   - Status updates to reflect rescheduling
-
-4. **Confirmation**: Once both parties agree:
-   - Visit is confirmed with final date/time
-   - Status changes to "approved"
-   - System tracks completion when visit occurs
-
-### Onboarding Request Flow
-
-1. **Eligibility**: After visit approval or completion, prospective tenants can submit onboarding requests
-
-2. **4-Step Onboarding Form**:
-   - **Step 1 - Personal Information**: Name, email, phone, selected room, monthly rent
-   - **Step 2 - Emergency Contact**: Contact name, phone number, relationship
-   - **Step 3 - Document Upload**: Tenant photo and Aadhar card (compressed and base64 encoded)
-   - **Step 4 - Review & Submit**: Final review of all information before submission
-
-3. **Owner Review**: Owners evaluate onboarding requests with access to:
-   - Complete tenant information
-   - Uploaded documents
-   - Emergency contact details
-   - Associated PG and room information
-
-4. **Approval Process**: Owners can:
-   - Approve the onboarding request (converts applicant to tenant)
-   - Reject with reason
-   - View all pending requests with PG name and room number context
-
-5. **Status Transitions**:
-   - **Pending**: Initial state after submission
-   - **Approved**: Owner accepts the request, tenant becomes active
-   - **Rejected**: Owner declines with optional rejection reason
-
-### Data Flow
-
-- Visit requests are linked to onboarding requests via `visitRequestId`
-- Approved onboarding creates entry in Tenants table
-- Room occupancy status updates automatically
-- Tenant receives access to tenant dashboard upon approval
+- **Database:** Neon Serverless PostgreSQL.
+- **UI Component Libraries:** Radix UI, Lucide React, Shadcn UI.
+- **Forms & Validation:** React Hook Form, Zod, @hookform/resolvers.
+- **File Handling:** Pako (gzip), Base64 encoding.
+- **Maps & Location:** OpenStreetMap Nominatim API.
+- **Development Tools:** Replit Vite Plugins.
+- **Utilities:** date-fns, nanoid, clsx, tailwind-merge.
+- **Build Tools:** TypeScript, ESBuild, PostCSS, Autoprefixer.
