@@ -152,7 +152,7 @@ function PaymentsDesktop() {
   };
 
   // Calculate totals
-  const totalBalance = payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalBalance = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
   const income = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
   const expense = payments.filter(p => p.status === "pending").reduce((sum, p) => sum + p.amount, 0);
 
@@ -559,7 +559,7 @@ function PaymentsMobile() {
     }
   };
 
-  const totalBalance = payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalBalance = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
   const income = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
   const expense = payments.filter(p => p.status === "pending").reduce((sum, p) => sum + p.amount, 0);
 

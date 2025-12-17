@@ -67,6 +67,7 @@ export interface IStorage {
   deleteTenant(id: number): Promise<void>;
   
   // Payments
+  getPayment(id: number): Promise<Payment | undefined>;
   getPayments(ownerId: number, pgId?: number): Promise<Payment[]>;
   getPaymentsByTenant(tenantId: number): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
@@ -386,6 +387,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Payments
+  async getPayment(id: number): Promise<Payment | undefined> {
+    const result = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
+    return result[0];
+  }
+
   async getPayments(ownerId: number, pgId?: number): Promise<Payment[]> {
     if (pgId) {
       return await db.select().from(payments)

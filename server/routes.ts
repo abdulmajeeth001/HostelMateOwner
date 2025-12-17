@@ -1523,8 +1523,7 @@ export async function registerRoutes(
       const paymentId = parseInt(req.params.id);
       
       // Get the payment before update to check status change and authorization
-      const oldPaymentResult = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
-      const oldPayment = oldPaymentResult[0];
+      const oldPayment = await storage.getPayment(paymentId);
       
       if (!oldPayment) {
         return res.status(404).json({ error: "Payment not found" });
