@@ -1460,12 +1460,16 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Please select a PG first" });
       }
 
-      const paymentData = insertPaymentSchema.parse({
+      // Convert dueDate string to Date object before validation
+      const payload = {
         ...req.body,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
         ownerId: userId,
         pgId: selectedPgId,
         status: "pending",
-      });
+      };
+
+      const paymentData = insertPaymentSchema.parse(payload);
 
       const payment = await storage.createPayment(paymentData);
       res.status(201).json(payment);

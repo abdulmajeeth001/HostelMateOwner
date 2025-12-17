@@ -100,8 +100,8 @@ function PaymentsDesktop() {
         credentials: "include",
         body: JSON.stringify({
           tenantId: parseInt(formData.tenantId),
-          amount: parseFloat(formData.amount),
-          dueDate: new Date(formData.dueDate).toISOString(),
+          amount: formData.amount,
+          dueDate: new Date(formData.dueDate),
           type: formData.type,
         }),
       });
@@ -508,8 +508,8 @@ function PaymentsMobile() {
         credentials: "include",
         body: JSON.stringify({
           tenantId: parseInt(formData.tenantId),
-          amount: parseFloat(formData.amount),
-          dueDate: new Date(formData.dueDate).toISOString(),
+          amount: formData.amount,
+          dueDate: new Date(formData.dueDate),
           type: formData.type,
         }),
       });
