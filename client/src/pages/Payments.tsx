@@ -1,6 +1,6 @@
 import DesktopLayout from "@/components/layout/DesktopLayout";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { ArrowUpRight, ArrowDownLeft, Calendar, Filter, Plus, Wallet, TrendingUp, DollarSign } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Calendar, Filter, Plus, Wallet, TrendingUp, DollarSign, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -52,10 +52,12 @@ function PaymentsDesktop() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
+  const [filter, setFilter] = useState<"all" | "income" | "expense" | "pending_approval">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({ tenantId: "", amount: "", dueDate: "", type: "rent" });
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -151,6 +153,54 @@ function PaymentsDesktop() {
     }
   };
 
+  const handleApprovePayment = async (paymentId: number) => {
+    setApprovingId(paymentId);
+    try {
+      const res = await fetch(`/api/payments/${paymentId}/approve`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        toast.success("Payment approved successfully");
+        fetchData();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to approve payment");
+      }
+    } catch (error) {
+      console.error("Approve payment error:", error);
+      toast.error("Failed to approve payment");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleRejectPayment = async (paymentId: number) => {
+    setRejectingId(paymentId);
+    try {
+      const res = await fetch(`/api/payments/${paymentId}/reject`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        toast.success("Payment rejected successfully");
+        fetchData();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to reject payment");
+      }
+    } catch (error) {
+      console.error("Reject payment error:", error);
+      toast.error("Failed to reject payment");
+    } finally {
+      setRejectingId(null);
+    }
+  };
+
   // Calculate totals
   const totalBalance = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
   const income = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
@@ -158,19 +208,16 @@ function PaymentsDesktop() {
 
   // Filter transactions
   const getFilteredTransactions = () => {
-    return payments.map(payment => ({
-      id: payment.id,
-      name: payment.tenant?.name || `Tenant #${payment.tenantId}`,
-      type: payment.status === "paid" ? "received" : "pending",
-      amount: `₹${payment.amount.toLocaleString()}`,
-      date: format(new Date(payment.dueDate), "MMM dd"),
-      status: payment.status === "paid" ? "Success" : "Pending",
-    })).filter(tx => {
+    return payments.filter(payment => {
       if (filter === "all") return true;
-      if (filter === "income") return tx.type === "received";
-      if (filter === "expense") return tx.type === "pending";
+      if (filter === "income") return payment.status === "paid";
+      if (filter === "expense") return payment.status === "pending";
+      if (filter === "pending_approval") return payment.status === "pending_approval";
       return true;
-    });
+    }).map(payment => ({
+      ...payment,
+      name: payment.tenant?.name || `Tenant #${payment.tenantId}`,
+    }));
   };
 
   const transactions = getFilteredTransactions();
@@ -366,6 +413,15 @@ function PaymentsDesktop() {
         >
           Pending
         </Button>
+        <Button 
+          variant={filter === "pending_approval" ? "default" : "outline"} 
+          size="sm" 
+          className="rounded-full px-4"
+          onClick={() => setFilter("pending_approval")}
+          data-testid="button-filter-pending-approval"
+        >
+          Pending Approval
+        </Button>
       </div>
 
       {/* Transactions */}
@@ -410,11 +466,13 @@ function PaymentsDesktop() {
                 >
                   <div className={cn(
                     "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-md transition-transform duration-300 group-hover:scale-110",
-                    tx.type === 'received' 
-                      ? 'bg-gradient-to-br from-emerald-500 to-green-600' 
-                      : 'bg-gradient-to-br from-orange-500 to-red-600'
+                    tx.status === 'paid' 
+                      ? 'bg-gradient-to-br from-emerald-500 to-green-600'
+                      : tx.status === 'pending_approval'
+                      ? 'bg-gradient-to-br from-orange-500 to-yellow-600'
+                      : 'bg-gradient-to-br from-gray-400 to-gray-600'
                   )}>
-                    {tx.type === 'received' ? (
+                    {tx.status === 'paid' ? (
                       <ArrowDownLeft className="w-6 h-6 text-white" />
                     ) : (
                       <ArrowUpRight className="w-6 h-6 text-white" />
@@ -422,28 +480,75 @@ function PaymentsDesktop() {
                   </div>
                   <div className="flex-1">
                     <h4 className="font-bold text-sm text-foreground mb-0.5" data-testid={`text-name-${tx.id}`}>{tx.name}</h4>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Calendar className="w-3 h-3 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">{tx.date}</p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(tx.dueDate), "MMM dd")}</p>
                       <span className={cn(
                         "text-xs px-2 py-0.5 rounded-full font-bold",
-                        tx.status === "Success" 
+                        tx.status === "paid" 
                           ? "bg-gradient-to-r from-emerald-100 to-green-100 text-green-700"
-                          : "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
+                          : tx.status === "pending_approval"
+                          ? "bg-gradient-to-r from-orange-100 to-yellow-100 text-orange-700"
+                          : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700"
                       )} data-testid={`text-status-${tx.id}`}>
-                        {tx.status}
+                        {tx.status === "paid" ? "Paid" : tx.status === "pending_approval" ? "Pending Approval" : "Pending"}
                       </span>
+                      {tx.transactionId && (
+                        <span className="text-xs text-muted-foreground" data-testid={`text-transaction-id-${tx.id}`}>
+                          ID: {tx.transactionId}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={cn(
-                      "font-bold text-lg",
-                      tx.type === 'received' 
-                        ? 'bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent' 
-                        : 'text-foreground'
-                    )} data-testid={`text-amount-${tx.id}`}>
-                      {tx.type === 'received' ? '+' : ''}{tx.amount}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className={cn(
+                        "font-bold text-lg",
+                        tx.status === 'paid' 
+                          ? 'bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent' 
+                          : 'text-foreground'
+                      )} data-testid={`text-amount-${tx.id}`}>
+                        {tx.status === 'paid' ? '+' : ''}₹{tx.amount.toLocaleString()}
+                      </p>
+                    </div>
+                    {tx.status === 'pending_approval' && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                          onClick={() => handleApprovePayment(tx.id)}
+                          disabled={approvingId === tx.id || rejectingId === tx.id}
+                          data-testid={`button-approve-${tx.id}`}
+                        >
+                          {approvingId === tx.id ? (
+                            "Approving..."
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4 mr-1" />
+                              Approve
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                          onClick={() => handleRejectPayment(tx.id)}
+                          disabled={approvingId === tx.id || rejectingId === tx.id}
+                          data-testid={`button-reject-${tx.id}`}
+                        >
+                          {rejectingId === tx.id ? (
+                            "Rejecting..."
+                          ) : (
+                            <>
+                              <X className="w-4 h-4 mr-1" />
+                              Reject
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -460,10 +565,12 @@ function PaymentsMobile() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
+  const [filter, setFilter] = useState<"all" | "income" | "expense" | "pending_approval">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({ tenantId: "", amount: "", dueDate: "", type: "rent" });
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -559,24 +666,69 @@ function PaymentsMobile() {
     }
   };
 
+  const handleApprovePayment = async (paymentId: number) => {
+    setApprovingId(paymentId);
+    try {
+      const res = await fetch(`/api/payments/${paymentId}/approve`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        toast.success("Payment approved successfully");
+        fetchData();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to approve payment");
+      }
+    } catch (error) {
+      console.error("Approve payment error:", error);
+      toast.error("Failed to approve payment");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleRejectPayment = async (paymentId: number) => {
+    setRejectingId(paymentId);
+    try {
+      const res = await fetch(`/api/payments/${paymentId}/reject`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        toast.success("Payment rejected successfully");
+        fetchData();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to reject payment");
+      }
+    } catch (error) {
+      console.error("Reject payment error:", error);
+      toast.error("Failed to reject payment");
+    } finally {
+      setRejectingId(null);
+    }
+  };
+
   const totalBalance = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
   const income = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
   const expense = payments.filter(p => p.status === "pending").reduce((sum, p) => sum + p.amount, 0);
 
   const getFilteredTransactions = () => {
-    return payments.map(payment => ({
-      id: payment.id,
-      name: payment.tenant?.name || `Tenant #${payment.tenantId}`,
-      type: payment.status === "paid" ? "received" : "pending",
-      amount: `₹${payment.amount.toLocaleString()}`,
-      date: format(new Date(payment.dueDate), "MMM dd"),
-      status: payment.status === "paid" ? "Success" : "Pending",
-    })).filter(tx => {
+    return payments.filter(payment => {
       if (filter === "all") return true;
-      if (filter === "income") return tx.type === "received";
-      if (filter === "expense") return tx.type === "pending";
+      if (filter === "income") return payment.status === "paid";
+      if (filter === "expense") return payment.status === "pending";
+      if (filter === "pending_approval") return payment.status === "pending_approval";
       return true;
-    });
+    }).map(payment => ({
+      ...payment,
+      name: payment.tenant?.name || `Tenant #${payment.tenantId}`,
+    }));
   };
 
   const transactions = getFilteredTransactions();
@@ -700,6 +852,15 @@ function PaymentsMobile() {
           >
             Pending
           </Button>
+          <Button 
+            variant={filter === "pending_approval" ? "default" : "outline"} 
+            size="sm" 
+            className="rounded-full flex-shrink-0"
+            onClick={() => setFilter("pending_approval")}
+            data-testid="button-filter-pending-approval-mobile"
+          >
+            Pending Approval
+          </Button>
         </div>
 
         {/* Payments List - Stacked cards */}
@@ -725,14 +886,16 @@ function PaymentsMobile() {
                 data-testid={`payment-row-mobile-${tx.id}`}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 mb-3">
                     <div className={cn(
                       "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-                      tx.type === 'received' 
-                        ? 'bg-gradient-to-br from-emerald-500 to-green-600' 
-                        : 'bg-gradient-to-br from-orange-500 to-red-600'
+                      tx.status === 'paid' 
+                        ? 'bg-gradient-to-br from-emerald-500 to-green-600'
+                        : tx.status === 'pending_approval'
+                        ? 'bg-gradient-to-br from-orange-500 to-yellow-600'
+                        : 'bg-gradient-to-br from-gray-400 to-gray-600'
                     )}>
-                      {tx.type === 'received' ? (
+                      {tx.status === 'paid' ? (
                         <ArrowDownLeft className="w-6 h-6 text-white" />
                       ) : (
                         <ArrowUpRight className="w-6 h-6 text-white" />
@@ -742,28 +905,75 @@ function PaymentsMobile() {
                       <h4 className="font-bold text-sm truncate" data-testid={`text-name-mobile-${tx.id}`}>{tx.name}</h4>
                       <div className="flex items-center gap-2 mt-0.5">
                         <Calendar className="w-3 h-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">{tx.date}</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(tx.dueDate), "MMM dd")}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className={cn(
                         "font-bold text-lg",
-                        tx.type === 'received' 
+                        tx.status === 'paid' 
                           ? 'bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent' 
                           : 'text-foreground'
                       )} data-testid={`text-amount-mobile-${tx.id}`}>
-                        {tx.type === 'received' ? '+' : ''}{tx.amount}
+                        {tx.status === 'paid' ? '+' : ''}₹{tx.amount.toLocaleString()}
                       </p>
                       <span className={cn(
                         "text-xs px-2 py-0.5 rounded-full font-bold inline-block",
-                        tx.status === "Success" 
+                        tx.status === "paid" 
                           ? "bg-gradient-to-r from-emerald-100 to-green-100 text-green-700"
-                          : "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
+                          : tx.status === "pending_approval"
+                          ? "bg-gradient-to-r from-orange-100 to-yellow-100 text-orange-700"
+                          : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700"
                       )} data-testid={`text-status-mobile-${tx.id}`}>
-                        {tx.status}
+                        {tx.status === "paid" ? "Paid" : tx.status === "pending_approval" ? "Pending Approval" : "Pending"}
                       </span>
                     </div>
                   </div>
+                  {tx.transactionId && (
+                    <div className="mb-3">
+                      <span className="text-xs text-muted-foreground" data-testid={`text-transaction-id-mobile-${tx.id}`}>
+                        Transaction ID: {tx.transactionId}
+                      </span>
+                    </div>
+                  )}
+                  {tx.status === 'pending_approval' && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                        onClick={() => handleApprovePayment(tx.id)}
+                        disabled={approvingId === tx.id || rejectingId === tx.id}
+                        data-testid={`button-approve-mobile-${tx.id}`}
+                      >
+                        {approvingId === tx.id ? (
+                          "Approving..."
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4 mr-1" />
+                            Approve
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                        onClick={() => handleRejectPayment(tx.id)}
+                        disabled={approvingId === tx.id || rejectingId === tx.id}
+                        data-testid={`button-reject-mobile-${tx.id}`}
+                      >
+                        {rejectingId === tx.id ? (
+                          "Rejecting..."
+                        ) : (
+                          <>
+                            <X className="w-4 h-4 mr-1" />
+                            Reject
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))

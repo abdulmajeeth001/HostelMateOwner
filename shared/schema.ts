@@ -147,7 +147,7 @@ export const payments = pgTable("payments", {
   pgId: integer("pg_id").references(() => pgMaster.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   type: text("type").notNull(), // rent, maintenance, other
-  status: text("status").default("pending"), // pending, paid, overdue
+  status: text("status").default("pending"), // pending, pending_approval, paid, overdue
   paymentMethod: text("payment_method"), // upi, cash, bank_transfer, other
   transactionId: text("transaction_id"), // UPI transaction ID or reference number
   dueDate: timestamp("due_date"),

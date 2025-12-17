@@ -70,8 +70,11 @@ export interface IStorage {
   getPayment(id: number): Promise<Payment | undefined>;
   getPayments(ownerId: number, pgId?: number): Promise<Payment[]>;
   getPaymentsByTenant(tenantId: number): Promise<Payment[]>;
+  getPendingApprovalPayments(ownerId: number, pgId?: number): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined>;
+  approvePayment(id: number, ownerId: number): Promise<Payment | undefined>;
+  rejectPayment(id: number, ownerId: number): Promise<Payment | undefined>;
   generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<Payment[]>;
   
   // Notifications
@@ -405,6 +408,21 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(payments).where(eq(payments.tenantId, tenantId)).orderBy(desc(payments.createdAt));
   }
 
+  async getPendingApprovalPayments(ownerId: number, pgId?: number): Promise<Payment[]> {
+    if (pgId) {
+      return await db.select().from(payments)
+        .where(and(
+          eq(payments.ownerId, ownerId), 
+          eq(payments.pgId, pgId),
+          eq(payments.status, "pending_approval")
+        ))
+        .orderBy(desc(payments.createdAt));
+    }
+    return await db.select().from(payments)
+      .where(and(eq(payments.ownerId, ownerId), eq(payments.status, "pending_approval")))
+      .orderBy(desc(payments.createdAt));
+  }
+
   async createPayment(payment: InsertPayment): Promise<Payment> {
     const result = await db.insert(payments).values(payment).returning();
     return result[0];
@@ -412,6 +430,41 @@ export class DatabaseStorage implements IStorage {
 
   async updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined> {
     const result = await db.update(payments).set(updates).where(eq(payments.id, id)).returning();
+    return result[0];
+  }
+
+  async approvePayment(id: number, ownerId: number): Promise<Payment | undefined> {
+    // Verify ownership before approving
+    const payment = await this.getPayment(id);
+    if (!payment || payment.ownerId !== ownerId) {
+      return undefined;
+    }
+
+    const result = await db.update(payments)
+      .set({ 
+        status: "paid",
+        paidAt: new Date()
+      })
+      .where(eq(payments.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async rejectPayment(id: number, ownerId: number): Promise<Payment | undefined> {
+    // Verify ownership before rejecting
+    const payment = await this.getPayment(id);
+    if (!payment || payment.ownerId !== ownerId) {
+      return undefined;
+    }
+
+    const result = await db.update(payments)
+      .set({ 
+        status: "pending",
+        transactionId: null,
+        paymentMethod: null
+      })
+      .where(eq(payments.id, id))
+      .returning();
     return result[0];
   }
 

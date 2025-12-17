@@ -1536,48 +1536,136 @@ export async function registerRoutes(
       }
 
       if (user.userType === "tenant") {
-        // Tenant can only update their own payments
+        // Tenant can only update their own payments to pending_approval
         const tenant = await storage.getTenantByUserId(userId);
         if (!tenant || oldPayment.tenantId !== tenant.id) {
           return res.status(403).json({ error: "You can only update your own payments" });
         }
+        
+        // Tenant can only move from pending to pending_approval
+        if (oldPayment.status !== "pending") {
+          return res.status(400).json({ error: "Payment is already submitted or approved" });
+        }
+
+        const payment = await storage.updatePayment(paymentId, {
+          ...req.body,
+          status: "pending_approval", // Force status to pending_approval for tenant submission
+        });
+
+        if (!payment) {
+          return res.status(404).json({ error: "Payment not found" });
+        }
+
+        // Create notification for owner when tenant submits payment
+        await storage.createNotification({
+          userId: payment.ownerId,
+          pgId: payment.pgId || null,
+          title: "Payment Submitted",
+          message: `${tenant.name} has submitted payment of ₹${payment.amount}. Transaction ID: ${req.body.transactionId || 'N/A'}. Please review and approve.`,
+          type: "payment",
+          isRead: false,
+        });
+
+        res.json(payment);
       } else if (user.userType === "owner") {
         // Owner can only update payments for their tenants
         if (oldPayment.ownerId !== userId) {
           return res.status(403).json({ error: "You can only update payments for your tenants" });
         }
+
+        const payment = await storage.updatePayment(paymentId, req.body);
+
+        if (!payment) {
+          return res.status(404).json({ error: "Payment not found" });
+        }
+
+        res.json(payment);
       } else {
         return res.status(403).json({ error: "Access denied" });
       }
+    } catch (error) {
+      console.error("Update payment error:", error);
+      res.status(500).json({ error: "Failed to update payment" });
+    }
+  });
 
-      const payment = await storage.updatePayment(paymentId, {
-        ...req.body,
-        paidAt: req.body.status === "paid" ? new Date() : undefined,
-      });
-
-      if (!payment) {
-        return res.status(404).json({ error: "Payment not found" });
+  // Owner approves payment (marks as paid)
+  app.put("/api/payments/:id/approve", requireApprovedPg, async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Create notification for owner when tenant marks payment as paid
-      if (req.body.status === "paid" && oldPayment.status !== "paid") {
-        const tenant = await storage.getTenant(payment.tenantId);
-        if (tenant) {
-          await storage.createNotification({
-            userId: payment.ownerId,
-            pgId: payment.pgId || null,
-            title: "Payment Received",
-            message: `${tenant.name} has submitted rent payment of ₹${payment.amount}. Transaction ID: ${req.body.transactionId || 'N/A'}`,
-            type: "payment",
-            isRead: false,
-          });
-        }
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Only owners can approve payments" });
+      }
+
+      const paymentId = parseInt(req.params.id);
+      const payment = await storage.approvePayment(paymentId, userId);
+
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found or unauthorized" });
+      }
+
+      // Notify tenant that payment was approved
+      const tenant = await storage.getTenant(payment.tenantId);
+      if (tenant && tenant.userId) {
+        await storage.createNotification({
+          userId: tenant.userId,
+          pgId: payment.pgId || null,
+          title: "Payment Approved",
+          message: `Your payment of ₹${payment.amount} has been approved by the owner.`,
+          type: "payment",
+          isRead: false,
+        });
       }
 
       res.json(payment);
     } catch (error) {
-      console.error("Update payment error:", error);
-      res.status(500).json({ error: "Failed to update payment" });
+      console.error("Approve payment error:", error);
+      res.status(500).json({ error: "Failed to approve payment" });
+    }
+  });
+
+  // Owner rejects payment (sends back to pending)
+  app.put("/api/payments/:id/reject", requireApprovedPg, async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Only owners can reject payments" });
+      }
+
+      const paymentId = parseInt(req.params.id);
+      const payment = await storage.rejectPayment(paymentId, userId);
+
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found or unauthorized" });
+      }
+
+      // Notify tenant that payment was rejected
+      const tenant = await storage.getTenant(payment.tenantId);
+      if (tenant && tenant.userId) {
+        await storage.createNotification({
+          userId: tenant.userId,
+          pgId: payment.pgId || null,
+          title: "Payment Rejected",
+          message: `Your payment of ₹${payment.amount} was rejected. Please resubmit with correct details.`,
+          type: "payment",
+          isRead: false,
+        });
+      }
+
+      res.json(payment);
+    } catch (error) {
+      console.error("Reject payment error:", error);
+      res.status(500).json({ error: "Failed to reject payment" });
     }
   });
 

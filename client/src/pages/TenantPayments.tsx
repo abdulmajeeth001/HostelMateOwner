@@ -181,7 +181,9 @@ export default function TenantPayments() {
                       className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md ${
                         payment.status === "paid"
                           ? "bg-gradient-to-br from-emerald-500 to-green-600"
-                          : "bg-gradient-to-br from-orange-500 to-red-600"
+                          : payment.status === "pending_approval"
+                          ? "bg-gradient-to-br from-orange-500 to-yellow-500"
+                          : "bg-gradient-to-br from-gray-400 to-gray-500"
                       }`}
                     >
                       {payment.status === "paid" ? (
@@ -204,10 +206,13 @@ export default function TenantPayments() {
                       className={`text-xs font-semibold uppercase tracking-wide px-2 py-1 rounded-full ${
                         payment.status === "paid"
                           ? "bg-emerald-100 text-emerald-700"
-                          : "bg-orange-100 text-orange-700"
+                          : payment.status === "pending_approval"
+                          ? "bg-orange-100 text-orange-700"
+                          : "bg-gray-100 text-gray-700"
                       }`}
+                      data-testid={`status-payment-${payment.id}`}
                     >
-                      {payment.status}
+                      {payment.status === "pending_approval" ? "Pending Approval" : payment.status}
                     </p>
                     {payment.status === "pending" && (
                       <Button
