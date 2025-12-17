@@ -222,9 +222,9 @@ function PaymentsDesktop() {
   };
 
   // Calculate totals
-  const totalBalance = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
-  const income = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
-  const expense = payments.filter(p => p.status === "pending").reduce((sum, p) => sum + p.amount, 0);
+  const totalBalance = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + parseFloat(p.amount), 0);
+  const income = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + parseFloat(p.amount), 0);
+  const expense = payments.filter(p => p.status === "pending").reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
   // Filter transactions
   const getFilteredTransactions = () => {
@@ -801,9 +801,9 @@ function PaymentsMobile() {
     }
   };
 
-  const totalBalance = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
-  const income = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
-  const expense = payments.filter(p => p.status === "pending").reduce((sum, p) => sum + p.amount, 0);
+  const totalBalance = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + parseFloat(p.amount), 0);
+  const income = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + parseFloat(p.amount), 0);
+  const expense = payments.filter(p => p.status === "pending").reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
   const getFilteredTransactions = () => {
     return payments.filter(payment => {
