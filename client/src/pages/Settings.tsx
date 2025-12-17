@@ -127,8 +127,12 @@ export default function Settings() {
   const handleSavePg = async () => {
     setPgSaveLoading(true);
     try {
-      const res = await fetch("/api/pg", {
-        method: "POST",
+      const isUpdate = pg?.id;
+      const url = isUpdate ? `/api/pg/${pg.id}` : "/api/pg";
+      const method = isUpdate ? "PUT" : "POST";
+      
+      const res = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
         body: JSON.stringify(pgForm),
@@ -139,12 +143,12 @@ export default function Settings() {
         setPg(data);
         setOriginalPgForm(pgForm);
         setEditingPg(false);
-        alert("PG details updated successfully");
+        alert(isUpdate ? "PG details updated successfully" : "PG created successfully");
       } else {
-        alert("Failed to update PG details");
+        alert(isUpdate ? "Failed to update PG details" : "Failed to create PG");
       }
     } catch (error) {
-      alert("Failed to update PG details");
+      alert("Failed to save PG details");
     } finally {
       setPgSaveLoading(false);
     }
