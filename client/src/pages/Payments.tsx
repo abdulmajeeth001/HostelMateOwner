@@ -18,14 +18,16 @@ import { cn } from "@/lib/utils";
 interface Payment {
   id: number;
   tenantId: number;
-  amount: number;
+  amount: string;
+  type: string;
   dueDate: string;
   paidAt?: string;
   status: string;
   transactionId?: string;
   tenant?: {
+    id: number;
     name: string;
-    email: string;
+    roomNumber: string;
   };
 }
 
@@ -829,7 +831,10 @@ function PaymentsMobile() {
       return true;
     }).map(payment => ({
       ...payment,
-      name: payment.tenant?.name || `Tenant #${payment.tenantId}`,
+      name: payment.tenant?.name 
+        ? `${payment.tenant.name}${payment.tenant.roomNumber ? ` - Room ${payment.tenant.roomNumber}` : ''}`
+        : `Tenant #${payment.tenantId}`,
+      paymentType: payment.type || 'rent',
     }));
   };
 
