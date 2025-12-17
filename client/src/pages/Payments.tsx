@@ -55,7 +55,7 @@ function PaymentsDesktop() {
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [formData, setFormData] = useState({ tenantId: "", amount: "", dueDate: "" });
+  const [formData, setFormData] = useState({ tenantId: "", amount: "", dueDate: "", type: "rent" });
 
   useEffect(() => {
     fetchData();
@@ -102,18 +102,21 @@ function PaymentsDesktop() {
           tenantId: parseInt(formData.tenantId),
           amount: parseFloat(formData.amount),
           dueDate: new Date(formData.dueDate).toISOString(),
+          type: formData.type,
         }),
       });
 
       if (res.ok) {
         toast.success("Payment request created");
         setDialogOpen(false);
-        setFormData({ tenantId: "", amount: "", dueDate: "" });
+        setFormData({ tenantId: "", amount: "", dueDate: "", type: "rent" });
         fetchData();
       } else {
-        toast.error("Failed to create payment request");
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to create payment request");
       }
     } catch (error) {
+      console.error("Payment creation error:", error);
       toast.error("Failed to create payment request");
     } finally {
       setCreating(false);
@@ -254,6 +257,19 @@ function PaymentsDesktop() {
                               {t.name}
                             </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Payment Type</Label>
+                      <Select value={formData.type} onValueChange={(val) => setFormData({...formData, type: val})}>
+                        <SelectTrigger id="type" data-testid="select-type">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="rent">Rent</SelectItem>
+                          <SelectItem value="maintenance">Maintenance</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -447,7 +463,7 @@ function PaymentsMobile() {
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [formData, setFormData] = useState({ tenantId: "", amount: "", dueDate: "" });
+  const [formData, setFormData] = useState({ tenantId: "", amount: "", dueDate: "", type: "rent" });
 
   useEffect(() => {
     fetchData();
@@ -494,18 +510,21 @@ function PaymentsMobile() {
           tenantId: parseInt(formData.tenantId),
           amount: parseFloat(formData.amount),
           dueDate: new Date(formData.dueDate).toISOString(),
+          type: formData.type,
         }),
       });
 
       if (res.ok) {
         toast.success("Payment request created");
         setDialogOpen(false);
-        setFormData({ tenantId: "", amount: "", dueDate: "" });
+        setFormData({ tenantId: "", amount: "", dueDate: "", type: "rent" });
         fetchData();
       } else {
-        toast.error("Failed to create payment request");
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to create payment request");
       }
     } catch (error) {
+      console.error("Payment creation error:", error);
       toast.error("Failed to create payment request");
     } finally {
       setCreating(false);
@@ -771,6 +790,19 @@ function PaymentsMobile() {
                       {t.name}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="type-mobile">Payment Type</Label>
+              <Select value={formData.type} onValueChange={(val) => setFormData({...formData, type: val})}>
+                <SelectTrigger id="type-mobile" data-testid="select-payment-type-mobile">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rent">Rent</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -7,6 +7,7 @@ export interface PG {
   pgAddress?: string;
   pgLocation?: string;
   totalRooms?: number;
+  rentPaymentDate?: number;
   ownerId: number;
   createdAt?: string;
 }
