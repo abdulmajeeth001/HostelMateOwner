@@ -74,7 +74,7 @@ export interface IStorage {
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined>;
   approvePayment(id: number, ownerId: number): Promise<Payment | undefined>;
-  rejectPayment(id: number, ownerId: number): Promise<Payment | undefined>;
+  rejectPayment(id: number, ownerId: number, rejectionReason?: string): Promise<Payment | undefined>;
   generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<Payment[]>;
   
   // Notifications
@@ -443,14 +443,15 @@ export class DatabaseStorage implements IStorage {
     const result = await db.update(payments)
       .set({ 
         status: "paid",
-        paidAt: new Date()
+        paidAt: new Date(),
+        rejectionReason: null  // Clear rejection reason on approval
       })
       .where(eq(payments.id, id))
       .returning();
     return result[0];
   }
 
-  async rejectPayment(id: number, ownerId: number): Promise<Payment | undefined> {
+  async rejectPayment(id: number, ownerId: number, rejectionReason?: string): Promise<Payment | undefined> {
     // Verify ownership before rejecting
     const payment = await this.getPayment(id);
     if (!payment || payment.ownerId !== ownerId) {
@@ -461,7 +462,8 @@ export class DatabaseStorage implements IStorage {
       .set({ 
         status: "pending",
         transactionId: null,
-        paymentMethod: null
+        paymentMethod: null,
+        rejectionReason: rejectionReason || null
       })
       .where(eq(payments.id, id))
       .returning();

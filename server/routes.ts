@@ -1550,6 +1550,7 @@ export async function registerRoutes(
         const payment = await storage.updatePayment(paymentId, {
           ...req.body,
           status: "pending_approval", // Force status to pending_approval for tenant submission
+          rejectionReason: null, // Clear rejection reason on resubmission
         });
 
         if (!payment) {
@@ -1643,7 +1644,8 @@ export async function registerRoutes(
       }
 
       const paymentId = parseInt(req.params.id);
-      const payment = await storage.rejectPayment(paymentId, userId);
+      const { rejectionReason } = req.body;
+      const payment = await storage.rejectPayment(paymentId, userId, rejectionReason);
 
       if (!payment) {
         return res.status(404).json({ error: "Payment not found or unauthorized" });
@@ -1652,11 +1654,15 @@ export async function registerRoutes(
       // Notify tenant that payment was rejected
       const tenant = await storage.getTenant(payment.tenantId);
       if (tenant && tenant.userId) {
+        const message = rejectionReason 
+          ? `Your payment of ₹${payment.amount} was rejected. Reason: ${rejectionReason}. Please resubmit with correct details.`
+          : `Your payment of ₹${payment.amount} was rejected. Please resubmit with correct details.`;
+        
         await storage.createNotification({
           userId: tenant.userId,
           pgId: payment.pgId || null,
           title: "Payment Rejected",
-          message: `Your payment of ₹${payment.amount} was rejected. Please resubmit with correct details.`,
+          message,
           type: "payment",
           isRead: false,
         });

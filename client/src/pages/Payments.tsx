@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
@@ -58,6 +59,9 @@ function PaymentsDesktop() {
   const [formData, setFormData] = useState({ tenantId: "", amount: "", dueDate: "", type: "rent" });
   const [approvingId, setApprovingId] = useState<number | null>(null);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingPaymentId, setRejectingPaymentId] = useState<number | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -177,17 +181,33 @@ function PaymentsDesktop() {
     }
   };
 
-  const handleRejectPayment = async (paymentId: number) => {
-    setRejectingId(paymentId);
+  const handleRejectPayment = (paymentId: number) => {
+    setRejectingPaymentId(paymentId);
+    setRejectDialogOpen(true);
+  };
+
+  const confirmReject = async () => {
+    if (!rejectionReason || rejectionReason.trim().length < 10) {
+      toast.error("Please provide a rejection reason (minimum 10 characters)");
+      return;
+    }
+
+    if (!rejectingPaymentId) return;
+
+    setRejectingId(rejectingPaymentId);
     try {
-      const res = await fetch(`/api/payments/${paymentId}/reject`, {
+      const res = await fetch(`/api/payments/${rejectingPaymentId}/reject`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({ rejectionReason }),
       });
 
       if (res.ok) {
         toast.success("Payment rejected successfully");
+        setRejectDialogOpen(false);
+        setRejectionReason("");
+        setRejectingPaymentId(null);
         fetchData();
       } else {
         const errorData = await res.json();
@@ -556,6 +576,54 @@ function PaymentsDesktop() {
           )}
         </CardContent>
       </Card>
+
+      {/* Rejection Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Payment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason">Rejection Reason</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Please provide a reason for rejecting this payment (minimum 10 characters)"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                rows={4}
+                data-testid="textarea-rejection-reason"
+              />
+              {rejectionReason && rejectionReason.trim().length < 10 && (
+                <p className="text-sm text-red-500">
+                  Minimum 10 characters required ({rejectionReason.trim().length}/10)
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setRejectDialogOpen(false);
+                  setRejectionReason("");
+                  setRejectingPaymentId(null);
+                }}
+                data-testid="button-cancel-reject"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmReject}
+                disabled={rejectingId !== null || !rejectionReason || rejectionReason.trim().length < 10}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                data-testid="button-confirm-reject"
+              >
+                {rejectingId !== null ? "Rejecting..." : "Confirm Reject"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DesktopLayout>
   );
 }
@@ -571,6 +639,9 @@ function PaymentsMobile() {
   const [formData, setFormData] = useState({ tenantId: "", amount: "", dueDate: "", type: "rent" });
   const [approvingId, setApprovingId] = useState<number | null>(null);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingPaymentId, setRejectingPaymentId] = useState<number | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -690,17 +761,33 @@ function PaymentsMobile() {
     }
   };
 
-  const handleRejectPayment = async (paymentId: number) => {
-    setRejectingId(paymentId);
+  const handleRejectPayment = (paymentId: number) => {
+    setRejectingPaymentId(paymentId);
+    setRejectDialogOpen(true);
+  };
+
+  const confirmReject = async () => {
+    if (!rejectionReason || rejectionReason.trim().length < 10) {
+      toast.error("Please provide a rejection reason (minimum 10 characters)");
+      return;
+    }
+
+    if (!rejectingPaymentId) return;
+
+    setRejectingId(rejectingPaymentId);
     try {
-      const res = await fetch(`/api/payments/${paymentId}/reject`, {
+      const res = await fetch(`/api/payments/${rejectingPaymentId}/reject`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({ rejectionReason }),
       });
 
       if (res.ok) {
         toast.success("Payment rejected successfully");
+        setRejectDialogOpen(false);
+        setRejectionReason("");
+        setRejectingPaymentId(null);
         fetchData();
       } else {
         const errorData = await res.json();
@@ -1043,6 +1130,54 @@ function PaymentsMobile() {
               </Button>
               <Button onClick={handleCreatePayment} disabled={creating} data-testid="button-submit-mobile">
                 {creating ? "Creating..." : "Create"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Payment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason-mobile">Rejection Reason</Label>
+              <Textarea
+                id="rejection-reason-mobile"
+                placeholder="Please provide a reason for rejecting this payment (minimum 10 characters)"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                rows={4}
+                data-testid="textarea-rejection-reason"
+              />
+              {rejectionReason && rejectionReason.trim().length < 10 && (
+                <p className="text-sm text-red-500">
+                  Minimum 10 characters required ({rejectionReason.trim().length}/10)
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setRejectDialogOpen(false);
+                  setRejectionReason("");
+                  setRejectingPaymentId(null);
+                }}
+                data-testid="button-cancel-reject"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmReject}
+                disabled={rejectingId !== null || !rejectionReason || rejectionReason.trim().length < 10}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                data-testid="button-confirm-reject"
+              >
+                {rejectingId !== null ? "Rejecting..." : "Confirm Reject"}
               </Button>
             </div>
           </div>

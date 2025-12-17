@@ -150,6 +150,7 @@ export const payments = pgTable("payments", {
   status: text("status").default("pending"), // pending, pending_approval, paid, overdue
   paymentMethod: text("payment_method"), // upi, cash, bank_transfer, other
   transactionId: text("transaction_id"), // UPI transaction ID or reference number
+  rejectionReason: text("rejection_reason"), // Reason provided by owner when rejecting payment
   dueDate: timestamp("due_date"),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow(),
