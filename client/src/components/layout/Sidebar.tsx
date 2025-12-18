@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, LogOut, Building2, Shield } from "lucide-react";
+import { Home, Users, CreditCard, Bell, Settings, DoorOpen, Wrench, AlertCircle, BarChart3, LogOut, Building2, Shield, CalendarCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -21,6 +21,8 @@ const ownerNavItems = [
   { icon: DoorOpen, label: "Rooms", path: "/rooms" },
   { icon: Users, label: "Tenants", path: "/tenants" },
   { icon: CreditCard, label: "Payments", path: "/payments" },
+  { icon: CalendarCheck, label: "Visit Requests", path: "/owner-visit-requests" },
+  { icon: Users, label: "Onboarding", path: "/owner-onboarding-requests" },
   { icon: AlertCircle, label: "Complaints", path: "/complaints" },
   { icon: Wrench, label: "Maintenance", path: "/maintenance" },
   { icon: BarChart3, label: "Reports", path: "/reports" },
