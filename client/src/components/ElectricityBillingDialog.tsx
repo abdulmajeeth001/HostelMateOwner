@@ -176,16 +176,22 @@ export function ElectricityBillingDialog({
       prev.map((bill) => {
         if (bill.roomId !== roomId) return bill;
         
-        const updated = { ...bill, [field]: value };
+        // Convert numeric fields to numbers
+        let processedValue = value;
+        if (field === "currentReading" || field === "previousReading" || field === "ratePerUnit") {
+          processedValue = value === "" ? 0 : Number(value);
+        }
+        
+        const updated = { ...bill, [field]: processedValue };
         
         // Auto-calculate units consumed and amount
         if (field === "currentReading" || field === "previousReading") {
-          const current = field === "currentReading" ? Number(value) : updated.currentReading;
-          const previous = field === "previousReading" ? Number(value) : updated.previousReading;
+          const current = field === "currentReading" ? processedValue : updated.currentReading;
+          const previous = field === "previousReading" ? processedValue : updated.previousReading;
           updated.unitsConsumed = Math.max(0, current - previous);
           updated.roomAmount = updated.unitsConsumed * updated.ratePerUnit;
         } else if (field === "ratePerUnit") {
-          updated.roomAmount = updated.unitsConsumed * Number(value);
+          updated.roomAmount = updated.unitsConsumed * processedValue;
         }
         
         return updated;
