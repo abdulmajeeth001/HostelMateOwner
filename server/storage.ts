@@ -265,12 +265,15 @@ export class DatabaseStorage implements IStorage {
 
   // Tenants
   async getTenants(ownerId: number, pgId?: number): Promise<Tenant[]> {
+    // Only return active tenants (not vacated ones)
     if (pgId) {
       return await db.select().from(tenants)
-        .where(and(eq(tenants.ownerId, ownerId), eq(tenants.pgId, pgId)))
+        .where(and(eq(tenants.ownerId, ownerId), eq(tenants.pgId, pgId), eq(tenants.status, "active")))
         .orderBy(desc(tenants.createdAt));
     }
-    return await db.select().from(tenants).where(eq(tenants.ownerId, ownerId)).orderBy(desc(tenants.createdAt));
+    return await db.select().from(tenants)
+      .where(and(eq(tenants.ownerId, ownerId), eq(tenants.status, "active")))
+      .orderBy(desc(tenants.createdAt));
   }
 
   async getTenant(id: number): Promise<Tenant | undefined> {
@@ -306,7 +309,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAvailableTenants(ownerId: number, pgId?: number): Promise<Tenant[]> {
-    // Get all tenants for this owner that are not currently assigned to any room
+    // Get all active tenants for this owner that are not currently assigned to any room
     let roomsQuery;
     if (pgId) {
       roomsQuery = await db.select({ tenantIds: rooms.tenantIds }).from(rooms)
@@ -324,11 +327,11 @@ export class DatabaseStorage implements IStorage {
     let result;
     if (pgId) {
       result = await db.select().from(tenants)
-        .where(and(eq(tenants.ownerId, ownerId), eq(tenants.pgId, pgId)))
+        .where(and(eq(tenants.ownerId, ownerId), eq(tenants.pgId, pgId), eq(tenants.status, "active")))
         .orderBy(desc(tenants.createdAt));
     } else {
       result = await db.select().from(tenants)
-        .where(eq(tenants.ownerId, ownerId))
+        .where(and(eq(tenants.ownerId, ownerId), eq(tenants.status, "active")))
         .orderBy(desc(tenants.createdAt));
     }
     
@@ -396,7 +399,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteTenant(id: number, feedback?: { ownerFeedback?: string, rating?: number, behaviorTags?: string[], recordedByOwnerId: number }): Promise<void> {
-    // Get tenant info before deletion for history record
+    // Get tenant info before marking as vacated
     const tenant = await this.getTenant(id);
     if (!tenant) {
       throw new Error("Tenant not found");
@@ -441,15 +444,11 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Preserve payment history by nullifying tenantId (but keeping tenantUserId)
-    // tenantUserId references the user account which persists after tenant deletion
-    // This allows us to track who made the payment even after tenant is removed
-    await db.update(payments)
-      .set({ tenantId: null })
-      .where(eq(payments.tenantId, id));
-
-    // Finally, delete the tenant record
-    await db.delete(tenants).where(eq(tenants.id, id));
+    // Mark tenant as vacated instead of deleting
+    // This preserves all references (payments, history) and simplifies data integrity
+    await db.update(tenants)
+      .set({ status: "vacated" })
+      .where(eq(tenants.id, id));
   }
 
   // Payments
@@ -545,12 +544,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPayment(payment: InsertPayment): Promise<Payment> {
-    // Defensive check: If tenantId is provided, tenantUserId must also be provided
-    // This prevents payment attribution loss after tenant deletion
-    if (payment.tenantId && !payment.tenantUserId) {
-      throw new Error(`Cannot create payment for tenant ${payment.tenantId} without tenantUserId. Payment attribution would be lost after tenant deletion.`);
-    }
-    
     const result = await db.insert(payments).values(payment).returning();
     return result[0];
   }
@@ -608,12 +601,13 @@ export class DatabaseStorage implements IStorage {
     return existingPayment.length > 0;
   }
 
-  async generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<{ created: Payment[], skipped: number, notified: number, emailed: number, tenantsWithoutAccounts: Array<{id: number, name: string, roomNumber: string}> }> {
+  async generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<{ created: Payment[], skipped: number, notified: number, emailed: number }> {
     const pg = await this.getPgById(pgId);
     if (!pg || !pg.rentPaymentDate) {
-      return { created: [], skipped: 0, notified: 0, emailed: 0, tenantsWithoutAccounts: [] };
+      return { created: [], skipped: 0, notified: 0, emailed: 0 };
     }
 
+    // Get only active tenants for payment generation
     const pgTenants = await db.select().from(tenants)
       .where(and(eq(tenants.pgId, pgId), eq(tenants.ownerId, ownerId), eq(tenants.status, "active")));
 
@@ -621,7 +615,6 @@ export class DatabaseStorage implements IStorage {
     let skippedCount = 0;
     let notifiedCount = 0;
     let emailedCount = 0;
-    const tenantsWithoutAccounts: Array<{id: number, name: string, roomNumber: string}> = [];
 
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -658,22 +651,9 @@ export class DatabaseStorage implements IStorage {
         continue;
       }
 
-      // Skip tenants without userId - they cannot have attributable payments
-      // Collect these tenants so owner can be notified to fix the issue
-      if (!tenant.userId) {
-        tenantsWithoutAccounts.push({
-          id: tenant.id,
-          name: tenant.name,
-          roomNumber: tenant.roomNumber
-        });
-        skippedCount++;
-        continue;
-      }
-
-      // Create payment
+      // Create payment - tenantId will always be valid since we're not deleting tenants
       const payment = await this.createPayment({
         tenantId: tenant.id,
-        tenantUserId: tenant.userId, // Store user ID for attribution even after tenant deletion
         ownerId: ownerId,
         pgId: pgId,
         amount: tenant.monthlyRent.toString(),
@@ -735,7 +715,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(pgMaster.id, pgId));
 
-    return { created: createdPayments, skipped: skippedCount, notified: notifiedCount, emailed: emailedCount, tenantsWithoutAccounts };
+    return { created: createdPayments, skipped: skippedCount, notified: notifiedCount, emailed: emailedCount };
   }
 
   // Notifications

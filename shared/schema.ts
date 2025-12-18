@@ -170,8 +170,7 @@ export type TenantHistory = typeof tenantHistory.$inferSelect;
 // Payments table
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").references(() => tenants.id), // References active tenant, set to NULL after tenant removal
-  tenantUserId: integer("tenant_user_id").references(() => users.id), // User account that persists - use this for payment attribution
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id), // Always valid since tenants are never deleted (soft delete with status)
   ownerId: integer("owner_id").notNull().references(() => users.id),
   pgId: integer("pg_id").references(() => pgMaster.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),

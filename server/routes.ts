@@ -1476,31 +1476,30 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Please select a PG first" });
       }
 
-      // Look up tenant to get their userId for payment attribution
-      // Tenant ID is required for payment creation
+      // Validate tenant ID is provided
       if (!req.body.tenantId) {
         return res.status(400).json({ error: "Tenant ID is required" });
       }
 
+      // Verify tenant exists and belongs to owner's PG
       const tenant = await storage.getTenant(parseInt(req.body.tenantId));
       if (!tenant) {
         return res.status(404).json({ error: "Tenant not found" });
       }
 
-      // Verify tenant belongs to the owner's selected PG
       if (tenant.pgId !== selectedPgId) {
         return res.status(403).json({ error: "Cannot create payment for tenant from another PG" });
       }
 
-      if (!tenant.userId) {
-        return res.status(400).json({ error: "Tenant must have a user account" });
+      // Cannot create payments for vacated tenants
+      if (tenant.status === "vacated" || tenant.status === "inactive") {
+        return res.status(400).json({ error: "Cannot create payment for vacated tenant" });
       }
 
       // Convert dueDate string to Date object before validation
       const payload = {
         ...req.body,
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
-        tenantUserId: tenant.userId, // Add user ID for payment attribution
         ownerId: userId,
         pgId: selectedPgId,
         status: "pending",
@@ -1539,20 +1538,13 @@ export async function registerRoutes(
 
       const result = await storage.generateAutoPaymentsForPg(selectedPgId, userId);
       
-      // Build message based on results
-      let message = `Generated ${result.created.length} payment requests, skipped ${result.skipped} already paid. Sent ${result.notified} notifications and ${result.emailed} emails.`;
-      if (result.tenantsWithoutAccounts.length > 0) {
-        message += ` Warning: ${result.tenantsWithoutAccounts.length} tenant(s) without user accounts were skipped.`;
-      }
-      
       res.status(201).json({ 
         success: true, 
-        message,
+        message: `Generated ${result.created.length} payment requests, skipped ${result.skipped} already paid. Sent ${result.notified} notifications and ${result.emailed} emails.`,
         created: result.created.length,
         skipped: result.skipped,
         notified: result.notified,
         emailed: result.emailed,
-        tenantsWithoutAccounts: result.tenantsWithoutAccounts,
         payments: result.created
       });
     } catch (error) {
