@@ -232,7 +232,9 @@ export const rooms = pgTable("rooms", {
 
 export const insertRoomSchema = createInsertSchema(rooms).omit({ 
   id: true, 
-  createdAt: true 
+  createdAt: true,
+  ownerId: true,
+  pgId: true,
 });
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type Room = typeof rooms.$inferSelect;
