@@ -435,6 +435,45 @@ export default function PGSearchPage() {
         </Card>
       </div>
 
+      {/* Welcome State - Show before first search */}
+      {!hasSearched && (
+        <Card className="border-2 border-dashed border-purple-200 bg-gradient-to-br from-purple-50/50 to-blue-50/50">
+          <CardContent className="py-12 px-6">
+            <div className="text-center space-y-6">
+              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                <Search className="w-10 h-10 text-white" />
+              </div>
+              
+              <div className="space-y-3">
+                <h3 className="text-2xl font-bold text-gray-800" data-testid="text-welcome-title">
+                  Ready to Find Your PG?
+                </h3>
+                <p className="text-gray-600 max-w-md mx-auto text-sm leading-relaxed">
+                  Use the search above to discover comfortable PG accommodations near you. 
+                  You can filter by amenities, distance, and PG type to find your perfect match.
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center gap-3 pt-2">
+                <Button
+                  onClick={handleSearch}
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg shadow-purple-200 px-8"
+                  disabled={isGettingLocation}
+                  data-testid="button-start-search"
+                >
+                  <Search className="w-5 h-5 mr-2" />
+                  {isGettingLocation ? "Getting location..." : "Start Searching"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  💡 Tip: Allow location access for the best nearby results
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Results Section - Only show after search */}
       {hasSearched && (
         <>

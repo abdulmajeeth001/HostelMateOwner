@@ -13,7 +13,13 @@ export function TenantRouteGuard({ children, requiresOnboarding = false }: Tenan
 
   useEffect(() => {
     // Wait for user to load
-    if (isLoading || !user) return;
+    if (isLoading) return;
+    
+    // If user is not authenticated after loading, redirect to login
+    if (!user) {
+      setLocation("/");
+      return;
+    }
 
     // If route requires NOT being onboarded (applicant-only routes like search)
     if (requiresOnboarding === false) {
@@ -35,6 +41,23 @@ export function TenantRouteGuard({ children, requiresOnboarding = false }: Tenan
       }
     }
   }, [isLoading, user, isTenantOnboarded, isApplicant, requiresOnboarding, location, setLocation]);
+
+  // Show loading state while user is being fetched
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is not authenticated, don't render anything (redirect happens in useEffect)
+  if (!user) {
+    return null;
+  }
 
   return <>{children}</>;
 }
