@@ -102,15 +102,14 @@ export function ElectricityBillingDialog({
 
   const fetchRooms = async () => {
     try {
-      const res = await fetch("/api/rooms", { credentials: "include" });
+      const res = await fetch("/api/electricity/rooms", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
-        // Extract room objects from the nested structure { room: {...}, tenants: [...] }
-        const roomData = data.map((item: any) => item.room);
-        setRooms(roomData);
+        // API now returns only occupied rooms directly (no nested structure)
+        setRooms(data);
         // Initialize room bills with default values
         setRoomBills(
-          roomData.map((room: Room) => ({
+          data.map((room: Room) => ({
             roomId: room.id,
             roomNumber: room.roomNumber,
             meterNumber: "",
@@ -125,7 +124,7 @@ export function ElectricityBillingDialog({
       }
     } catch (error) {
       console.error("Failed to fetch rooms:", error);
-      toast.error("Failed to load rooms");
+      toast.error("Failed to load rooms for billing");
     }
   };
 

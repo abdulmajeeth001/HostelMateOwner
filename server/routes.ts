@@ -3438,6 +3438,37 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
   });
 
   // Electricity Billing Routes
+  app.get("/api/electricity/rooms", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const selectedPgId = req.session?.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected" });
+      }
+
+      const roomsWithTenants = await storage.getAllRoomsWithTenants(userId, selectedPgId);
+      
+      // Filter out vacant rooms - only return rooms with tenants for billing
+      const occupiedRooms = roomsWithTenants
+        .filter(item => item.room.status === 'occupied' || item.room.status === 'partially_occupied')
+        .map(item => item.room);
+
+      res.json(occupiedRooms);
+    } catch (error) {
+      console.error("Get electricity billing rooms error:", error);
+      res.status(500).json({ error: "Failed to get rooms for electricity billing" });
+    }
+  });
+
   app.post("/api/electricity/cycles", async (req, res) => {
     try {
       const userId = req.session?.userId;
