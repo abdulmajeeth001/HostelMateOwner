@@ -41,7 +41,7 @@ export default function TenantsList() {
 function TenantsListDesktop() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
+  const [filter, setFilter] = useState<"all" | "active" | "vacated">("all");
   const [deletingTenant, setDeletingTenant] = useState<{ id: number; name: string } | null>(null);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -88,7 +88,7 @@ function TenantsListDesktop() {
                          t.phone.includes(search);
       const matchFilter = filter === "all" || 
                          (filter === "active" && t.status === "active") ||
-                         (filter === "inactive" && t.status === "inactive");
+                         (filter === "vacated" && t.status === "vacated");
       return matchSearch && matchFilter;
     }).map((t: any) => ({
       id: t.id,
@@ -104,13 +104,13 @@ function TenantsListDesktop() {
   const stats = {
     total: tenants.length,
     active: tenants.filter((t: any) => t.status === "active").length,
-    inactive: tenants.filter((t: any) => t.status === "inactive").length,
+    vacated: tenants.filter((t: any) => t.status === "vacated").length,
   };
 
   const filterTabs = [
     { label: "All", value: "all", count: stats.total },
     { label: "Active", value: "active", count: stats.active },
-    { label: "Inactive", value: "inactive", count: stats.inactive },
+    { label: "Vacated", value: "vacated", count: stats.vacated },
   ] as const;
 
   const statCards = [
@@ -129,8 +129,8 @@ function TenantsListDesktop() {
       description: "Currently active"
     },
     { 
-      label: "Inactive", 
-      value: stats.inactive, 
+      label: "Vacated", 
+      value: stats.vacated, 
       icon: UserX, 
       gradient: "from-orange-500 to-red-600",
       description: "Not active"
@@ -293,7 +293,7 @@ function TenantsListDesktop() {
                               ? "bg-gradient-to-r from-emerald-100 to-green-100 text-green-700"
                               : "bg-gradient-to-r from-orange-100 to-red-100 text-orange-700"
                           )}>
-                            {tenant.status === "active" ? "Active" : "Inactive"}
+                            {tenant.status === "active" ? "Active" : "Vacated"}
                           </span>
                         </div>
                       </div>
@@ -409,7 +409,7 @@ function TenantsListDesktop() {
 function TenantsListMobile() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
+  const [filter, setFilter] = useState<"all" | "active" | "vacated">("all");
   const [deletingTenant, setDeletingTenant] = useState<{ id: number; name: string } | null>(null);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -457,7 +457,7 @@ function TenantsListMobile() {
                          t.phone.includes(search);
       const matchFilter = filter === "all" || 
                          (filter === "active" && t.status === "active") ||
-                         (filter === "inactive" && t.status === "inactive");
+                         (filter === "vacated" && t.status === "vacated");
       return matchSearch && matchFilter;
     }).map((t: any) => ({
       id: t.id,
@@ -473,7 +473,7 @@ function TenantsListMobile() {
   const stats = {
     total: tenants.length,
     active: tenants.filter((t: any) => t.status === "active").length,
-    inactive: tenants.filter((t: any) => t.status === "inactive").length,
+    vacated: tenants.filter((t: any) => t.status === "vacated").length,
   };
 
   if (isLoading) {
@@ -539,15 +539,15 @@ function TenantsListMobile() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 col-span-2" data-testid="card-stat-inactive-mobile">
+          <Card className="border-2 col-span-2" data-testid="card-stat-vacated-mobile">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
                   <UserX className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground font-semibold">Inactive</p>
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">{stats.inactive}</h3>
+              <p className="text-xs text-muted-foreground font-semibold">Vacated</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">{stats.vacated}</h3>
             </CardContent>
           </Card>
         </div>
@@ -585,13 +585,13 @@ function TenantsListMobile() {
             Active ({stats.active})
           </Button>
           <Button
-            onClick={() => setFilter("inactive")}
-            variant={filter === "inactive" ? "default" : "outline"}
+            onClick={() => setFilter("vacated")}
+            variant={filter === "vacated" ? "default" : "outline"}
             size="sm"
             className="rounded-full flex-shrink-0"
-            data-testid="filter-inactive-mobile"
+            data-testid="filter-vacated-mobile"
           >
-            Inactive ({stats.inactive})
+            Vacated ({stats.vacated})
           </Button>
         </div>
 

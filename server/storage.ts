@@ -405,6 +405,16 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Tenant not found");
     }
 
+    // Check for pending payments
+    const tenantPayments = await this.getPaymentsByTenant(id);
+    const pendingPayments = tenantPayments.filter(
+      (payment) => payment.status === "pending" || payment.status === "overdue"
+    );
+    
+    if (pendingPayments.length > 0) {
+      throw new Error("Cannot delete tenant with pending payments. Please settle all dues first.");
+    }
+
     // Create history record if tenant has a user account and pgId
     // Always create history to track tenant lifecycle, even without feedback
     // Skip only if pgId is missing (tenant was never properly assigned to a PG)
