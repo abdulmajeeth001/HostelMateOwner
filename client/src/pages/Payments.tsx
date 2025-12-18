@@ -1,6 +1,6 @@
 import DesktopLayout from "@/components/layout/DesktopLayout";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { ArrowUpRight, ArrowDownLeft, Calendar, Filter, Plus, Wallet, TrendingUp, DollarSign, Check, X } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Calendar, Filter, Plus, Wallet, TrendingUp, DollarSign, Check, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { usePG } from "@/hooks/use-pg";
 import { useUser } from "@/hooks/use-user";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ElectricityBillingDialog } from "@/components/ElectricityBillingDialog";
 
 interface Payment {
   id: number;
@@ -64,6 +65,7 @@ function PaymentsDesktop() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingPaymentId, setRejectingPaymentId] = useState<number | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [ebDialogOpen, setEbDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -301,6 +303,16 @@ function PaymentsDesktop() {
                 data-testid="button-auto-generate"
               >
                 Auto Generate
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="bg-white/20 backdrop-blur-sm border-white/30 hover:bg-white/30 text-white"
+                onClick={() => setEbDialogOpen(true)}
+                data-testid="button-create-eb-bill"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                EB Bill
               </Button>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
@@ -641,6 +653,13 @@ function PaymentsDesktop() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Electricity Billing Dialog */}
+      <ElectricityBillingDialog
+        open={ebDialogOpen}
+        onOpenChange={setEbDialogOpen}
+        onSuccess={fetchData}
+      />
     </DesktopLayout>
   );
 }
@@ -659,6 +678,7 @@ function PaymentsMobile() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingPaymentId, setRejectingPaymentId] = useState<number | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [ebDialogOpen, setEbDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -918,17 +938,27 @@ function PaymentsMobile() {
           </Card>
         </div>
 
-        {/* Auto Generate Button */}
-        <Button 
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={handleAutoGeneratePayments}
-          disabled={creating || !pg?.rentPaymentDate}
-          data-testid="button-auto-generate-mobile"
-        >
-          Auto Generate Payments
-        </Button>
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={handleAutoGeneratePayments}
+            disabled={creating || !pg?.rentPaymentDate}
+            data-testid="button-auto-generate-mobile"
+          >
+            Auto Generate
+          </Button>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={() => setEbDialogOpen(true)}
+            data-testid="button-create-eb-bill-mobile"
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            EB Bill
+          </Button>
+        </div>
 
         {/* Filters - Scrollable on mobile */}
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -1215,6 +1245,13 @@ function PaymentsMobile() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Electricity Billing Dialog */}
+      <ElectricityBillingDialog
+        open={ebDialogOpen}
+        onOpenChange={setEbDialogOpen}
+        onSuccess={fetchData}
+      />
     </MobileLayout>
   );
 }
