@@ -441,9 +441,9 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Update payment records to preserve payment history
-    // Set tenant_id to NULL for all payments associated with this tenant
-    // This allows us to delete the tenant while keeping financial records intact
+    // Preserve payment history by nullifying tenantId (but keeping tenantUserId)
+    // tenantUserId references the user account which persists after tenant deletion
+    // This allows us to track who made the payment even after tenant is removed
     await db.update(payments)
       .set({ tenantId: null })
       .where(eq(payments.tenantId, id));
@@ -654,6 +654,7 @@ export class DatabaseStorage implements IStorage {
       // Create payment
       const payment = await this.createPayment({
         tenantId: tenant.id,
+        tenantUserId: tenant.userId || null, // Store user ID for attribution even after tenant deletion
         ownerId: ownerId,
         pgId: pgId,
         amount: tenant.monthlyRent.toString(),

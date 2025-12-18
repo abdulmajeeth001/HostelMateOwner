@@ -1476,10 +1476,26 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Please select a PG first" });
       }
 
+      // Look up tenant to get their userId for payment attribution
+      // Tenant ID is required for payment creation
+      if (!req.body.tenantId) {
+        return res.status(400).json({ error: "Tenant ID is required" });
+      }
+
+      const tenant = await storage.getTenant(parseInt(req.body.tenantId));
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      if (!tenant.userId) {
+        return res.status(400).json({ error: "Tenant must have a user account" });
+      }
+
       // Convert dueDate string to Date object before validation
       const payload = {
         ...req.body,
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+        tenantUserId: tenant.userId, // Add user ID for payment attribution
         ownerId: userId,
         pgId: selectedPgId,
         status: "pending",
