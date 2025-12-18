@@ -1378,7 +1378,8 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       console.error("Delete tenant error:", error);
-      res.status(400).json({ error: "Failed to delete tenant" });
+      // Return detailed error message for debugging
+      res.status(400).json({ error: (error as Error).message || "Failed to delete tenant" });
     }
   });
 
