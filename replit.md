@@ -59,11 +59,14 @@ Core entities include Users, OTP Codes, PG Master, Rooms, Tenants, Emergency Con
     2.  **Onboarding Request Flow:** After visit, tenants submit a 4-step application (personal info, emergency contact, documents), owners review and approve/reject.
 - **Tenant Lifecycle Management:** Complete tracking of tenant housing status and history:
     - **UserType Lifecycle:** Reflects actual housing state - "applicant" (searching for housing) → "tenant" (has housing) → removed → "applicant" (with history preserved)
+    - **Soft-Delete Approach:** Tenants marked as "vacated" (status="vacated") instead of hard deletion, preserving all payment history and tenant records
+    - **Payment Validation:** Deletion blocked if tenant has pending/overdue payments - owner must settle all dues first
     - **Automatic History Creation:** When tenants are removed, a history record is automatically created capturing their stay duration, room assignment, and optional owner feedback
     - **TenantFeedbackDialog:** Rich feedback collection on tenant removal with 1-5 star rating, text feedback, and 12 behavior tags (Quiet, Paid on Time, Clean, Cooperative, Respectful, etc.)
     - **History Display:** Previous PG stays visible to owners during onboarding request review, including ratings, feedback, behavior tags, dates, and room details
     - **Batch Optimization:** Tenant history loading uses efficient batch queries (getBatchTenantHistory) to eliminate N+1 query problems
     - **User Preservation:** When tenants are removed, their user accounts remain intact with userType reverted to "applicant", allowing seamless re-application to different PGs
+    - **Data Cleanup (Dec 2024):** One-time cleanup cancelled 2 legacy pending payments for vacated tenants, marking them as "rejected" with reason "Auto-cancelled: Tenant vacated before payment was settled"
 
 ### Build & Deployment
 
