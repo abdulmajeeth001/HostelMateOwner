@@ -23,9 +23,9 @@ export function TenantRouteGuard({ children, requiresOnboarding = false }: Tenan
 
     // If route requires NOT being onboarded (applicant-only routes like search)
     if (requiresOnboarding === false) {
-      // Only applicants should access these routes
-      if (user.userType === "tenant") {
-        // Any tenant (onboarded or not) trying to access applicant pages
+      // Only applicants and non-onboarded tenants should access these routes
+      if (user.userType === "tenant" && isTenantOnboarded) {
+        // Only ONBOARDED tenants should be redirected to dashboard
         setLocation("/tenant-dashboard");
       }
     } 
