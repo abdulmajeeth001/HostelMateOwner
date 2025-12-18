@@ -49,7 +49,7 @@ interface BillingSummary {
     roomAmount: string;
     tenantCount: number;
   }>;
-  tenantBills: TenantBill[];
+  tenantCharges: TenantBill[];
   totalUnits: string;
   totalAmount: string;
 }
@@ -615,7 +615,7 @@ export function ElectricityBillingDialog({
             <div>
               <h3 className="font-semibold mb-2">Tenant Payment Requests</h3>
               <div className="space-y-2 max-h-60 overflow-y-auto">
-                {summary.tenantBills.map((tenant, idx) => (
+                {summary.tenantCharges.map((tenant, idx) => (
                   <div
                     key={idx}
                     className="flex justify-between items-center p-3 border rounded-lg"
