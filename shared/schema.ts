@@ -174,8 +174,8 @@ export const payments = pgTable("payments", {
   ownerId: integer("owner_id").notNull().references(() => users.id),
   pgId: integer("pg_id").references(() => pgMaster.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  type: text("type").notNull(), // rent, maintenance, other
-  status: text("status").default("pending"), // pending, pending_approval, paid, overdue
+  type: text("type").notNull(), // rent, maintenance, electricity, other
+  status: text("status").default("pending"), // pending, pending_approval, paid, overdue, rejected
   paymentMethod: text("payment_method"), // upi, cash, bank_transfer, other
   transactionId: text("transaction_id"), // UPI transaction ID or reference number
   rejectionReason: text("rejection_reason"), // Reason provided by owner when rejecting payment
@@ -226,6 +226,7 @@ export const rooms = pgTable("rooms", {
   hasAC: boolean("has_ac").default(false), // true if AC, false if no AC
   status: text("status").default("vacant"), // occupied, vacant
   amenities: text("amenities").array().default([]), // WiFi, Water, Power
+  meterNumber: text("meter_number"), // Electricity meter number for this room
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -403,3 +404,71 @@ export const insertOnboardingRequestSchema = createInsertSchema(onboardingReques
 });
 export type InsertOnboardingRequest = z.infer<typeof insertOnboardingRequestSchema>;
 export type OnboardingRequest = typeof onboardingRequests.$inferSelect;
+
+// Electricity Billing Cycles table (tracks monthly billing cycles for electricity)
+export const electricityBillingCycles = pgTable("electricity_billing_cycles", {
+  id: serial("id").primaryKey(),
+  pgId: integer("pg_id").notNull().references(() => pgMaster.id, { onDelete: "cascade" }),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  periodStart: timestamp("period_start").notNull(), // Start date of billing period
+  periodEnd: timestamp("period_end").notNull(), // End date of billing period
+  billingMonth: text("billing_month").notNull(), // Format: YYYY-MM (e.g., "2025-01")
+  invoiceNumber: text("invoice_number"), // Optional invoice reference from electricity provider
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).default("0"), // Total bill amount across all rooms
+  status: text("status").default("draft"), // draft, confirmed, settled
+  confirmedAt: timestamp("confirmed_at"), // When owner confirmed and created payments
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniquePgMonth: sql`UNIQUE (pg_id, billing_month)`,
+}));
+
+export const insertElectricityBillingCycleSchema = createInsertSchema(electricityBillingCycles).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertElectricityBillingCycle = z.infer<typeof insertElectricityBillingCycleSchema>;
+export type ElectricityBillingCycle = typeof electricityBillingCycles.$inferSelect;
+
+// Electricity Room Bills table (meter readings and bill per room)
+export const electricityRoomBills = pgTable("electricity_room_bills", {
+  id: serial("id").primaryKey(),
+  cycleId: integer("cycle_id").notNull().references(() => electricityBillingCycles.id, { onDelete: "cascade" }),
+  roomId: integer("room_id").notNull().references(() => rooms.id),
+  pgId: integer("pg_id").notNull().references(() => pgMaster.id),
+  meterNumber: text("meter_number"), // Meter number for this room
+  previousReading: decimal("previous_reading", { precision: 10, scale: 2 }), // Previous meter reading
+  currentReading: decimal("current_reading", { precision: 10, scale: 2 }).notNull(), // Current meter reading
+  unitsConsumed: decimal("units_consumed", { precision: 10, scale: 2 }).notNull(), // Calculated or manual entry
+  roomAmount: decimal("room_amount", { precision: 10, scale: 2 }).notNull(), // Total bill for this room
+  ratePerUnit: decimal("rate_per_unit", { precision: 10, scale: 4 }), // Rate per unit (optional)
+  notes: text("notes"), // Additional notes
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertElectricityRoomBillSchema = createInsertSchema(electricityRoomBills).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertElectricityRoomBill = z.infer<typeof insertElectricityRoomBillSchema>;
+export type ElectricityRoomBill = typeof electricityRoomBills.$inferSelect;
+
+// Electricity Tenant Charges table (split bill per tenant)
+export const electricityTenantCharges = pgTable("electricity_tenant_charges", {
+  id: serial("id").primaryKey(),
+  roomBillId: integer("room_bill_id").notNull().references(() => electricityRoomBills.id, { onDelete: "cascade" }),
+  cycleId: integer("cycle_id").notNull().references(() => electricityBillingCycles.id, { onDelete: "cascade" }),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  pgId: integer("pg_id").notNull().references(() => pgMaster.id),
+  shareAmount: decimal("share_amount", { precision: 10, scale: 2 }).notNull(), // Tenant's share of room bill
+  dueDate: timestamp("due_date"), // Payment due date
+  paymentId: integer("payment_id").references(() => payments.id), // Links to payment record when created
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertElectricityTenantChargeSchema = createInsertSchema(electricityTenantCharges).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertElectricityTenantCharge = z.infer<typeof insertElectricityTenantChargeSchema>;
+export type ElectricityTenantCharge = typeof electricityTenantCharges.$inferSelect;

@@ -27,6 +27,12 @@ import {
   type InsertOnboardingRequest,
   type TenantHistory,
   type InsertTenantHistory,
+  type ElectricityBillingCycle,
+  type InsertElectricityBillingCycle,
+  type ElectricityRoomBill,
+  type InsertElectricityRoomBill,
+  type ElectricityTenantCharge,
+  type InsertElectricityTenantCharge,
   users,
   otpCodes,
   tenants,
@@ -40,7 +46,10 @@ import {
   pgSubscriptions,
   visitRequests,
   onboardingRequests,
-  tenantHistory
+  tenantHistory,
+  electricityBillingCycles,
+  electricityRoomBills,
+  electricityTenantCharges
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, sql, or, lte, isNull, inArray } from "drizzle-orm";
@@ -186,6 +195,17 @@ export interface IStorage {
   createTenantHistory(data: InsertTenantHistory): Promise<TenantHistory>;
   getTenantHistory(tenantUserId: number): Promise<any[]>;
   updateTenantHistory(id: number, updates: Partial<TenantHistory>): Promise<TenantHistory | undefined>;
+
+  // Electricity Billing Methods
+  createElectricityBillingCycle(data: InsertElectricityBillingCycle): Promise<ElectricityBillingCycle>;
+  getElectricityBillingCycle(id: number): Promise<ElectricityBillingCycle | undefined>;
+  getElectricityBillingCycles(ownerId: number, pgId?: number): Promise<any[]>;
+  updateElectricityBillingCycle(id: number, updates: Partial<ElectricityBillingCycle>): Promise<ElectricityBillingCycle | undefined>;
+  createElectricityRoomBill(data: InsertElectricityRoomBill): Promise<ElectricityRoomBill>;
+  getElectricityRoomBills(cycleId: number): Promise<any[]>;
+  updateElectricityRoomBill(id: number, updates: Partial<ElectricityRoomBill>): Promise<ElectricityRoomBill | undefined>;
+  getElectricityCycleSummary(cycleId: number): Promise<any>;
+  confirmElectricityBillingCycle(cycleId: number, ownerId: number, dueDate?: Date): Promise<{ cycle: ElectricityBillingCycle, paymentsCreated: number, notificationsCreated: number }>;
 
   // Helper Methods
   checkTenantOnboardingStatus(userId: number): Promise<number | null>;
@@ -1738,6 +1758,227 @@ export class DatabaseStorage implements IStorage {
     });
 
     return availableRooms;
+  }
+
+  // Electricity Billing Methods
+  async createElectricityBillingCycle(data: InsertElectricityBillingCycle): Promise<ElectricityBillingCycle> {
+    const result = await db.insert(electricityBillingCycles).values(data).returning();
+    return result[0];
+  }
+
+  async getElectricityBillingCycle(id: number): Promise<ElectricityBillingCycle | undefined> {
+    const result = await db.select().from(electricityBillingCycles).where(eq(electricityBillingCycles.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getElectricityBillingCycles(ownerId: number, pgId?: number): Promise<any[]> {
+    let query = db.select()
+      .from(electricityBillingCycles)
+      .where(eq(electricityBillingCycles.ownerId, ownerId))
+      .orderBy(desc(electricityBillingCycles.createdAt));
+
+    if (pgId) {
+      query = db.select()
+        .from(electricityBillingCycles)
+        .where(
+          and(
+            eq(electricityBillingCycles.ownerId, ownerId),
+            eq(electricityBillingCycles.pgId, pgId)
+          )
+        )
+        .orderBy(desc(electricityBillingCycles.createdAt));
+    }
+
+    return await query;
+  }
+
+  async updateElectricityBillingCycle(id: number, updates: Partial<ElectricityBillingCycle>): Promise<ElectricityBillingCycle | undefined> {
+    const result = await db.update(electricityBillingCycles)
+      .set(updates)
+      .where(eq(electricityBillingCycles.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async createElectricityRoomBill(data: InsertElectricityRoomBill): Promise<ElectricityRoomBill> {
+    const result = await db.insert(electricityRoomBills).values(data).returning();
+    return result[0];
+  }
+
+  async getElectricityRoomBills(cycleId: number): Promise<any[]> {
+    const roomBills = await db.select({
+      id: electricityRoomBills.id,
+      cycleId: electricityRoomBills.cycleId,
+      roomId: electricityRoomBills.roomId,
+      pgId: electricityRoomBills.pgId,
+      meterNumber: electricityRoomBills.meterNumber,
+      previousReading: electricityRoomBills.previousReading,
+      currentReading: electricityRoomBills.currentReading,
+      unitsConsumed: electricityRoomBills.unitsConsumed,
+      roomAmount: electricityRoomBills.roomAmount,
+      ratePerUnit: electricityRoomBills.ratePerUnit,
+      notes: electricityRoomBills.notes,
+      createdAt: electricityRoomBills.createdAt,
+      roomNumber: rooms.roomNumber,
+      sharing: rooms.sharing,
+      tenantIds: rooms.tenantIds,
+    })
+      .from(electricityRoomBills)
+      .leftJoin(rooms, eq(electricityRoomBills.roomId, rooms.id))
+      .where(eq(electricityRoomBills.cycleId, cycleId));
+
+    return roomBills;
+  }
+
+  async updateElectricityRoomBill(id: number, updates: Partial<ElectricityRoomBill>): Promise<ElectricityRoomBill | undefined> {
+    const result = await db.update(electricityRoomBills)
+      .set(updates)
+      .where(eq(electricityRoomBills.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async getElectricityCycleSummary(cycleId: number): Promise<any> {
+    const cycle = await this.getElectricityBillingCycle(cycleId);
+    if (!cycle) {
+      return null;
+    }
+
+    const roomBills = await this.getElectricityRoomBills(cycleId);
+
+    const tenantCharges = await db.select({
+      id: electricityTenantCharges.id,
+      roomBillId: electricityTenantCharges.roomBillId,
+      tenantId: electricityTenantCharges.tenantId,
+      shareAmount: electricityTenantCharges.shareAmount,
+      dueDate: electricityTenantCharges.dueDate,
+      paymentId: electricityTenantCharges.paymentId,
+      tenantName: tenants.name,
+      roomNumber: tenants.roomNumber,
+    })
+      .from(electricityTenantCharges)
+      .leftJoin(tenants, eq(electricityTenantCharges.tenantId, tenants.id))
+      .where(eq(electricityTenantCharges.cycleId, cycleId));
+
+    return {
+      cycle,
+      roomBills,
+      tenantCharges,
+      totalAmount: roomBills.reduce((sum, bill) => sum + Number(bill.roomAmount || 0), 0),
+      totalUnits: roomBills.reduce((sum, bill) => sum + Number(bill.unitsConsumed || 0), 0),
+      totalRooms: roomBills.length,
+      totalTenants: tenantCharges.length,
+    };
+  }
+
+  async confirmElectricityBillingCycle(cycleId: number, ownerId: number, dueDate?: Date): Promise<{ cycle: ElectricityBillingCycle, paymentsCreated: number, notificationsCreated: number }> {
+    return await db.transaction(async (tx) => {
+      const roomBills = await this.getElectricityRoomBills(cycleId);
+      const cycle = await this.getElectricityBillingCycle(cycleId);
+
+      if (!cycle) {
+        throw new Error('Billing cycle not found');
+      }
+
+      if (cycle.status !== 'draft') {
+        throw new Error('Only draft cycles can be confirmed');
+      }
+
+      let paymentsCreated = 0;
+      let notificationsCreated = 0;
+
+      const paymentDueDate = dueDate || new Date(new Date().setDate(new Date().getDate() + 7));
+
+      for (const roomBill of roomBills) {
+        const tenantIds = Array.isArray(roomBill.tenantIds) ? roomBill.tenantIds : [];
+        
+        if (tenantIds.length === 0) {
+          continue;
+        }
+
+        const tenantsList = await tx.select()
+          .from(tenants)
+          .where(
+            and(
+              inArray(tenants.id, tenantIds),
+              eq(tenants.status, 'active')
+            )
+          );
+
+        const activeTenantCount = tenantsList.length;
+        if (activeTenantCount === 0) {
+          continue;
+        }
+
+        const roomAmount = Number(roomBill.roomAmount || 0);
+        const sharePerTenant = roomAmount / activeTenantCount;
+        const roundedShare = Math.round(sharePerTenant * 100) / 100;
+
+        let remainder = roomAmount - (roundedShare * activeTenantCount);
+        remainder = Math.round(remainder * 100) / 100;
+
+        for (let i = 0; i < tenantsList.length; i++) {
+          const tenant = tenantsList[i];
+          let shareAmount = roundedShare;
+
+          if (i === tenantsList.length - 1 && remainder !== 0) {
+            shareAmount = roundedShare + remainder;
+          }
+
+          const tenantCharge = await tx.insert(electricityTenantCharges).values({
+            roomBillId: roomBill.id,
+            cycleId: cycleId,
+            tenantId: tenant.id,
+            ownerId: ownerId,
+            pgId: roomBill.pgId!,
+            shareAmount: shareAmount.toString(),
+            dueDate: paymentDueDate,
+          }).returning();
+
+          const payment = await tx.insert(payments).values({
+            tenantId: tenant.id,
+            ownerId: ownerId,
+            pgId: roomBill.pgId!,
+            amount: shareAmount.toString(),
+            type: 'electricity',
+            status: 'pending',
+            paymentMonth: cycle.billingMonth,
+            generatedAt: new Date(),
+            dueDate: paymentDueDate,
+          }).returning();
+
+          await tx.update(electricityTenantCharges)
+            .set({ paymentId: payment[0].id })
+            .where(eq(electricityTenantCharges.id, tenantCharge[0].id));
+
+          paymentsCreated++;
+
+          if (tenant.userId) {
+            await tx.insert(notifications).values({
+              userId: tenant.userId,
+              title: 'New Electricity Bill',
+              message: `Electricity bill for ${cycle.billingMonth} has been generated. Amount: ₹${shareAmount}. Due date: ${paymentDueDate.toLocaleDateString()}`,
+              type: 'rent_reminder',
+            });
+            notificationsCreated++;
+          }
+        }
+      }
+
+      const updatedCycle = await tx.update(electricityBillingCycles)
+        .set({
+          status: 'confirmed',
+          confirmedAt: new Date(),
+        })
+        .where(eq(electricityBillingCycles.id, cycleId))
+        .returning();
+
+      return {
+        cycle: updatedCycle[0],
+        paymentsCreated,
+        notificationsCreated,
+      };
+    });
   }
 }
 

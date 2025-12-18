@@ -134,6 +134,29 @@ const rejectOnboardingSchema = z.object({
   reason: z.string().min(1),
 });
 
+const createElectricityBillingCycleSchema = z.object({
+  pgId: z.number().int().positive(),
+  periodStart: z.string(),
+  periodEnd: z.string(),
+  billingMonth: z.string(),
+  invoiceNumber: z.string().optional(),
+});
+
+const createElectricityRoomBillSchema = z.object({
+  roomId: z.number().int().positive(),
+  meterNumber: z.string().optional(),
+  previousReading: z.number().nonnegative().optional(),
+  currentReading: z.number().nonnegative(),
+  unitsConsumed: z.number().nonnegative(),
+  roomAmount: z.number().positive(),
+  ratePerUnit: z.number().nonnegative().optional(),
+  notes: z.string().optional(),
+});
+
+const confirmElectricityBillingCycleSchema = z.object({
+  dueDate: z.string().optional(),
+});
+
 // Helper function to generate OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -3397,6 +3420,224 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
     } catch (error) {
       console.error("Reject onboarding request error:", error);
       res.status(400).json({ error: "Failed to reject onboarding request" });
+    }
+  });
+
+  // Electricity Billing Routes
+  app.post("/api/electricity/cycles", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const selectedPgId = req.session?.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected" });
+      }
+
+      const body = createElectricityBillingCycleSchema.parse(req.body);
+
+      if (body.pgId !== selectedPgId) {
+        return res.status(403).json({ error: "Cannot create cycle for a different PG" });
+      }
+
+      const cycle = await storage.createElectricityBillingCycle({
+        ...body,
+        ownerId: userId,
+        periodStart: new Date(body.periodStart),
+        periodEnd: new Date(body.periodEnd),
+      });
+
+      res.json(cycle);
+    } catch (error) {
+      console.error("Create electricity billing cycle error:", error);
+      res.status(400).json({ error: "Failed to create electricity billing cycle" });
+    }
+  });
+
+  app.get("/api/electricity/cycles", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const selectedPgId = req.session?.selectedPgId;
+      const cycles = await storage.getElectricityBillingCycles(userId, selectedPgId);
+
+      res.json(cycles);
+    } catch (error) {
+      console.error("Get electricity billing cycles error:", error);
+      res.status(500).json({ error: "Failed to get electricity billing cycles" });
+    }
+  });
+
+  app.get("/api/electricity/cycles/:id", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const cycleId = parseInt(req.params.id);
+      const cycle = await storage.getElectricityBillingCycle(cycleId);
+
+      if (!cycle) {
+        return res.status(404).json({ error: "Billing cycle not found" });
+      }
+
+      if (cycle.ownerId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      res.json(cycle);
+    } catch (error) {
+      console.error("Get electricity billing cycle error:", error);
+      res.status(500).json({ error: "Failed to get electricity billing cycle" });
+    }
+  });
+
+  app.post("/api/electricity/cycles/:id/room-bills", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const selectedPgId = req.session?.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected" });
+      }
+
+      const cycleId = parseInt(req.params.id);
+      const cycle = await storage.getElectricityBillingCycle(cycleId);
+
+      if (!cycle) {
+        return res.status(404).json({ error: "Billing cycle not found" });
+      }
+
+      if (cycle.ownerId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      if (cycle.status !== 'draft') {
+        return res.status(400).json({ error: "Cannot modify confirmed billing cycle" });
+      }
+
+      const body = createElectricityRoomBillSchema.parse(req.body);
+
+      const room = await storage.getRoom(body.roomId);
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+
+      if (room.pgId !== selectedPgId || room.ownerId !== userId) {
+        return res.status(403).json({ error: "This room does not belong to your selected PG" });
+      }
+
+      const roomBill = await storage.createElectricityRoomBill({
+        ...body,
+        cycleId,
+        pgId: selectedPgId,
+        previousReading: body.previousReading?.toString(),
+        currentReading: body.currentReading.toString(),
+        unitsConsumed: body.unitsConsumed.toString(),
+        roomAmount: body.roomAmount.toString(),
+        ratePerUnit: body.ratePerUnit?.toString(),
+      });
+
+      res.json(roomBill);
+    } catch (error) {
+      console.error("Create electricity room bill error:", error);
+      res.status(400).json({ error: "Failed to create electricity room bill" });
+    }
+  });
+
+  app.get("/api/electricity/cycles/:id/summary", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const cycleId = parseInt(req.params.id);
+      const cycle = await storage.getElectricityBillingCycle(cycleId);
+
+      if (!cycle) {
+        return res.status(404).json({ error: "Billing cycle not found" });
+      }
+
+      if (cycle.ownerId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const summary = await storage.getElectricityCycleSummary(cycleId);
+
+      res.json(summary);
+    } catch (error) {
+      console.error("Get electricity cycle summary error:", error);
+      res.status(500).json({ error: "Failed to get electricity cycle summary" });
+    }
+  });
+
+  app.post("/api/electricity/cycles/:id/confirm", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const cycleId = parseInt(req.params.id);
+      const cycle = await storage.getElectricityBillingCycle(cycleId);
+
+      if (!cycle) {
+        return res.status(404).json({ error: "Billing cycle not found" });
+      }
+
+      if (cycle.ownerId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const body = confirmElectricityBillingCycleSchema.parse(req.body);
+      const dueDate = body.dueDate ? new Date(body.dueDate) : undefined;
+
+      const result = await storage.confirmElectricityBillingCycle(cycleId, userId, dueDate);
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Confirm electricity billing cycle error:", error);
+      res.status(400).json({ error: error.message || "Failed to confirm electricity billing cycle" });
     }
   });
 
