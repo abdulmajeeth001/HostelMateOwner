@@ -105,10 +105,12 @@ export function ElectricityBillingDialog({
       const res = await fetch("/api/rooms", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
-        setRooms(data);
+        // Extract room objects from the nested structure { room: {...}, tenants: [...] }
+        const roomData = data.map((item: any) => item.room);
+        setRooms(roomData);
         // Initialize room bills with default values
         setRoomBills(
-          data.map((room: Room) => ({
+          roomData.map((room: Room) => ({
             roomId: room.id,
             roomNumber: room.roomNumber,
             meterNumber: "",
