@@ -2193,9 +2193,23 @@ export async function registerRoutes(
 
   app.post("/api/rooms/seed", async (req, res) => {
     try {
-      const userId = (req.session && req.session.userId) || 1;
-      await storage.seedInitialRooms(userId);
-      res.json({ success: true, message: "Rooms and tenants seeded successfully" });
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const selectedPgId = req.session!.selectedPgId;
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "Please select a PG first" });
+      }
+      
+      const pg = await storage.getPgById(selectedPgId);
+      if (!pg || pg.ownerId !== userId) {
+        return res.status(400).json({ error: "Invalid PG selected" });
+      }
+
+      await storage.seedInitialRooms(userId, pg.id);
+      res.json({ success: true, message: "Rooms seeded successfully" });
     } catch (error) {
       console.error("Seed error:", error);
       res.status(400).json({ error: "Failed to seed rooms", details: (error as any).message });
