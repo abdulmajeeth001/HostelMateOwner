@@ -275,9 +275,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid or expired OTP" });
       }
 
-      // Create user
+      // Create user with corrected userType
+      // Users who select "tenant" during signup are actually applicants (searching for housing)
+      // They only become "tenant" after being approved in onboarding
       const user = await storage.createUser({
         ...registrationData,
+        userType: registrationData.userType === "tenant" ? "applicant" : registrationData.userType,
         isVerified: true,
       });
 
