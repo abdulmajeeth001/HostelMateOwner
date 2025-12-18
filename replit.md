@@ -8,6 +8,8 @@ WinkStay is a comprehensive PG (Paying Guest) hostel management application for 
 
 Preferred communication style: Simple, everyday language.
 
+**Important:** Always update this file (replit.md) whenever new functionality is added or existing functionality changes. This ensures accurate documentation for future sessions.
+
 ## System Architecture
 
 ### Technology Stack
@@ -32,18 +34,36 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Schema
 
-Core entities include Users, OTP Codes, PG Master, Rooms, Tenants, Emergency Contacts, Payments, Notifications, Visit Requests, and Onboarding Requests.
+Core entities include Users, OTP Codes, PG Master, Rooms, Tenants, Emergency Contacts, Payments, Notifications, Visit Requests, Onboarding Requests, and Tenant History.
+
+**Tenant History Table:** Tracks complete tenant lifecycle across different PG stays. Fields include:
+- `tenantUserId`: Links to user account (preserved after tenant removal)
+- `pgId`: PG where tenant stayed (nullable for edge cases)
+- `roomId`, `roomNumber`: Room assignment details
+- `moveInDate`, `moveOutDate`: Stay duration tracking
+- `ownerFeedback`: Optional text feedback from owner
+- `rating`: 1-5 star rating (optional)
+- `behaviorTags`: Array of behavior descriptors (Quiet, Paid on Time, Clean, Cooperative, etc.)
+- `recordedByOwnerId`: Owner who created the record
+- `verificationStatus`: Validation state (verified/pending)
 
 ### Key Features
 
 - **Multi-PG Support:** Owners can manage multiple properties with PG context switching.
 - **Data Compression:** Large binary data (images, documents) are gzip-compressed and base64 encoded for storage.
-- **Responsive Design:** Mobile-first approach with separate layouts (MobileLayout, DesktopLayout), `useIsMobile` hook, and PWA manifest.
+- **Responsive Design:** Mobile-first approach with separate layouts (MobileLayout, DesktopLayout), `useIsMobile` hook, and PWA manifest. Navigation is simplified to use userType alone (reflects actual housing status: applicant vs tenant).
 - **State Management:** React Query for server state caching, custom hooks for user/PG context.
 - **Automated Payment Generation:** Monthly rent payment generation with duplicate prevention, in-app and email notifications. Configurable per PG with `rentPaymentDate`. Manual trigger available.
 - **Onboarding System:** Two-stage process:
     1.  **Visit Request Flow:** Prospective tenants request visits, owners approve/reschedule/cancel.
     2.  **Onboarding Request Flow:** After visit, tenants submit a 4-step application (personal info, emergency contact, documents), owners review and approve/reject.
+- **Tenant Lifecycle Management:** Complete tracking of tenant housing status and history:
+    - **UserType Lifecycle:** Reflects actual housing state - "applicant" (searching for housing) → "tenant" (has housing) → removed → "applicant" (with history preserved)
+    - **Automatic History Creation:** When tenants are removed, a history record is automatically created capturing their stay duration, room assignment, and optional owner feedback
+    - **TenantFeedbackDialog:** Rich feedback collection on tenant removal with 1-5 star rating, text feedback, and 12 behavior tags (Quiet, Paid on Time, Clean, Cooperative, Respectful, etc.)
+    - **History Display:** Previous PG stays visible to owners during onboarding request review, including ratings, feedback, behavior tags, dates, and room details
+    - **Batch Optimization:** Tenant history loading uses efficient batch queries (getBatchTenantHistory) to eliminate N+1 query problems
+    - **User Preservation:** When tenants are removed, their user accounts remain intact with userType reverted to "applicant", allowing seamless re-application to different PGs
 
 ### Build & Deployment
 
