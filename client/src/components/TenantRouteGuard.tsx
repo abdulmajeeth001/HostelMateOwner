@@ -40,7 +40,7 @@ export function TenantRouteGuard({ children, requiresOnboarding = false }: Tenan
         setLocation("/tenant-search-pgs");
       }
     }
-  }, [isLoading, user, isTenantOnboarded, isApplicant, requiresOnboarding, location, setLocation]);
+  }, [isLoading, user, isTenantOnboarded, isApplicant, requiresOnboarding, setLocation]);
 
   // Show loading state while user is being fetched
   if (isLoading) {
