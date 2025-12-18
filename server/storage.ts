@@ -545,6 +545,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPayment(payment: InsertPayment): Promise<Payment> {
+    // Defensive check: If tenantId is provided, tenantUserId must also be provided
+    // This prevents payment attribution loss after tenant deletion
+    if (payment.tenantId && !payment.tenantUserId) {
+      throw new Error(`Cannot create payment for tenant ${payment.tenantId} without tenantUserId. Payment attribution would be lost after tenant deletion.`);
+    }
+    
     const result = await db.insert(payments).values(payment).returning();
     return result[0];
   }
@@ -602,10 +608,10 @@ export class DatabaseStorage implements IStorage {
     return existingPayment.length > 0;
   }
 
-  async generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<{ created: Payment[], skipped: number, notified: number, emailed: number }> {
+  async generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<{ created: Payment[], skipped: number, notified: number, emailed: number, tenantsWithoutAccounts: Array<{id: number, name: string, roomNumber: string}> }> {
     const pg = await this.getPgById(pgId);
     if (!pg || !pg.rentPaymentDate) {
-      return { created: [], skipped: 0, notified: 0, emailed: 0 };
+      return { created: [], skipped: 0, notified: 0, emailed: 0, tenantsWithoutAccounts: [] };
     }
 
     const pgTenants = await db.select().from(tenants)
@@ -615,6 +621,7 @@ export class DatabaseStorage implements IStorage {
     let skippedCount = 0;
     let notifiedCount = 0;
     let emailedCount = 0;
+    const tenantsWithoutAccounts: Array<{id: number, name: string, roomNumber: string}> = [];
 
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -651,10 +658,22 @@ export class DatabaseStorage implements IStorage {
         continue;
       }
 
+      // Skip tenants without userId - they cannot have attributable payments
+      // Collect these tenants so owner can be notified to fix the issue
+      if (!tenant.userId) {
+        tenantsWithoutAccounts.push({
+          id: tenant.id,
+          name: tenant.name,
+          roomNumber: tenant.roomNumber
+        });
+        skippedCount++;
+        continue;
+      }
+
       // Create payment
       const payment = await this.createPayment({
         tenantId: tenant.id,
-        tenantUserId: tenant.userId || null, // Store user ID for attribution even after tenant deletion
+        tenantUserId: tenant.userId, // Store user ID for attribution even after tenant deletion
         ownerId: ownerId,
         pgId: pgId,
         amount: tenant.monthlyRent.toString(),
@@ -716,7 +735,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(pgMaster.id, pgId));
 
-    return { created: createdPayments, skipped: skippedCount, notified: notifiedCount, emailed: emailedCount };
+    return { created: createdPayments, skipped: skippedCount, notified: notifiedCount, emailed: emailedCount, tenantsWithoutAccounts };
   }
 
   // Notifications
