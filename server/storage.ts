@@ -25,6 +25,8 @@ import {
   type InsertVisitRequest,
   type OnboardingRequest,
   type InsertOnboardingRequest,
+  type TenantHistory,
+  type InsertTenantHistory,
   users,
   otpCodes,
   tenants,
@@ -37,7 +39,8 @@ import {
   subscriptionPlans,
   pgSubscriptions,
   visitRequests,
-  onboardingRequests
+  onboardingRequests,
+  tenantHistory
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, sql, or, lte, isNull } from "drizzle-orm";
@@ -65,7 +68,7 @@ export interface IStorage {
   getAvailableTenants(ownerId: number, pgId?: number): Promise<Tenant[]>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, updates: Partial<Tenant>): Promise<Tenant | undefined>;
-  deleteTenant(id: number): Promise<void>;
+  deleteTenant(id: number, feedback?: { ownerFeedback?: string, rating?: number, behaviorTags?: string[], recordedByOwnerId: number }): Promise<void>;
   
   // Payments
   getPayment(id: number): Promise<Payment | undefined>;
@@ -178,6 +181,11 @@ export interface IStorage {
   getOnboardingRequestByTenant(tenantUserId: number, pgId: number): Promise<OnboardingRequest | undefined>;
   approveOnboardingRequest(id: number): Promise<OnboardingRequest | undefined>;
   rejectOnboardingRequest(id: number, reason: string): Promise<OnboardingRequest | undefined>;
+
+  // Tenant History Methods
+  createTenantHistory(data: InsertTenantHistory): Promise<TenantHistory>;
+  getTenantHistory(tenantUserId: number): Promise<any[]>;
+  updateTenantHistory(id: number, updates: Partial<TenantHistory>): Promise<TenantHistory | undefined>;
 
   // Helper Methods
   checkTenantOnboardingStatus(userId: number): Promise<number | null>;
@@ -387,7 +395,52 @@ export class DatabaseStorage implements IStorage {
     return updatedTenant;
   }
 
-  async deleteTenant(id: number): Promise<void> {
+  async deleteTenant(id: number, feedback?: { ownerFeedback?: string, rating?: number, behaviorTags?: string[], recordedByOwnerId: number }): Promise<void> {
+    // Get tenant info before deletion for history record
+    const tenant = await this.getTenant(id);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    // Create history record if tenant has a user account, pgId, and feedback is provided
+    // Skip history creation if pgId is missing (tenant was never properly assigned to a PG)
+    if (tenant.userId && tenant.pgId && feedback) {
+      const historyData: InsertTenantHistory = {
+        tenantUserId: tenant.userId,
+        pgId: tenant.pgId,
+        roomId: tenant.roomId || null,
+        roomNumber: tenant.roomNumber,
+        moveInDate: tenant.createdAt || new Date(), // Use tenant creation date as move-in
+        moveOutDate: new Date(), // Current date as move-out
+        ownerFeedback: feedback.ownerFeedback || null,
+        rating: feedback.rating || null,
+        behaviorTags: feedback.behaviorTags || [],
+        recordedByOwnerId: feedback.recordedByOwnerId,
+        verificationStatus: "verified"
+      };
+      
+      await this.createTenantHistory(historyData);
+    }
+
+    // Update user type back to applicant if tenant has a user account
+    if (tenant.userId) {
+      await db.update(users)
+        .set({ userType: "applicant" })
+        .where(eq(users.id, tenant.userId));
+    }
+
+    // Remove tenant from room's tenantIds array
+    if (tenant.roomId) {
+      const room = await this.getRoom(tenant.roomId);
+      if (room && Array.isArray(room.tenantIds)) {
+        const updatedTenantIds = room.tenantIds.filter(tid => tid !== id);
+        await this.updateRoom(tenant.roomId, {
+          tenantIds: updatedTenantIds
+        });
+      }
+    }
+
+    // Finally, delete the tenant record
     await db.delete(tenants).where(eq(tenants.id, id));
   }
 
@@ -659,12 +712,10 @@ export class DatabaseStorage implements IStorage {
 
   // Notifications
   async getNotifications(userId: number, pgId?: number): Promise<Notification[]> {
-    if (pgId) {
-      return await db.select().from(notifications)
-        .where(and(eq(notifications.userId, userId), eq(notifications.pgId, pgId)))
-        .orderBy(desc(notifications.createdAt));
-    }
-    return await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt));
+    // Note: notifications table doesn't have pgId field, so we ignore the pgId parameter
+    return await db.select().from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
   }
 
   async createNotification(notification: InsertNotification): Promise<Notification> {
@@ -706,16 +757,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRoomWithTenant(roomId: number): Promise<any> {
-    const result = await db
-      .select({
-        room: rooms,
-        tenant: tenants,
-      })
-      .from(rooms)
-      .leftJoin(tenants, eq(rooms.tenantId, tenants.id))
-      .where(eq(rooms.id, roomId))
-      .limit(1);
-    return result[0];
+    // Get room with its tenants using the tenantIds array
+    const room = await this.getRoom(roomId);
+    if (!room) return undefined;
+    
+    let tenants: any[] = [];
+    if (room.tenantIds && Array.isArray(room.tenantIds) && room.tenantIds.length > 0) {
+      tenants = await Promise.all(
+        room.tenantIds.map(id => this.getTenant(id))
+      );
+      tenants = tenants.filter(Boolean);
+    }
+    
+    return { room, tenants };
   }
 
   async getRoomByNumber(ownerId: number, roomNumber: string, pgId?: number): Promise<Room | undefined> {
@@ -761,7 +815,7 @@ export class DatabaseStorage implements IStorage {
           
           // Calculate status dynamically based on actual tenant count
           let status = "vacant";
-          if (tenants.length > 0) {
+          if (tenants.length > 0 && room.sharing) {
             if (tenants.length >= room.sharing) {
               status = "occupied";
             } else {
@@ -1559,6 +1613,41 @@ export class DatabaseStorage implements IStorage {
       .where(eq(onboardingRequests.id, id))
       .returning();
     
+    return result[0];
+  }
+
+  // Tenant History Methods
+  async createTenantHistory(data: InsertTenantHistory): Promise<TenantHistory> {
+    const result = await db.insert(tenantHistory).values(data).returning();
+    return result[0];
+  }
+
+  async getTenantHistory(tenantUserId: number): Promise<any[]> {
+    const results = await db.select({
+      history: tenantHistory,
+      pgName: pgMaster.pgName,
+      pgAddress: pgMaster.pgAddress,
+      ownerName: users.name
+    })
+      .from(tenantHistory)
+      .leftJoin(pgMaster, eq(tenantHistory.pgId, pgMaster.id))
+      .leftJoin(users, eq(tenantHistory.recordedByOwnerId, users.id))
+      .where(eq(tenantHistory.tenantUserId, tenantUserId))
+      .orderBy(desc(tenantHistory.moveOutDate));
+
+    return results.map(r => ({
+      ...r.history,
+      pgName: r.pgName,
+      pgAddress: r.pgAddress,
+      ownerName: r.ownerName
+    }));
+  }
+
+  async updateTenantHistory(id: number, updates: Partial<TenantHistory>): Promise<TenantHistory | undefined> {
+    const result = await db.update(tenantHistory)
+      .set(updates)
+      .where(eq(tenantHistory.id, id))
+      .returning();
     return result[0];
   }
 

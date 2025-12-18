@@ -143,6 +143,30 @@ export const insertEmergencyContactSchema = createInsertSchema(emergencyContacts
 export type InsertEmergencyContact = z.infer<typeof insertEmergencyContactSchema>;
 export type EmergencyContact = typeof emergencyContacts.$inferSelect;
 
+// Tenant History table - Tracks tenant's previous stays across PGs for credibility
+export const tenantHistory = pgTable("tenant_history", {
+  id: serial("id").primaryKey(),
+  tenantUserId: integer("tenant_user_id").notNull().references(() => users.id), // User account of the tenant
+  pgId: integer("pg_id").references(() => pgMaster.id), // Which PG they stayed at (optional - some tenants may not have pgId)
+  roomId: integer("room_id").references(() => rooms.id), // Which room (optional)
+  roomNumber: text("room_number"), // Room number as backup if room deleted
+  moveInDate: timestamp("move_in_date").notNull(), // When they moved in
+  moveOutDate: timestamp("move_out_date").notNull(), // When they moved out
+  ownerFeedback: text("owner_feedback"), // Owner's feedback about the tenant
+  rating: integer("rating"), // 1-5 star rating from owner
+  behaviorTags: text("behavior_tags").array().default([]), // quiet, paid_on_time, cooperative, etc.
+  recordedByOwnerId: integer("recorded_by_owner_id").notNull().references(() => users.id), // Which owner recorded this
+  verificationStatus: text("verification_status").default("verified"), // verified, pending, disputed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTenantHistorySchema = createInsertSchema(tenantHistory).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertTenantHistory = z.infer<typeof insertTenantHistorySchema>;
+export type TenantHistory = typeof tenantHistory.$inferSelect;
+
 // Payments table
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
