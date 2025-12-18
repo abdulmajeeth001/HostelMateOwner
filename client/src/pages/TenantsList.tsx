@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { useState, useMemo } from "react";
 import { TenantBulkUploadModal } from "@/components/TenantBulkUploadModal";
+import { TenantFeedbackDialog } from "@/components/TenantFeedbackDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
@@ -41,7 +42,7 @@ function TenantsListDesktop() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
-  const [deletingTenantId, setDeletingTenantId] = useState<number | null>(null);
+  const [deletingTenant, setDeletingTenant] = useState<{ id: number; name: string } | null>(null);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -55,16 +56,28 @@ function TenantsListDesktop() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async ({ id, feedback }: { id: number; feedback?: { ownerFeedback?: string; rating?: number; behaviorTags?: string[] } }) => {
       const response = await fetch(`/api/tenants/${id}`, {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(feedback || {}),
       });
-      if (!response.ok) throw new Error("Failed to delete tenant");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete tenant");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tenants"] });
-      setDeletingTenantId(null);
+      toast.success("Tenant removed successfully");
+      setDeletingTenant(null);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+      setDeletingTenant(null); // Close dialog even on error
     },
   });
 
@@ -314,7 +327,7 @@ function TenantsListDesktop() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:bg-red-50 focus:text-red-600"
-                            onClick={() => setDeletingTenantId(tenant.id)}
+                            onClick={() => setDeletingTenant({ id: tenant.id, name: tenant.name })}
                             data-testid={`button-delete-tenant-${tenant.id}`}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
@@ -368,30 +381,19 @@ function TenantsListDesktop() {
         </Card>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingTenantId} onOpenChange={(open) => !open && setDeletingTenantId(null)}>
-        <AlertDialogContent>
-          <AlertDialogTitle>Delete Tenant</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete this tenant? This action cannot be undone.
-          </AlertDialogDescription>
-          <div className="flex gap-3 justify-end">
-            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
-            <Button 
-              variant="destructive"
-              onClick={() => {
-                if (deletingTenantId) {
-                  deleteMutation.mutate(deletingTenantId);
-                }
-              }}
-              disabled={deleteMutation.isPending}
-              data-testid="button-confirm-delete"
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </Button>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Tenant Feedback Dialog */}
+      <TenantFeedbackDialog
+        open={!!deletingTenant}
+        onOpenChange={(open) => !open && setDeletingTenant(null)}
+        tenantName={deletingTenant?.name || ""}
+        onSubmit={(feedback) => {
+          if (deletingTenant) {
+            deleteMutation.mutate({ id: deletingTenant.id, feedback });
+          }
+        }}
+        onCancel={() => setDeletingTenant(null)}
+        isLoading={deleteMutation.isPending}
+      />
 
       <TenantBulkUploadModal 
         open={bulkUploadOpen} 
@@ -408,7 +410,7 @@ function TenantsListMobile() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
-  const [deletingTenantId, setDeletingTenantId] = useState<number | null>(null);
+  const [deletingTenant, setDeletingTenant] = useState<{ id: number; name: string } | null>(null);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -422,17 +424,29 @@ function TenantsListMobile() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async ({ id, feedback }: { id: number; feedback?: { ownerFeedback?: string; rating?: number; behaviorTags?: string[] } }) => {
       const response = await fetch(`/api/tenants/${id}`, {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include",
+        body: JSON.stringify(feedback || {}),
       });
-      if (!response.ok) throw new Error("Failed to delete tenant");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete tenant");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tenants"] });
-      setDeletingTenantId(null);
+      toast.success("Tenant removed successfully");
+      setDeletingTenant(null);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+      setDeletingTenant(null); // Close dialog even on error
     },
   });
 
@@ -649,7 +663,7 @@ function TenantsListMobile() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:bg-red-50 focus:text-red-600"
-                          onClick={() => setDeletingTenantId(tenant.id)}
+                          onClick={() => setDeletingTenant({ id: tenant.id, name: tenant.name })}
                           data-testid={`button-delete-tenant-mobile-${tenant.id}`}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -690,30 +704,19 @@ function TenantsListMobile() {
         </div>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingTenantId} onOpenChange={(open) => !open && setDeletingTenantId(null)}>
-        <AlertDialogContent>
-          <AlertDialogTitle>Delete Tenant</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete this tenant? This action cannot be undone.
-          </AlertDialogDescription>
-          <div className="flex gap-3 justify-end">
-            <AlertDialogCancel data-testid="button-cancel-delete-mobile">Cancel</AlertDialogCancel>
-            <Button 
-              variant="destructive"
-              onClick={() => {
-                if (deletingTenantId) {
-                  deleteMutation.mutate(deletingTenantId);
-                }
-              }}
-              disabled={deleteMutation.isPending}
-              data-testid="button-confirm-delete-mobile"
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </Button>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Tenant Feedback Dialog */}
+      <TenantFeedbackDialog
+        open={!!deletingTenant}
+        onOpenChange={(open) => !open && setDeletingTenant(null)}
+        tenantName={deletingTenant?.name || ""}
+        onSubmit={(feedback) => {
+          if (deletingTenant) {
+            deleteMutation.mutate({ id: deletingTenant.id, feedback });
+          }
+        }}
+        onCancel={() => setDeletingTenant(null)}
+        isLoading={deleteMutation.isPending}
+      />
 
       <TenantBulkUploadModal 
         open={bulkUploadOpen} 

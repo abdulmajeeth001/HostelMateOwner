@@ -43,7 +43,7 @@ import {
   tenantHistory
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte, sql, or, lte, isNull } from "drizzle-orm";
+import { eq, and, desc, gte, sql, or, lte, isNull, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
 
@@ -402,9 +402,10 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Tenant not found");
     }
 
-    // Create history record if tenant has a user account, pgId, and feedback is provided
-    // Skip history creation if pgId is missing (tenant was never properly assigned to a PG)
-    if (tenant.userId && tenant.pgId && feedback) {
+    // Create history record if tenant has a user account and pgId
+    // Always create history to track tenant lifecycle, even without feedback
+    // Skip only if pgId is missing (tenant was never properly assigned to a PG)
+    if (tenant.userId && tenant.pgId) {
       const historyData: InsertTenantHistory = {
         tenantUserId: tenant.userId,
         pgId: tenant.pgId,
@@ -412,10 +413,10 @@ export class DatabaseStorage implements IStorage {
         roomNumber: tenant.roomNumber,
         moveInDate: tenant.createdAt || new Date(), // Use tenant creation date as move-in
         moveOutDate: new Date(), // Current date as move-out
-        ownerFeedback: feedback.ownerFeedback || null,
-        rating: feedback.rating || null,
-        behaviorTags: feedback.behaviorTags || [],
-        recordedByOwnerId: feedback.recordedByOwnerId,
+        ownerFeedback: feedback?.ownerFeedback || null,
+        rating: feedback?.rating || null,
+        behaviorTags: feedback?.behaviorTags || [],
+        recordedByOwnerId: feedback?.recordedByOwnerId || tenant.ownerId, // Use tenant's owner if no feedback
         verificationStatus: "verified"
       };
       
@@ -1641,6 +1642,42 @@ export class DatabaseStorage implements IStorage {
       pgAddress: r.pgAddress,
       ownerName: r.ownerName
     }));
+  }
+
+  async getBatchTenantHistory(tenantUserIds: number[]): Promise<Map<number, any[]>> {
+    if (tenantUserIds.length === 0) {
+      return new Map();
+    }
+
+    const results = await db.select({
+      history: tenantHistory,
+      pgName: pgMaster.pgName,
+      pgAddress: pgMaster.pgAddress,
+      ownerName: users.name
+    })
+      .from(tenantHistory)
+      .leftJoin(pgMaster, eq(tenantHistory.pgId, pgMaster.id))
+      .leftJoin(users, eq(tenantHistory.recordedByOwnerId, users.id))
+      .where(inArray(tenantHistory.tenantUserId, tenantUserIds))
+      .orderBy(desc(tenantHistory.moveOutDate));
+
+    // Group results by tenantUserId
+    const historyMap = new Map<number, any[]>();
+    
+    results.forEach(r => {
+      const userId = r.history.tenantUserId;
+      if (!historyMap.has(userId)) {
+        historyMap.set(userId, []);
+      }
+      historyMap.get(userId)!.push({
+        ...r.history,
+        pgName: r.pgName,
+        pgAddress: r.pgAddress,
+        ownerName: r.ownerName
+      });
+    });
+
+    return historyMap;
   }
 
   async updateTenantHistory(id: number, updates: Partial<TenantHistory>): Promise<TenantHistory | undefined> {

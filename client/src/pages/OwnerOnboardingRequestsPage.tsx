@@ -39,11 +39,27 @@ import {
   Users,
   ClipboardCheck,
   FileCheck,
+  Star,
+  Calendar,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { usePG } from "@/hooks/use-pg";
+
+interface TenantHistory {
+  id: number;
+  pgName?: string;
+  pgAddress?: string;
+  roomNumber?: string;
+  moveInDate: string;
+  moveOutDate: string;
+  ownerFeedback?: string;
+  rating?: number;
+  behaviorTags?: string[];
+  ownerName?: string;
+}
 
 interface OnboardingRequest {
   id: number;
@@ -66,6 +82,7 @@ interface OnboardingRequest {
   rejectionReason?: string;
   createdAt: string;
   approvedAt?: string;
+  tenantHistory?: TenantHistory[];
 }
 
 const STATUS_CONFIG = {
@@ -760,6 +777,86 @@ function OwnerOnboardingRequestsPageDesktop() {
                     )}
                   </div>
                 </div>
+
+                {/* Tenant History */}
+                {detailsDialog.request.tenantHistory && detailsDialog.request.tenantHistory.length > 0 && (
+                  <div className="space-y-3 border-t pt-4">
+                    <div className="flex items-center gap-2">
+                      <History className="w-5 h-5 text-purple-600" />
+                      <h4 className="font-semibold">Previous PG Stays</h4>
+                      <Badge variant="secondary" className="ml-2">{detailsDialog.request.tenantHistory.length}</Badge>
+                    </div>
+                    <div className="space-y-3">
+                      {detailsDialog.request.tenantHistory.map((history, index) => (
+                        <div key={history.id} className="bg-secondary/50 p-4 rounded-lg border" data-testid={`history-${index}`}>
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm">{history.pgName || "Previous PG"}</p>
+                              <p className="text-xs text-muted-foreground">{history.pgAddress || "N/A"}</p>
+                            </div>
+                            {history.rating && (
+                              <div className="flex items-center gap-1">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={cn(
+                                      "w-4 h-4",
+                                      i < history.rating! ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                                    )}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+                            {history.moveInDate && (
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Calendar className="w-3 h-3" />
+                                <span>Move-in: {format(new Date(history.moveInDate), "MMM yyyy")}</span>
+                              </div>
+                            )}
+                            {history.moveOutDate && (
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Calendar className="w-3 h-3" />
+                                <span>Move-out: {format(new Date(history.moveOutDate), "MMM yyyy")}</span>
+                              </div>
+                            )}
+                            {history.roomNumber && (
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <MapPin className="w-3 h-3" />
+                                <span>Room: {history.roomNumber}</span>
+                              </div>
+                            )}
+                            {history.ownerName && (
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <User className="w-3 h-3" />
+                                <span>Owner: {history.ownerName}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {history.behaviorTags && history.behaviorTags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {history.behaviorTags.map((tag, i) => (
+                                <Badge key={i} variant="outline" className="text-xs px-2 py-0.5 bg-purple-50 border-purple-200 text-purple-700">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          {history.ownerFeedback && (
+                            <div className="mt-2 pt-2 border-t">
+                              <p className="text-xs text-muted-foreground mb-1">Owner Feedback:</p>
+                              <p className="text-sm italic text-foreground/80">"{history.ownerFeedback}"</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <DialogFooter>

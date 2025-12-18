@@ -1357,11 +1357,24 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized to delete this tenant" });
       }
 
+      // Extract optional feedback from request body
+      const { ownerFeedback, rating, behaviorTags } = req.body || {};
+      
+      // Always prepare feedback object to ensure history is created
+      // Even if all fields are empty, we want to track the deletion
+      const feedback: { ownerFeedback?: string, rating?: number, behaviorTags?: string[], recordedByOwnerId: number } = {
+        ownerFeedback: ownerFeedback || undefined,
+        rating: rating ? parseInt(rating) : undefined,
+        behaviorTags: behaviorTags || [],
+        recordedByOwnerId: ownerId
+      };
+
       // Delete tenant and associated emergency contacts
       await storage.deleteEmergencyContactsByTenant(parseInt(req.params.id));
-      await storage.deleteTenant(parseInt(req.params.id));
+      await storage.deleteTenant(parseInt(req.params.id), feedback);
       res.json({ success: true });
     } catch (error) {
+      console.error("Delete tenant error:", error);
       res.status(400).json({ error: "Failed to delete tenant" });
     }
   });
@@ -3231,7 +3244,22 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const onboardingRequests = await storage.getOnboardingRequestsByOwner(userId, selectedPgId);
-      res.json(onboardingRequests);
+      
+      // Batch fetch tenant history for all applicants (eliminates N+1 query)
+      const tenantUserIds = onboardingRequests
+        .map((req: any) => req.tenantUserId)
+        .filter((id: number | undefined): id is number => id !== undefined && id !== null);
+      
+      const historyMap = tenantUserIds.length > 0 
+        ? await storage.getBatchTenantHistory(tenantUserIds)
+        : new Map();
+      
+      const requestsWithHistory = onboardingRequests.map((request: any) => ({
+        ...request,
+        tenantHistory: request.tenantUserId ? (historyMap.get(request.tenantUserId) || []) : []
+      }));
+      
+      res.json(requestsWithHistory);
     } catch (error) {
       console.error("Get onboarding requests error:", error);
       res.status(500).json({ error: "Failed to get onboarding requests" });

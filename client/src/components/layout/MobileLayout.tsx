@@ -140,18 +140,16 @@ export default function MobileLayout({
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
-  // Select navigation based on user type and onboarding status
-  // Non-onboarded tenants see applicant navigation (search-focused)
-  // Onboarded tenants see full tenant navigation (resident features)
+  // Select navigation based on user type
+  // Note: userType now reflects actual state - "applicant" = searching for housing, "tenant" = has housing
+  // When a tenant is removed, their userType reverts to "applicant"
   const sideNavItems = user?.userType === "admin" ? adminSideNavItems 
     : user?.userType === "applicant" ? applicantSideNavItems
-    : user?.userType === "tenant" && isTenantOnboarded ? tenantSideNavItems 
-    : user?.userType === "tenant" && !isTenantOnboarded ? applicantSideNavItems
+    : user?.userType === "tenant" ? tenantSideNavItems 
     : ownerSideNavItems;
   const bottomNavItems = user?.userType === "admin" ? adminBottomNavItems 
     : user?.userType === "applicant" ? applicantBottomNavItems
-    : user?.userType === "tenant" && isTenantOnboarded ? tenantBottomNavItems 
-    : user?.userType === "tenant" && !isTenantOnboarded ? applicantBottomNavItems
+    : user?.userType === "tenant" ? tenantBottomNavItems 
     : ownerBottomNavItems;
 
   return (
