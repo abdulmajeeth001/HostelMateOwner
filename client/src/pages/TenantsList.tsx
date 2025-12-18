@@ -71,9 +71,9 @@ function TenantsListDesktop() {
       return response.json();
     },
     onSuccess: () => {
+      setDeletingTenant(null); // Close dialog first
       queryClient.invalidateQueries({ queryKey: ["tenants"] });
       toast.success("Tenant removed successfully");
-      setDeletingTenant(null);
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -440,9 +440,9 @@ function TenantsListMobile() {
       return response.json();
     },
     onSuccess: () => {
+      setDeletingTenant(null); // Close dialog first
       queryClient.invalidateQueries({ queryKey: ["tenants"] });
       toast.success("Tenant removed successfully");
-      setDeletingTenant(null);
     },
     onError: (error: Error) => {
       toast.error(error.message);
