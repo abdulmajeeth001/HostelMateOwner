@@ -441,6 +441,13 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    // Update payment records to preserve payment history
+    // Set tenant_id to NULL for all payments associated with this tenant
+    // This allows us to delete the tenant while keeping financial records intact
+    await db.update(payments)
+      .set({ tenantId: null })
+      .where(eq(payments.tenantId, id));
+
     // Finally, delete the tenant record
     await db.delete(tenants).where(eq(tenants.id, id));
   }

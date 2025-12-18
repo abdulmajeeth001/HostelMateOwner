@@ -170,7 +170,7 @@ export type TenantHistory = typeof tenantHistory.$inferSelect;
 // Payments table
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").references(() => tenants.id),
   ownerId: integer("owner_id").notNull().references(() => users.id),
   pgId: integer("pg_id").references(() => pgMaster.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
