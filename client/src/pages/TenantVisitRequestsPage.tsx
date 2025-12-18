@@ -108,6 +108,9 @@ export default function TenantVisitRequestsPage() {
       if (!res.ok) throw new Error("Failed to fetch visit requests");
       return res.json();
     },
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: "always", // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 
   // Fetch onboarding requests for all unique PG IDs

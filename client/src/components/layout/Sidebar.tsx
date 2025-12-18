@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { PGSwitcher } from "@/components/PGSwitcher";
+import { useQueryClient } from "@tanstack/react-query";
 import appIcon from "/winkstay-logo.png";
 import { useState } from "react";
 import {
@@ -48,6 +49,7 @@ const adminNavItems = [
 
 export default function Sidebar() {
   const [location, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const { user } = useUser();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -65,6 +67,8 @@ export default function Sidebar() {
       });
       
       if (res.ok) {
+        // Clear all cached queries to prevent stale data across sessions
+        queryClient.clear();
         navigate("/");
       }
     } catch (err) {

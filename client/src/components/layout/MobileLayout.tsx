@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { PGSwitcher } from "@/components/PGSwitcher";
+import { useQueryClient } from "@tanstack/react-query";
 import appIcon from "/winkstay-logo.png";
 import {
   AlertDialog,
@@ -30,6 +31,7 @@ export default function MobileLayout({
   action
 }: MobileLayoutProps) {
   const [location, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -53,6 +55,8 @@ export default function MobileLayout({
       });
       
       if (res.ok) {
+        // Clear all cached queries to prevent stale data across sessions
+        queryClient.clear();
         navigate("/");
       }
     } catch (err) {
