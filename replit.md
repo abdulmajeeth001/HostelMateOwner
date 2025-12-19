@@ -66,11 +66,20 @@ Core entities include Users, OTP Codes, PG Master, Rooms, Tenants, Emergency Con
     - **History Display:** Previous PG stays visible to owners during onboarding request review, including ratings, feedback, behavior tags, dates, and room details
     - **Batch Optimization:** Tenant history loading uses efficient batch queries (getBatchTenantHistory) to eliminate N+1 query problems
     - **User Preservation:** When tenants are removed, their user accounts remain intact with userType reverted to "applicant", allowing seamless re-application to different PGs
-    - **Duplicate Prevention (Dec 2024):** Email-based duplicate checking prevents same email from being active tenant in multiple PGs simultaneously - returns clear error message with existing PG name
-    - **Automated Onboarding Emails (Dec 2024):** Two distinct email templates sent automatically upon tenant creation:
+    - **Duplicate Prevention (Dec 2024):** Email-based duplicate checking prevents same email from being active tenant in multiple PGs simultaneously - returns clear error message with existing PG name (applies to both single and bulk tenant creation)
+    - **Automated Onboarding Emails (Dec 2024):** Two distinct email templates sent automatically upon tenant creation (both single and bulk):
         - **New Users:** Welcome email with temporary password, login credentials, PG details, room info, and first-login password change requirement
         - **Existing Applicants:** Onboarding email with new PG assignment details (no password, since they already have an account)
     - **First-Login Password Reset:** New tenant users created with requiresPasswordReset flag, automatically redirected to /tenant-reset-password on first login
+    - **Bulk Tenant Upload (Dec 2024):** CSV-based bulk tenant creation with comprehensive validation:
+        - **Two-Phase Process:** Dry-run validation first, then actual creation with confirmation
+        - **Global Duplicate Check:** Uses same getActiveTenantByEmail check as single tenant creation
+        - **Room Validation:** Requires valid room number, verifies room belongs to correct PG/owner
+        - **User Type Validation:** Rejects owner/admin accounts, only allows new users or applicants
+        - **Defensive Creation:** Re-validates user status immediately before creation to handle concurrent changes
+        - **Email Integration:** Sends same onboarding emails as single tenant creation (with/without passwords)
+        - **Error Reporting:** Detailed row-level error messages, warnings for email failures
+        - **Response Format:** Includes total, created, failed, and emailsSent counts
     - **Data Cleanup (Dec 2024):** One-time cleanup cancelled 2 legacy pending payments for vacated tenants, marking them as "rejected" with reason "Auto-cancelled: Tenant vacated before payment was settled"
 
 ### Build & Deployment

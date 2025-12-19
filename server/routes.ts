@@ -2364,45 +2364,50 @@ export async function registerRoutes(
         processed: 0,
         created: 0,
         failed: 0,
+        emailsSent: 0,
         errors: [] as { row: number; email: string; message: string }[],
         warnings: [] as { row: number; email: string; message: string }[],
       };
 
       const tenantsToCreate: any[] = [];
 
+      // Validation phase - check all rows before creating anything
       for (let i = 0; i < parseResult.data.length; i++) {
         const row = parseResult.data[i] as any;
         const rowNum = i + 2;
         results.processed++;
 
         try {
-          const email = (row.email || row['email address'] || '').trim();
+          // Normalize email to lowercase for consistent lookups
+          const email = (row.email || row['email address'] || '').trim().toLowerCase();
           const name = (row.name || row['tenant name'] || '').trim();
           const phone = (row.phone || row['phone number'] || '').trim();
           const monthlyRent = (row.monthlyrent || row.monthly_rent || row['monthly rent'] || row.rent || '0').toString();
           const roomNumber = (row.roomnumber || row.room_number || row['room number'] || '').trim();
 
-          if (!email || !name || !phone) {
+          if (!email || !name || !phone || !roomNumber) {
             results.failed++;
             results.errors.push({
               row: rowNum,
               email: email || 'Unknown',
-              message: 'Email, name, and phone are required'
+              message: 'Email, name, phone, and roomNumber are required'
             });
             continue;
           }
 
-          const existingTenant = await storage.getTenantByEmail(email, userId);
-          if (existingTenant) {
+          // GLOBAL DUPLICATE CHECK: Check if email is already active tenant in ANY PG
+          const existingActiveTenant = await storage.getActiveTenantByEmail(email);
+          if (existingActiveTenant) {
             results.failed++;
             results.errors.push({
               row: rowNum,
               email: email,
-              message: `Tenant with email ${email} already exists`
+              message: `Already active tenant at ${existingActiveTenant.pg.pgName}. Cannot be tenant in multiple PGs.`
             });
             continue;
           }
 
+          // Check for duplicates within the CSV file itself
           if (tenantsToCreate.some(t => t.email === email)) {
             results.failed++;
             results.errors.push({
@@ -2413,23 +2418,72 @@ export async function registerRoutes(
             continue;
           }
 
-          let roomId = undefined;
-          if (roomNumber) {
-            const room = await storage.getRoomByNumber(userId, roomNumber, pg.id);
-            if (room) {
-              roomId = room.id;
-            }
+          // Validate and resolve room - must exist and belong to this PG/owner
+          const room = await storage.getRoomByNumber(userId, roomNumber, pg.id);
+          if (!room) {
+            results.failed++;
+            results.errors.push({
+              row: rowNum,
+              email: email,
+              message: `Room ${roomNumber} not found in this PG`
+            });
+            continue;
+          }
+          
+          // Double-check room ownership (safety check)
+          if (room.ownerId !== userId || room.pgId !== pg.id) {
+            results.failed++;
+            results.errors.push({
+              row: rowNum,
+              email: email,
+              message: `Room ${roomNumber} belongs to different PG/owner`
+            });
+            continue;
           }
 
+          // Validate user account status
+          const existingUser = await storage.getUserByEmail(email);
+          
+          // If user exists but is already a tenant (not applicant), this is invalid
+          // because the global duplicate check should have caught this
+          if (existingUser && existingUser.userType === 'tenant') {
+            results.failed++;
+            results.errors.push({
+              row: rowNum,
+              email: email,
+              message: `User is already a tenant. This should not happen - please report this error.`
+            });
+            continue;
+          }
+
+          // If user exists and is owner/admin, cannot be converted to tenant
+          if (existingUser && (existingUser.userType === 'owner' || existingUser.userType === 'admin')) {
+            results.failed++;
+            results.errors.push({
+              row: rowNum,
+              email: email,
+              message: `Cannot convert ${existingUser.userType} account to tenant`
+            });
+            continue;
+          }
+
+          // At this point, user is either:
+          // 1. Doesn't exist (will create new tenant account)
+          // 2. Exists as applicant (will convert to tenant)
+          
           tenantsToCreate.push({
+            rowNum: rowNum,
             ownerId: userId,
             pgId: pg.id,
             name: name,
             email: email,
             phone: phone,
             monthlyRent: monthlyRent,
-            roomId: roomId,
-            status: 'active'
+            roomNumber: roomNumber,
+            roomId: room.id,
+            roomSharing: room.sharing,
+            isNewUser: !existingUser,
+            existingUserId: existingUser?.id
           });
         } catch (validationError: any) {
           results.failed++;
@@ -2442,21 +2496,101 @@ export async function registerRoutes(
         }
       }
 
-      if (!dryRun) {
+      // Creation phase - only execute if not in dry run mode
+      if (!dryRun && tenantsToCreate.length > 0) {
         for (const tenantData of tenantsToCreate) {
           try {
-            await storage.createTenant(tenantData);
+            // Step 1: Create or update user account
+            let tenantUser;
+            let tempPassword = '';
+
+            // Re-check user status immediately before creation (defensive check for state changes)
+            const currentUser = await storage.getUserByEmail(tenantData.email);
+            
+            if (!currentUser) {
+              // User doesn't exist - create new tenant user
+              tempPassword = generateDefaultPassword();
+              tenantUser = await storage.createUser({
+                name: tenantData.name,
+                email: tenantData.email,
+                mobile: tenantData.phone,
+                userType: "tenant",
+                password: tempPassword,
+                isVerified: true,
+                requiresPasswordReset: true,
+              });
+              console.log(`Bulk: New tenant user created - ${tenantData.email}`);
+            } else if (currentUser.userType === 'applicant') {
+              // User exists as applicant - convert to tenant
+              tenantUser = currentUser;
+              await storage.updateUser(currentUser.id, { userType: "tenant" });
+              console.log(`Bulk: Applicant converted to tenant - ${tenantData.email}`);
+            } else {
+              // User exists but not as applicant (state changed since validation)
+              throw new Error(`User ${tenantData.email} state changed - now ${currentUser.userType}, expected applicant or non-existent`);
+            }
+
+            // Step 2: Create tenant record
+            const createdTenant = await storage.createTenant({
+              ownerId: tenantData.ownerId,
+              pgId: tenantData.pgId,
+              userId: tenantUser.id,
+              name: tenantData.name,
+              email: tenantData.email,
+              phone: tenantData.phone,
+              roomNumber: tenantData.roomNumber,
+              roomId: tenantData.roomId,
+              monthlyRent: tenantData.monthlyRent,
+            });
+
+            // Step 3: Send appropriate email (room details already cached from validation)
+            try {
+              // Send email with password only if we created a new user (has temp password)
+              if (tempPassword) {
+                await sendTenantOnboardingWithPasswordEmail({
+                  tenantName: tenantData.name,
+                  tenantEmail: tenantData.email,
+                  tempPassword: tempPassword,
+                  pgName: pg.pgName,
+                  pgAddress: pg.pgAddress,
+                  roomNumber: tenantData.roomNumber,
+                  monthlyRent: Number(tenantData.monthlyRent),
+                  sharing: tenantData.roomSharing
+                });
+                results.emailsSent++;
+              } else {
+                await sendTenantOnboardingExistingUserEmail({
+                  tenantName: tenantData.name,
+                  tenantEmail: tenantData.email,
+                  pgName: pg.pgName,
+                  pgAddress: pg.pgAddress,
+                  roomNumber: tenantData.roomNumber,
+                  monthlyRent: Number(tenantData.monthlyRent),
+                  sharing: tenantData.roomSharing
+                });
+                results.emailsSent++;
+              }
+            } catch (emailError) {
+              console.error(`Failed to send email to ${tenantData.email}:`, emailError);
+              results.warnings.push({
+                row: tenantData.rowNum,
+                email: tenantData.email,
+                message: 'Tenant created but email sending failed'
+              });
+            }
+
             results.created++;
           } catch (createError: any) {
             results.failed++;
             results.errors.push({
-              row: 0,
+              row: tenantData.rowNum,
               email: tenantData.email,
               message: createError.message || 'Failed to create tenant'
             });
           }
         }
       } else {
+        // Dry run - just count how many would be created
         results.created = tenantsToCreate.length;
       }
 
@@ -2467,6 +2601,7 @@ export async function registerRoutes(
           total: results.processed,
           created: results.created,
           failed: results.failed,
+          emailsSent: results.emailsSent,
         },
         errors: results.errors,
         warnings: results.warnings,
