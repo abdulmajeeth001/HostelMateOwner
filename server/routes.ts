@@ -1295,25 +1295,25 @@ export async function registerRoutes(
       // Send appropriate email based on user status
       if (isNewUser) {
         // New user - send welcome email with temporary password
-        await email.sendTenantOnboardingWithPasswordEmail({
+        await sendTenantOnboardingWithPasswordEmail({
           tenantName: body.name,
           tenantEmail: body.email,
           tempPassword: defaultPassword,
           pgName: pg.pgName,
           pgAddress: pg.pgAddress,
           roomNumber: body.roomNumber,
-          monthlyRent: parseFloat(body.monthlyRent.toString()),
+          monthlyRent: Number(body.monthlyRent),
           sharing: sharing
         });
       } else {
         // Existing applicant - send onboarding email without password
-        await email.sendTenantOnboardingExistingUserEmail({
+        await sendTenantOnboardingExistingUserEmail({
           tenantName: body.name,
           tenantEmail: body.email,
           pgName: pg.pgName,
           pgAddress: pg.pgAddress,
           roomNumber: body.roomNumber,
-          monthlyRent: parseFloat(body.monthlyRent.toString()),
+          monthlyRent: Number(body.monthlyRent),
           sharing: sharing
         });
       }
