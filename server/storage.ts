@@ -74,6 +74,7 @@ export interface IStorage {
   getTenants(ownerId: number, pgId?: number): Promise<Tenant[]>;
   getTenant(id: number): Promise<Tenant | undefined>;
   getTenantByUserId(userId: number): Promise<Tenant | undefined>;
+  getActiveTenantByEmail(email: string): Promise<{tenant: Tenant, pg: PgMaster} | undefined>;
   getAvailableTenants(ownerId: number, pgId?: number): Promise<Tenant[]>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, updates: Partial<Tenant>): Promise<Tenant | undefined>;
@@ -303,6 +304,23 @@ export class DatabaseStorage implements IStorage {
 
   async getTenantByUserId(userId: number): Promise<Tenant | undefined> {
     const result = await db.select().from(tenants).where(eq(tenants.userId, userId)).limit(1);
+    return result[0];
+  }
+
+  async getActiveTenantByEmail(email: string): Promise<{tenant: Tenant, pg: PgMaster} | undefined> {
+    // Check if this email has an active tenant in ANY PG (across all owners)
+    const result = await db.select({
+      tenant: tenants,
+      pg: pgMaster
+    })
+      .from(tenants)
+      .innerJoin(pgMaster, eq(tenants.pgId, pgMaster.id))
+      .where(and(
+        eq(tenants.email, email),
+        eq(tenants.status, "active")
+      ))
+      .limit(1);
+    
     return result[0];
   }
 

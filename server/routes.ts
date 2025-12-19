@@ -5,7 +5,7 @@ import { insertUserSchema, insertTenantSchema, insertPaymentSchema, insertNotifi
 import { z } from "zod";
 import multer from "multer";
 import Papa from "papaparse";
-import { sendOtpEmail, sendTenantWelcomeEmail, sendOwnerPgWelcomeEmail } from "./email";
+import { sendOtpEmail, sendTenantWelcomeEmail, sendOwnerPgWelcomeEmail, sendTenantOnboardingWithPasswordEmail, sendTenantOnboardingExistingUserEmail } from "./email";
 
 // Configure multer for file upload (memory storage for CSV processing)
 const upload = multer({ 
@@ -1214,12 +1214,23 @@ export async function registerRoutes(
 
       const body = createTenantSchema.parse(req.body);
       
+      // DUPLICATE CHECK: Check if this email already has an active tenant in ANY PG
+      const existingActiveTenant = await storage.getActiveTenantByEmail(body.email);
+      if (existingActiveTenant) {
+        return res.status(400).json({ 
+          error: `This email is already registered as an active tenant at ${existingActiveTenant.pg.pgName}. A person cannot be a tenant in multiple PGs simultaneously. Please ask them to vacate their current PG first or use a different email address.` 
+        });
+      }
+      
       // Check if user already exists with this email
       let tenantUser = await storage.getUserByEmail(body.email);
+      let isNewUser = false;
+      let defaultPassword = "";
       
       if (!tenantUser) {
         // Create new tenant user account with default password
-        const defaultPassword = generateDefaultPassword();
+        isNewUser = true;
+        defaultPassword = generateDefaultPassword();
         tenantUser = await storage.createUser({
           name: body.name,
           email: body.email,
@@ -1230,7 +1241,13 @@ export async function registerRoutes(
           requiresPasswordReset: true, // Force password reset on first login
         });
         
-        console.log(`Tenant user created with email: ${body.email}, default password: ${defaultPassword}`);
+        console.log(`New tenant user created with email: ${body.email}, default password: ${defaultPassword}`);
+      } else {
+        // Existing user (applicant) - update userType to tenant
+        if (tenantUser.userType === "applicant") {
+          await storage.updateUser(tenantUser.id, { userType: "tenant" });
+          console.log(`Existing applicant ${body.email} converted to tenant`);
+        }
       }
       
       const tenant = await storage.createTenant({
@@ -1268,6 +1285,36 @@ export async function registerRoutes(
           name: body.emergencyContactName,
           phone: body.emergencyContactPhone,
           relationship: body.relationship,
+        });
+      }
+
+      // Get room details for email
+      const room = await storage.getRoomByNumber(userId, body.roomNumber, pg.id);
+      const sharing = room?.sharing || 1;
+
+      // Send appropriate email based on user status
+      if (isNewUser) {
+        // New user - send welcome email with temporary password
+        await email.sendTenantOnboardingWithPasswordEmail({
+          tenantName: body.name,
+          tenantEmail: body.email,
+          tempPassword: defaultPassword,
+          pgName: pg.pgName,
+          pgAddress: pg.pgAddress,
+          roomNumber: body.roomNumber,
+          monthlyRent: parseFloat(body.monthlyRent.toString()),
+          sharing: sharing
+        });
+      } else {
+        // Existing applicant - send onboarding email without password
+        await email.sendTenantOnboardingExistingUserEmail({
+          tenantName: body.name,
+          tenantEmail: body.email,
+          pgName: pg.pgName,
+          pgAddress: pg.pgAddress,
+          roomNumber: body.roomNumber,
+          monthlyRent: parseFloat(body.monthlyRent.toString()),
+          sharing: sharing
         });
       }
 
