@@ -15,7 +15,7 @@ import { useLocation } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 
 export function NotificationBell() {
-  const { notifications, unreadCount, markAsRead, requestPermission } = useNotifications();
+  const { notifications, unreadCount, markAsRead, requestPermission, hasActiveSubscription, isPushAvailable } = useNotifications();
   const [, setLocation] = useLocation();
 
   const handleNotificationClick = (notification: typeof notifications[0]) => {
@@ -63,7 +63,7 @@ export function NotificationBell() {
       <DropdownMenuContent align="end" className="w-80" data-testid="dropdown-notifications">
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Notifications</span>
-          {Notification.permission !== "granted" && (
+          {isPushAvailable && !hasActiveSubscription && (
             <Button
               variant="ghost"
               size="sm"

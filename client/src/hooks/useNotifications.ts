@@ -17,6 +17,8 @@ export function useNotifications() {
   const queryClient = useQueryClient();
   const [lastNotificationId, setLastNotificationId] = useState<number | null>(null);
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [isPushAvailable, setIsPushAvailable] = useState(false);
 
   // Fetch notifications
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
@@ -31,6 +33,37 @@ export function useNotifications() {
   });
 
   const unreadCount = unreadData?.count || 0;
+
+  // Check if push notifications are available and if user has active subscription
+  useEffect(() => {
+    const checkPushAvailability = async () => {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setIsPushAvailable(false);
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        
+        // Check if pushManager exists (required for Safari iOS PWA)
+        if (!registration.pushManager) {
+          setIsPushAvailable(false);
+          return;
+        }
+
+        setIsPushAvailable(true);
+
+        // Check if user already has an active subscription
+        const subscription = await registration.pushManager.getSubscription();
+        setHasActiveSubscription(!!subscription);
+      } catch (error) {
+        console.error("Error checking push availability:", error);
+        setIsPushAvailable(false);
+      }
+    };
+
+    checkPushAvailability();
+  }, []);
 
   // Mark notification as read
   const markAsRead = useCallback(async (id: number) => {
@@ -94,7 +127,29 @@ export function useNotifications() {
       return false;
     }
 
+    // Check if running in PWA standalone mode (required for Safari iOS)
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
+                        (window.navigator as any).standalone === true;
+    
+    if (!isStandalone && /iPad|iPhone|iPod/.test(navigator.userAgent)) {
+      toast.error("Safari iOS requires adding this app to your home screen first. Tap the Share button and select 'Add to Home Screen'.", {
+        duration: 8000,
+      });
+      return false;
+    }
+
     try {
+      // Register service worker first
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      // Check if pushManager is available (Safari iOS requirement)
+      if (!registration.pushManager) {
+        toast.error("Push notifications are not supported. Make sure you opened this app from your home screen icon.", {
+          duration: 8000,
+        });
+        return false;
+      }
       // Fetch VAPID public key from server
       const vapidResponse = await fetch("/api/notifications/vapid-public-key", {
         credentials: "include",
@@ -111,9 +166,6 @@ export function useNotifications() {
       const permission = await Notification.requestPermission();
       
       if (permission === "granted") {
-        // Register service worker
-        const registration = await navigator.serviceWorker.register("/sw.js");
-        
         // Subscribe to push notifications using server's VAPID public key
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
@@ -135,8 +187,12 @@ export function useNotifications() {
         });
 
         if (response.ok) {
-          toast.success("Push notifications enabled!");
+          setHasActiveSubscription(true);
+          toast.success("Push notifications enabled! You'll receive alerts even when the app is closed.");
           return true;
+        } else {
+          toast.error("Failed to save push subscription");
+          return false;
         }
       } else {
         toast.error("Notification permission denied");
@@ -155,6 +211,8 @@ export function useNotifications() {
     isLoading,
     markAsRead,
     requestPermission,
+    hasActiveSubscription,
+    isPushAvailable,
   };
 }
 
