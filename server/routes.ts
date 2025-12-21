@@ -1963,6 +1963,59 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/notifications/:id/read", async (req, res) => {
+    try {
+      if (!req.session!.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const notificationId = parseInt(req.params.id);
+      await storage.markNotificationAsRead(notificationId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  app.get("/api/notifications/unread-count", async (req, res) => {
+    try {
+      if (!req.session!.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const count = await storage.getUnreadNotificationCount(req.session!.userId);
+      res.json({ count });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to get unread count" });
+    }
+  });
+
+  app.post("/api/notifications/subscribe", async (req, res) => {
+    try {
+      if (!req.session!.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { endpoint, keys } = req.body;
+      
+      if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ error: "Invalid subscription data" });
+      }
+
+      const subscription = await storage.createPushSubscription({
+        userId: req.session!.userId,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth
+      });
+
+      res.json(subscription);
+    } catch (error) {
+      console.error("Push subscription error:", error);
+      res.status(400).json({ error: "Failed to create push subscription" });
+    }
+  });
+
   // AVAILABLE TENANTS ROUTE
   app.get("/api/available-tenants", requireApprovedPg, async (req, res) => {
     try {

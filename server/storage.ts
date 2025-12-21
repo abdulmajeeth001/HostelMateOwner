@@ -9,6 +9,8 @@ import {
   type InsertPayment,
   type Notification,
   type InsertNotification,
+  type PushSubscription,
+  type InsertPushSubscription,
   type Room,
   type InsertRoom,
   type PgMaster,
@@ -38,6 +40,7 @@ import {
   tenants,
   payments,
   notifications,
+  pushSubscriptions,
   rooms,
   pgMaster,
   emergencyContacts,
@@ -97,6 +100,12 @@ export interface IStorage {
   getNotifications(userId: number, pgId?: number): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<void>;
+  getUnreadNotificationCount(userId: number): Promise<number>;
+  
+  // Push Subscriptions
+  createPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
+  getPushSubscriptionsByUser(userId: number): Promise<PushSubscription[]>;
+  deletePushSubscription(id: number): Promise<void>;
 
   // Rooms
   getRooms(ownerId: number, pgId?: number): Promise<Room[]>;
@@ -813,6 +822,27 @@ export class DatabaseStorage implements IStorage {
 
   async markNotificationAsRead(id: number): Promise<void> {
     await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
+  }
+
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)::int` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    return result[0]?.count || 0;
+  }
+
+  // Push Subscriptions
+  async createPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription> {
+    const result = await db.insert(pushSubscriptions).values(subscription).returning();
+    return result[0];
+  }
+
+  async getPushSubscriptionsByUser(userId: number): Promise<PushSubscription[]> {
+    return await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async deletePushSubscription(id: number): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, id));
   }
 
   // Rooms

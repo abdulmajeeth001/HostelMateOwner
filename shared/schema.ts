@@ -201,7 +201,8 @@ export const notifications = pgTable("notifications", {
   userId: integer("user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  type: text("type").notNull(), // rent_reminder, complaint, system, message
+  type: text("type").notNull(), // visit_request, onboarding_request, payment, complaint, rent_reminder, system, message
+  referenceId: integer("reference_id"), // ID of the related entity (visit request, onboarding request, payment, or complaint)
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -213,6 +214,23 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 });
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+// Push Subscriptions table (for web push notifications)
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(), // Encryption key
+  auth: text("auth").notNull(), // Authentication secret
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ 
+  id: true, 
+  createdAt: true
+});
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
 // Rooms table
 export const rooms = pgTable("rooms", {
