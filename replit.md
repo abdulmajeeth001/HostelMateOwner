@@ -70,6 +70,14 @@ Core entities include Users, OTP Codes, PG Master, Rooms, Tenants, Emergency Con
         - **Frontend Filtering:** Deleted payments automatically hidden from all payment lists (owner and tenant views)
         - **Data Integrity:** Complete financial history preserved for reconciliation, reporting, and compliance
     - **Error Handling:** Comprehensive validation at both frontend and backend; DELETE responses checked before proceeding with data recreation
+    - **EB History Page (Dec 2024):** Dedicated history page for viewing confirmed electricity billing cycles:
+        - **Confirmed Cycles Only:** Backend filters to show only confirmed billing cycles (status='confirmed'), excluding draft records from history view
+        - **Draft Cleanup:** All draft billing cycles removed from database to eliminate duplicates and clutter
+        - **Enhanced Search:** Date range filtering (from/to date) allows filtering cycles by billing period start date
+        - **Clear Filters:** One-click reset of all search criteria (text search + date filters)
+        - **Consistent UI:** "EB History" title used across desktop and mobile views with subtitle "View confirmed electricity billing cycles"
+        - **Multiple Search Options:** Text search by billing month or invoice number combined with date range filters
+        - **Responsive Design:** Full search functionality implemented in both desktop and mobile layouts
 - **Onboarding System:** Two-stage process:
     1.  **Visit Request Flow:** Prospective tenants request visits, owners approve/reschedule/cancel.
     2.  **Onboarding Request Flow:** After visit, tenants submit a 4-step application (personal info, emergency contact, documents), owners review and approve/reject.
