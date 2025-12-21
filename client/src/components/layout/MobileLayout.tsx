@@ -170,7 +170,7 @@ export default function MobileLayout({
             onClick={() => navigate(isAdmin ? "/admin-dashboard" : "/dashboard")}
             className="flex items-center gap-3 cursor-pointer mb-4"
           >
-            <img src={appIcon} alt="StayBuki" className="w-16 h-16" />
+            <img src={appIcon} alt="StayBuki" className="w-16 h-16" style={{ mixBlendMode: 'multiply' }} />
             <div>
               <h1 className="font-bold text-xl text-foreground">StayBuki</h1>
               {isAdmin && (
