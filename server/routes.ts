@@ -1680,6 +1680,7 @@ export async function registerRoutes(
         
         await storage.createNotification({
           userId: payment.ownerId,
+          pgId: payment.pgId,
           ...notificationPayload,
         });
 
@@ -1741,6 +1742,7 @@ export async function registerRoutes(
         
         await storage.createNotification({
           userId: tenant.userId,
+          pgId: payment.pgId,
           ...notificationPayload,
         });
 
@@ -1792,6 +1794,7 @@ export async function registerRoutes(
         
         await storage.createNotification({
           userId: tenant.userId,
+          pgId: payment.pgId,
           ...notificationPayload,
         });
 
@@ -2012,7 +2015,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const count = await storage.getUnreadNotificationCount(req.session!.userId);
+      const selectedPgId = req.session!.selectedPgId;
+      const count = await storage.getUnreadNotificationCount(req.session!.userId, selectedPgId);
       res.json({ count });
     } catch (error) {
       res.status(400).json({ error: "Failed to get unread count" });
@@ -2898,6 +2902,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
           
           await storage.createNotification({
             userId: complaintData.ownerId,
+            pgId: complaintData.pgId,
             ...notificationPayload,
           });
 
@@ -3370,6 +3375,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       
       await storage.createNotification({
         userId: pg.ownerId,
+        pgId: pg.id,
         ...notificationPayload,
       });
 
@@ -3637,6 +3643,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       
       await storage.createNotification({
         userId: pg.ownerId,
+        pgId: pg.id,
         ...notificationPayload,
       });
 

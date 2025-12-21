@@ -100,7 +100,7 @@ export interface IStorage {
   getNotifications(userId: number, pgId?: number): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<void>;
-  getUnreadNotificationCount(userId: number): Promise<number>;
+  getUnreadNotificationCount(userId: number, pgId?: number): Promise<number>;
   
   // Push Subscriptions
   createPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
@@ -759,6 +759,7 @@ export class DatabaseStorage implements IStorage {
         try {
           await this.createNotification({
             userId: tenant.userId,
+            pgId: pgId,
             title: "New Rent Payment Request",
             message: `Your rent payment of ₹${tenant.monthlyRent} for ${new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long', year: 'numeric' })} is now due. Please pay by ${dueDate.toLocaleDateString()}.`,
             type: "rent_reminder"
@@ -809,7 +810,17 @@ export class DatabaseStorage implements IStorage {
 
   // Notifications
   async getNotifications(userId: number, pgId?: number): Promise<Notification[]> {
-    // Note: notifications table doesn't have pgId field, so we ignore the pgId parameter
+    // Filter by PG if provided (for multi-PG owners)
+    if (pgId) {
+      return await db.select().from(notifications)
+        .where(and(
+          eq(notifications.userId, userId),
+          eq(notifications.pgId, pgId)
+        ))
+        .orderBy(desc(notifications.createdAt));
+    }
+    
+    // Return all notifications if no PG filter
     return await db.select().from(notifications)
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt));
@@ -824,7 +835,20 @@ export class DatabaseStorage implements IStorage {
     await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
   }
 
-  async getUnreadNotificationCount(userId: number): Promise<number> {
+  async getUnreadNotificationCount(userId: number, pgId?: number): Promise<number> {
+    // Filter by PG if provided (for multi-PG owners)
+    if (pgId) {
+      const result = await db.select({ count: sql<number>`count(*)::int` })
+        .from(notifications)
+        .where(and(
+          eq(notifications.userId, userId),
+          eq(notifications.pgId, pgId),
+          eq(notifications.isRead, false)
+        ));
+      return result[0]?.count || 0;
+    }
+    
+    // Return all unread notifications if no PG filter
     const result = await db.select({ count: sql<number>`count(*)::int` })
       .from(notifications)
       .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));

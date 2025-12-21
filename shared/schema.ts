@@ -199,6 +199,7 @@ export type Payment = typeof payments.$inferSelect;
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  pgId: integer("pg_id").references(() => pgMaster.id), // Nullable - which PG this notification belongs to (for filtering)
   title: text("title").notNull(),
   message: text("message").notNull(),
   type: text("type").notNull(), // visit_request, onboarding_request, payment, complaint, rent_reminder, system, message
