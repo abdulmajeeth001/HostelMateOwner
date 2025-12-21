@@ -1787,6 +1787,48 @@ export async function registerRoutes(
     }
   });
 
+  // Owner deletes payment (only pending electricity payments)
+  app.delete("/api/payments/:id", requireApprovedPg, async (req, res) => {
+    try {
+      const userId = req.session!.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Only owners can delete payments" });
+      }
+
+      const paymentId = parseInt(req.params.id);
+      const payment = await storage.getPayment(paymentId);
+
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found" });
+      }
+
+      if (payment.ownerId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Only allow deletion of pending electricity payments
+      if (payment.status !== "pending") {
+        return res.status(400).json({ error: "Can only delete pending payments" });
+      }
+
+      if (payment.type !== "electricity") {
+        return res.status(400).json({ error: "Can only delete electricity bills. Rent payments must be rejected instead." });
+      }
+
+      await storage.deletePayment(paymentId);
+
+      res.json({ success: true, message: "Payment deleted successfully" });
+    } catch (error) {
+      console.error("Delete payment error:", error);
+      res.status(500).json({ error: "Failed to delete payment" });
+    }
+  });
+
   // CRON ROUTES - Scheduled tasks
   // Daily cron job to auto-generate payments for all PGs
   app.get("/api/cron/generate-payments", async (req, res) => {
@@ -3689,6 +3731,14 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
         return res.status(403).json({ error: "Cannot create cycle for a different PG" });
       }
 
+      // Check if billing cycle already exists for this month and PG
+      const existingCycle = await storage.getElectricityBillingCycleByMonthAndPg(body.pgId, body.billingMonth);
+      if (existingCycle) {
+        return res.status(400).json({ 
+          error: `Electricity bill for ${body.billingMonth} already exists. Please choose a different month or delete the existing bill first.` 
+        });
+      }
+
       const cycle = await storage.createElectricityBillingCycle({
         ...body,
         ownerId: userId,
@@ -3813,6 +3863,43 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
     } catch (error) {
       console.error("Create electricity room bill error:", error);
       res.status(400).json({ error: "Failed to create electricity room bill" });
+    }
+  });
+
+  // Delete all room bills for a cycle (to fix back button duplication)
+  app.delete("/api/electricity/cycles/:id/room-bills", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+
+      const cycleId = parseInt(req.params.id);
+      const cycle = await storage.getElectricityBillingCycle(cycleId);
+
+      if (!cycle) {
+        return res.status(404).json({ error: "Billing cycle not found" });
+      }
+
+      if (cycle.ownerId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      if (cycle.status !== 'draft') {
+        return res.status(400).json({ error: "Cannot modify confirmed billing cycle" });
+      }
+
+      await storage.deleteElectricityRoomBillsByCycle(cycleId);
+
+      res.json({ success: true, message: "Room bills deleted" });
+    } catch (error) {
+      console.error("Delete electricity room bills error:", error);
+      res.status(500).json({ error: "Failed to delete room bills" });
     }
   });
 

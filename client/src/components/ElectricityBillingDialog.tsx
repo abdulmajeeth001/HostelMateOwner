@@ -199,6 +199,27 @@ export function ElectricityBillingDialog({
     );
   };
 
+  const handleBackToRoomReadings = async () => {
+    if (!cycleId) return;
+    
+    setLoading(true);
+    try {
+      // Delete existing room bills to prevent duplication
+      await fetch(`/api/electricity/cycles/${cycleId}/room-bills`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      
+      // Go back to room readings step
+      setCurrentStep(1);
+    } catch (error) {
+      console.error("Error clearing room bills:", error);
+      toast.error("Failed to go back");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveRoomReadings = async () => {
     if (!cycleId) return;
 
@@ -214,6 +235,12 @@ export function ElectricityBillingDialog({
 
     setLoading(true);
     try {
+      // First, delete any existing room bills for this cycle to prevent duplication
+      await fetch(`/api/electricity/cycles/${cycleId}/room-bills`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
       // Save all room bills that have readings
       const billsToSave = roomBills.filter(
         (bill) => bill.currentReading > 0 || bill.previousReading > 0
@@ -544,7 +571,10 @@ export function ElectricityBillingDialog({
             <div className="flex justify-between gap-2 pt-4">
               <Button
                 variant="outline"
-                onClick={() => setCurrentStep(0)}
+                onClick={() => {
+                  // Just go back without clearing - user might want to edit billing details
+                  setCurrentStep(0);
+                }}
                 data-testid="button-back-step-2"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -634,7 +664,8 @@ export function ElectricityBillingDialog({
             <div className="flex justify-between gap-2 pt-4">
               <Button
                 variant="outline"
-                onClick={() => setCurrentStep(1)}
+                onClick={handleBackToRoomReadings}
+                disabled={loading}
                 data-testid="button-back-step-3"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />

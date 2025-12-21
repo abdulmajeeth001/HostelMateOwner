@@ -89,6 +89,7 @@ export interface IStorage {
   updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined>;
   approvePayment(id: number, ownerId: number): Promise<Payment | undefined>;
   rejectPayment(id: number, ownerId: number, rejectionReason?: string): Promise<Payment | undefined>;
+  deletePayment(id: number): Promise<void>;
   checkPaymentExistsForMonth(tenantId: number, pgId: number, paymentMonth: string): Promise<boolean>;
   generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<{ created: Payment[], skipped: number, notified: number, emailed: number }>;
   
@@ -198,10 +199,12 @@ export interface IStorage {
   updateTenantHistory(id: number, updates: Partial<TenantHistory>): Promise<TenantHistory | undefined>;
 
   // Electricity Billing Methods
+  getElectricityBillingCycleByMonthAndPg(pgId: number, billingMonth: string): Promise<ElectricityBillingCycle | undefined>;
   createElectricityBillingCycle(data: InsertElectricityBillingCycle): Promise<ElectricityBillingCycle>;
   getElectricityBillingCycle(id: number): Promise<ElectricityBillingCycle | undefined>;
   getElectricityBillingCycles(ownerId: number, pgId?: number): Promise<any[]>;
   updateElectricityBillingCycle(id: number, updates: Partial<ElectricityBillingCycle>): Promise<ElectricityBillingCycle | undefined>;
+  deleteElectricityRoomBillsByCycle(cycleId: number): Promise<void>;
   createElectricityRoomBill(data: InsertElectricityRoomBill): Promise<ElectricityRoomBill>;
   getElectricityRoomBills(cycleId: number): Promise<any[]>;
   updateElectricityRoomBill(id: number, updates: Partial<ElectricityRoomBill>): Promise<ElectricityRoomBill | undefined>;
@@ -654,6 +657,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(payments.id, id))
       .returning();
     return result[0];
+  }
+
+  async deletePayment(id: number): Promise<void> {
+    await db.delete(payments).where(eq(payments.id, id));
   }
 
   async checkPaymentExistsForMonth(tenantId: number, pgId: number, paymentMonth: string): Promise<boolean> {
@@ -1780,6 +1787,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Electricity Billing Methods
+  async getElectricityBillingCycleByMonthAndPg(pgId: number, billingMonth: string): Promise<ElectricityBillingCycle | undefined> {
+    const result = await db.select()
+      .from(electricityBillingCycles)
+      .where(and(
+        eq(electricityBillingCycles.pgId, pgId),
+        eq(electricityBillingCycles.billingMonth, billingMonth)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
   async createElectricityBillingCycle(data: InsertElectricityBillingCycle): Promise<ElectricityBillingCycle> {
     const result = await db.insert(electricityBillingCycles).values(data).returning();
     return result[0];
@@ -1817,6 +1835,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(electricityBillingCycles.id, id))
       .returning();
     return result[0];
+  }
+
+  async deleteElectricityRoomBillsByCycle(cycleId: number): Promise<void> {
+    await db.delete(electricityRoomBills).where(eq(electricityRoomBills.cycleId, cycleId));
   }
 
   async createElectricityRoomBill(data: InsertElectricityRoomBill): Promise<ElectricityRoomBill> {
