@@ -43,6 +43,8 @@ export function useNotifications() {
       }
 
       try {
+        // Register service worker first (required before checking availability)
+        await navigator.serviceWorker.register("/sw.js");
         const registration = await navigator.serviceWorker.ready;
         
         // Check if pushManager exists (required for Safari iOS PWA)
