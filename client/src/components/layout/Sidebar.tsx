@@ -87,22 +87,19 @@ export default function Sidebar() {
       <div className="p-6 border-b border-border">
         <div 
           onClick={() => navigate(isAdmin ? "/admin-dashboard" : "/dashboard")}
-          className="flex items-center gap-3 cursor-pointer rounded-lg hover:bg-secondary/50 transition-colors p-2 -m-2 mb-4"
+          className="cursor-pointer rounded-lg hover:bg-secondary/50 transition-colors p-2 -m-2 mb-4"
         >
           <img 
-            src={appIcon} 
+            src="/staybuki-logo.png"
             alt="StayBuki" 
-            className="h-14 w-auto"
+            className="h-12 w-auto"
           />
-          <div>
-            <h1 className="font-bold text-xl text-foreground">StayBuki</h1>
-            {isAdmin && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Shield className="h-3 w-3" />
-                Admin Panel
-              </p>
-            )}
-          </div>
+          {isAdmin && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+              <Shield className="h-3 w-3" />
+              Admin Panel
+            </p>
+          )}
         </div>
         {isOwner && (
           <PGSwitcher variant="sidebar" />

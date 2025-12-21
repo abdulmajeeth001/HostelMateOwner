@@ -63,12 +63,11 @@ export default function Login() {
       >
         <div className="text-center space-y-4">
           <img 
-            src={appIcon} 
+            src="/staybuki-logo.png"
             alt="StayBuki Logo" 
-            className="h-48 w-auto mx-auto"
+            className="h-40 w-auto mx-auto"
           />
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">StayBuki</h1>
-          <p className="text-muted-foreground">Manage your PG smarter, not harder.</p>
+          <p className="text-muted-foreground mt-4">Manage your PG smarter, not harder.</p>
         </div>
 
         <Card className="border-none shadow-xl bg-card/50 backdrop-blur-sm">

@@ -168,22 +168,19 @@ export default function MobileLayout({
         <div className="p-6 border-b border-border">
           <div 
             onClick={() => navigate(isAdmin ? "/admin-dashboard" : "/dashboard")}
-            className="flex items-center gap-3 cursor-pointer mb-4"
+            className="cursor-pointer mb-4"
           >
             <img 
-              src={appIcon} 
+              src="/staybuki-logo.png"
               alt="StayBuki" 
-              className="h-14 w-auto"
+              className="h-11 w-auto"
             />
-            <div>
-              <h1 className="font-bold text-xl text-foreground">StayBuki</h1>
-              {isAdmin && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Shield className="h-3 w-3" />
-                  Admin Panel
-                </p>
-              )}
-            </div>
+            {isAdmin && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                <Shield className="h-3 w-3" />
+                Admin Panel
+              </p>
+            )}
           </div>
           {isOwner && (
             <PGSwitcher variant="sidebar" />
@@ -233,72 +230,64 @@ export default function MobileLayout({
         </div>
       </aside>
 
-      {/* Backdrop for mobile when sidebar is open */}
+      {/* Overlay */}
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 lg:hidden z-30 cursor-pointer"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-30"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden h-screen">
-        {/* Header */}
-        {title && (
-          <header className="bg-card/80 backdrop-blur-md border-b border-border px-4 h-16 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden"
-                data-testid="button-toggle-sidebar"
-              >
-                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </Button>
-              <h1 className="text-lg font-bold tracking-tight text-foreground">{title}</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              {isOwner && <NotificationBell />}
-              {action}
-            </div>
-          </header>
-        )}
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-scroll w-full">
-          <div className="p-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {children}
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Bar */}
+        <header className="bg-card border-b border-border h-14 flex items-center justify-between px-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            {title && <h1 className="font-semibold text-foreground">{title}</h1>}
           </div>
+          <div className="flex items-center gap-2">
+            {action}
+            {isTenant && isTenantOnboarded && <NotificationBell />}
+            {isOwner && <NotificationBell />}
+            {isAdmin && <NotificationBell />}
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto">
+          {children}
         </main>
 
-        {/* Bottom Navigation - Mobile only */}
+        {/* Bottom Navigation - Only show if showNav is true */}
         {showNav && (
-          <nav className="bg-card border-t border-border shrink-0 lg:hidden">
-            <div className="flex items-center justify-between h-16 px-2 overflow-x-auto">
-              {bottomNavItems.map(({ icon: Icon, label, path }) => {
-                const isActive = location === path || (path !== "/dashboard" && location.startsWith(path));
-                
-                return (
-                  <div
-                    key={path}
-                    onClick={() => navigate(path)}
-                    className={cn(
-                      "flex flex-col items-center justify-center flex-1 h-16 space-y-1 transition-colors duration-200 cursor-pointer",
-                      isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <motion.div
-                      whileTap={{ scale: 0.9 }}
-                      className="relative pointer-events-none"
-                    >
-                      <Icon className={cn("w-6 h-6", isActive && "fill-current")} strokeWidth={isActive ? 2.5 : 2} />
-                    </motion.div>
-                    <span className="text-[10px] font-medium">{label}</span>
-                  </div>
-                );
-              })}
-            </div>
+          <nav className="bg-card border-t border-border h-16 flex items-center justify-around shrink-0">
+            {bottomNavItems.map(({ icon: Icon, label, path }) => {
+              const isActive = location === path || (path !== "/dashboard" && location.startsWith(path));
+              
+              return (
+                <button
+                  key={path}
+                  onClick={() => navigate(path)}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1 h-full flex-1 transition-colors",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-xs font-medium">{label}</span>
+                </button>
+              );
+            })}
           </nav>
         )}
       </div>
