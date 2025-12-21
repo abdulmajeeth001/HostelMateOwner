@@ -86,7 +86,9 @@ function PaymentsDesktop() {
       
       if (paymentsRes.ok) {
         const data = await paymentsRes.json();
-        setPayments(data);
+        // Filter out soft-deleted payments
+        const activePayments = data.filter((p: Payment) => p.status !== "deleted");
+        setPayments(activePayments);
       }
       
       if (tenantsRes.ok) {
@@ -790,7 +792,9 @@ function PaymentsMobile() {
       
       if (paymentsRes.ok) {
         const data = await paymentsRes.json();
-        setPayments(data);
+        // Filter out soft-deleted payments
+        const activePayments = data.filter((p: Payment) => p.status !== "deleted");
+        setPayments(activePayments);
       }
       
       if (tenantsRes.ok) {

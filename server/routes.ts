@@ -1787,7 +1787,7 @@ export async function registerRoutes(
     }
   });
 
-  // Owner deletes payment (only pending electricity payments)
+  // Owner deletes payment (soft delete - all pending payment types)
   app.delete("/api/payments/:id", requireApprovedPg, async (req, res) => {
     try {
       const userId = req.session!.userId;
@@ -1811,16 +1811,13 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied" });
       }
 
-      // Only allow deletion of pending electricity payments
+      // Only allow deletion of pending payments (all types: rent, electricity, deposits, misc)
       if (payment.status !== "pending") {
         return res.status(400).json({ error: "Can only delete pending payments" });
       }
 
-      if (payment.type !== "electricity") {
-        return res.status(400).json({ error: "Can only delete electricity bills. Rent payments must be rejected instead." });
-      }
-
-      await storage.deletePayment(paymentId);
+      // Soft delete: set status to 'deleted' with audit trail
+      await storage.deletePayment(paymentId, userId);
 
       res.json({ success: true, message: "Payment deleted successfully" });
     } catch (error) {

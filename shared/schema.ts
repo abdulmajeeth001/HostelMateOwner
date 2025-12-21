@@ -175,7 +175,7 @@ export const payments = pgTable("payments", {
   pgId: integer("pg_id").references(() => pgMaster.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   type: text("type").notNull(), // rent, maintenance, electricity, other
-  status: text("status").default("pending"), // pending, pending_approval, paid, overdue, rejected
+  status: text("status").default("pending"), // pending, pending_approval, paid, overdue, rejected, deleted
   paymentMethod: text("payment_method"), // upi, cash, bank_transfer, other
   transactionId: text("transaction_id"), // UPI transaction ID or reference number
   rejectionReason: text("rejection_reason"), // Reason provided by owner when rejecting payment
@@ -183,6 +183,8 @@ export const payments = pgTable("payments", {
   generatedAt: timestamp("generated_at"), // When this payment was auto-generated
   dueDate: timestamp("due_date"),
   paidAt: timestamp("paid_at"),
+  deletedBy: integer("deleted_by").references(() => users.id), // Owner who deleted this payment
+  deletedAt: timestamp("deleted_at"), // When this payment was soft-deleted
   createdAt: timestamp("created_at").defaultNow(),
 });
 

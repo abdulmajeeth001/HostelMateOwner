@@ -89,7 +89,7 @@ export interface IStorage {
   updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined>;
   approvePayment(id: number, ownerId: number): Promise<Payment | undefined>;
   rejectPayment(id: number, ownerId: number, rejectionReason?: string): Promise<Payment | undefined>;
-  deletePayment(id: number): Promise<void>;
+  deletePayment(id: number, deletedByUserId: number): Promise<void>;
   checkPaymentExistsForMonth(tenantId: number, pgId: number, paymentMonth: string): Promise<boolean>;
   generateAutoPaymentsForPg(pgId: number, ownerId: number): Promise<{ created: Payment[], skipped: number, notified: number, emailed: number }>;
   
@@ -659,8 +659,15 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async deletePayment(id: number): Promise<void> {
-    await db.delete(payments).where(eq(payments.id, id));
+  async deletePayment(id: number, deletedByUserId: number): Promise<void> {
+    // Soft delete: update status to 'deleted' and set audit fields
+    await db.update(payments)
+      .set({
+        status: "deleted",
+        deletedBy: deletedByUserId,
+        deletedAt: new Date()
+      })
+      .where(eq(payments.id, id));
   }
 
   async checkPaymentExistsForMonth(tenantId: number, pgId: number, paymentMonth: string): Promise<boolean> {

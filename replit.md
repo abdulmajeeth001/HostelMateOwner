@@ -62,7 +62,13 @@ Core entities include Users, OTP Codes, PG Master, Rooms, Tenants, Emergency Con
     - **Tenant Charge Distribution:** Automatic equal distribution of room charges among active tenants, creates pending electricity payments
     - **Duplicate Prevention:** Backend validation prevents multiple cycles for same month/PG; frontend clears existing room bills before re-saving to prevent duplication
     - **Back Button Safety:** When navigating back from summary to readings, existing room bills are deleted via API before allowing edits (prevents duplication on re-save)
-    - **Payment Deletion:** Owners can delete pending electricity payments with confirmation dialog (backend validates: must be pending status AND electricity type; rent payments must use rejection flow instead)
+    - **Payment Soft-Delete (Dec 2024):** Owners can delete pending payments with full audit trail:
+        - **All Payment Types:** Delete functionality supports rent, electricity, deposits, and all other payment types (previously restricted to electricity only)
+        - **Soft-Delete Approach:** Payments marked as status="deleted" instead of being removed from database, preserving complete audit history
+        - **Audit Trail:** Tracks deletedBy (owner user ID) and deletedAt (timestamp) for compliance and reporting
+        - **Pending-Only Restriction:** Only pending payments can be deleted; paid or rejected payments are protected
+        - **Frontend Filtering:** Deleted payments automatically hidden from all payment lists (owner and tenant views)
+        - **Data Integrity:** Complete financial history preserved for reconciliation, reporting, and compliance
     - **Error Handling:** Comprehensive validation at both frontend and backend; DELETE responses checked before proceeding with data recreation
 - **Onboarding System:** Two-stage process:
     1.  **Visit Request Flow:** Prospective tenants request visits, owners approve/reschedule/cancel.

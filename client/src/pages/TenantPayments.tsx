@@ -30,7 +30,9 @@ export default function TenantPayments() {
       });
       if (res.ok) {
         const data = await res.json();
-        setPayments(Array.isArray(data) ? data : []);
+        // Filter out soft-deleted payments
+        const activePayments = Array.isArray(data) ? data.filter((p: any) => p.status !== "deleted") : [];
+        setPayments(activePayments);
       }
     } catch (err) {
       console.error("Failed to fetch payments:", err);
