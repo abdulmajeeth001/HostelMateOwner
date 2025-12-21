@@ -3914,7 +3914,7 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       
       // Filter out vacant rooms - only return rooms with tenants for billing
       const occupiedRooms = roomsWithTenants
-        .filter(item => item.room.status === 'occupied' || item.room.status === 'partially_occupied')
+        .filter(item => item.room.status === 'fully_occupied' || item.room.status === 'partially_occupied')
         .map(item => item.room);
 
       res.json(occupiedRooms);

@@ -1,10 +1,12 @@
 import DesktopLayout from "@/components/layout/DesktopLayout";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Users, Wallet, AlertCircle, TrendingUp, UserPlus, Building2, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Users, Wallet, AlertCircle, TrendingUp, UserPlus, Building2, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
 
 export default function Dashboard() {
   return (
@@ -22,41 +24,51 @@ export default function Dashboard() {
 function DashboardDesktop() {
   const [, navigate] = useLocation();
   
+  // Fetch dashboard stats
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ['/api/owner/dashboard-stats'],
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Fetch recent activity
+  const { data: activities, isLoading: activitiesLoading } = useQuery<Array<{
+    id: number;
+    type: string;
+    title: string;
+    description: string;
+    createdAt: Date;
+  }>>({
+    queryKey: ['/api/owner/recent-activity'],
+    refetchInterval: 30000,
+  });
+  
   const stats = [
     { 
       label: "Total Tenants", 
-      value: "42", 
+      value: statsLoading ? "..." : statsData?.totalTenants?.toString() || "0", 
       icon: Users, 
       gradient: "from-blue-500 to-cyan-600", 
-      trend: "+12%",
-      trendUp: true,
       description: "Active tenants"
     },
     { 
-      label: "Revenue (Nov)", 
-      value: "₹84,500", 
+      label: "Total Revenue", 
+      value: statsLoading ? "..." : `₹${statsData?.revenue?.toLocaleString('en-IN') || '0'}`, 
       icon: Wallet, 
       gradient: "from-emerald-500 to-green-600", 
-      trend: "+8%",
-      trendUp: true,
-      description: "This month"
+      description: "All time paid"
     },
     { 
       label: "Pending Dues", 
-      value: "₹12,000", 
+      value: statsLoading ? "..." : `₹${statsData?.pendingDues?.toLocaleString('en-IN') || '0'}`, 
       icon: AlertCircle, 
       gradient: "from-orange-500 to-red-600", 
-      trend: "-3%",
-      trendUp: false,
-      description: "Overdue payments"
+      description: "Outstanding payments"
     },
     { 
       label: "Occupancy", 
-      value: "85%", 
+      value: statsLoading ? "..." : `${statsData?.occupancyRate || 0}%`, 
       icon: TrendingUp, 
       gradient: "from-purple-500 to-pink-600", 
-      trend: "+5%",
-      trendUp: true,
       description: "Room utilization"
     },
   ];
@@ -112,13 +124,6 @@ function DashboardDesktop() {
                 )}>
                   <stat.icon className="w-7 h-7 text-white" />
                 </div>
-                <div className={cn(
-                  "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold",
-                  stat.trendUp ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                )}>
-                  {stat.trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {stat.trend}
-                </div>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground font-semibold mb-1">{stat.label}</p>
@@ -143,33 +148,51 @@ function DashboardDesktop() {
               </div>
               <h3 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Recent Activity</h3>
             </div>
-            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700 hover:bg-purple-50">
-              View All
-            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="space-y-3">
-            {[
-              { title: "Payment Received", desc: "Rahul Kumar paid ₹5,000", icon: Wallet, gradient: "from-emerald-500 to-green-600", time: "2 hours ago" },
-              { title: "New Tenant", desc: "Amit Singh joined Room 102", icon: UserPlus, gradient: "from-blue-500 to-cyan-600", time: "5 hours ago" },
-              { title: "Complaint Logged", desc: "Room 204: Fan not working", icon: AlertCircle, gradient: "from-orange-500 to-red-600", time: "1 day ago" },
-            ].map((activity, i) => (
-              <div key={i} className="group flex items-center gap-4 p-4 bg-gradient-to-r from-white to-gray-50 hover:from-purple-50 hover:to-blue-50 rounded-xl border-2 border-transparent hover:border-purple-200 transition-all duration-300 cursor-pointer" data-testid={`activity-${i}`}>
-                <div className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-md transition-transform duration-300 group-hover:scale-110",
-                  `bg-gradient-to-br ${activity.gradient}`
-                )}>
-                  <activity.icon className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-sm text-gray-800 mb-0.5">{activity.title}</h4>
-                  <p className="text-xs text-muted-foreground">{activity.desc}</p>
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">{activity.time}</span>
-              </div>
-            ))}
-          </div>
+          {activitiesLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+            </div>
+          ) : !activities || activities.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-sm">No recent activity</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {activities.map((activity) => {
+                const iconMap: Record<string, typeof Wallet> = {
+                  payment: Wallet,
+                  tenant: UserPlus,
+                  complaint: AlertCircle,
+                };
+                const gradientMap: Record<string, string> = {
+                  payment: "from-emerald-500 to-green-600",
+                  tenant: "from-blue-500 to-cyan-600",
+                  complaint: "from-orange-500 to-red-600",
+                };
+                const ActivityIcon = iconMap[activity.type] || AlertCircle;
+                const gradient = gradientMap[activity.type] || "from-gray-500 to-gray-600";
+                
+                return (
+                  <div key={activity.id} className="group flex items-center gap-4 p-4 bg-gradient-to-r from-white to-gray-50 hover:from-purple-50 hover:to-blue-50 rounded-xl border-2 border-transparent hover:border-purple-200 transition-all duration-300 cursor-pointer" data-testid={`activity-${activity.id}`}>
+                    <div className={cn(
+                      "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-md transition-transform duration-300 group-hover:scale-110",
+                      `bg-gradient-to-br ${gradient}`
+                    )}>
+                      <ActivityIcon className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-sm text-gray-800 mb-0.5">{activity.title}</h4>
+                      <p className="text-xs text-muted-foreground">{activity.description}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground font-medium">{format(new Date(activity.createdAt), 'MMM d, h:mm a')}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </DesktopLayout>
@@ -179,45 +202,49 @@ function DashboardDesktop() {
 function DashboardMobile() {
   const [, navigate] = useLocation();
   
+  // Fetch dashboard stats
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ['/api/owner/dashboard-stats'],
+    refetchInterval: 30000,
+  });
+
+  // Fetch recent activity
+  const { data: activities, isLoading: activitiesLoading } = useQuery<Array<{
+    id: number;
+    type: string;
+    title: string;
+    description: string;
+    createdAt: Date;
+  }>>({
+    queryKey: ['/api/owner/recent-activity'],
+    refetchInterval: 30000,
+  });
+  
   const stats = [
     { 
       label: "Total Tenants", 
-      value: "42", 
+      value: statsLoading ? "..." : statsData?.totalTenants?.toString() || "0", 
       icon: Users, 
-      gradient: "from-blue-500 to-cyan-600", 
-      trend: "+12%",
-      trendUp: true 
+      gradient: "from-blue-500 to-cyan-600"
     },
     { 
       label: "Revenue", 
-      value: "₹84,500", 
+      value: statsLoading ? "..." : `₹${statsData?.revenue?.toLocaleString('en-IN') || '0'}`, 
       icon: Wallet, 
-      gradient: "from-emerald-500 to-green-600", 
-      trend: "+8%",
-      trendUp: true 
+      gradient: "from-emerald-500 to-green-600"
     },
     { 
       label: "Pending Dues", 
-      value: "₹12,000", 
+      value: statsLoading ? "..." : `₹${statsData?.pendingDues?.toLocaleString('en-IN') || '0'}`, 
       icon: AlertCircle, 
-      gradient: "from-orange-500 to-red-600", 
-      trend: "-3%",
-      trendUp: false 
+      gradient: "from-orange-500 to-red-600"
     },
     { 
       label: "Occupancy", 
-      value: "85%", 
+      value: statsLoading ? "..." : `${statsData?.occupancyRate || 0}%`, 
       icon: TrendingUp, 
-      gradient: "from-purple-500 to-pink-600", 
-      trend: "+5%",
-      trendUp: true 
+      gradient: "from-purple-500 to-pink-600"
     },
-  ];
-
-  const recentActivities = [
-    { id: 1, title: "Payment Received", desc: "Rahul Kumar paid ₹5,000", time: "2h ago", icon: Wallet, gradient: "from-emerald-500 to-green-600" },
-    { id: 2, title: "New Tenant", desc: "Amit Singh joined Room 102", time: "5h ago", icon: UserPlus, gradient: "from-blue-500 to-cyan-600" },
-    { id: 3, title: "Complaint Logged", desc: "Room 204: Fan not working", time: "1d ago", icon: AlertCircle, gradient: "from-orange-500 to-red-600" },
   ];
 
   return (
@@ -266,13 +293,6 @@ function DashboardMobile() {
                 )}>
                   <stat.icon className="w-5 h-5 text-white" />
                 </div>
-                <div className={cn(
-                  "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-bold",
-                  stat.trendUp ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                )}>
-                  {stat.trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {stat.trend}
-                </div>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-semibold mb-1">{stat.label}</p>
@@ -290,26 +310,50 @@ function DashboardMobile() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Recent Activity</h2>
-          <Button variant="ghost" size="sm" className="text-xs text-purple-600 hover:text-purple-700">View All</Button>
         </div>
         
-        <div className="space-y-3">
-          {recentActivities.map((activity) => (
-            <div key={activity.id} className="group flex items-start gap-3 p-4 bg-gradient-to-r from-white to-gray-50 hover:from-purple-50 hover:to-blue-50 rounded-xl border-2 border-transparent hover:border-purple-200 shadow-sm hover:shadow-lg transition-all duration-300" data-testid={`activity-${activity.id}`}>
-              <div className={cn(
-                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-md transition-transform duration-300 group-hover:scale-110",
-                `bg-gradient-to-br ${activity.gradient}`
-              )}>
-                <activity.icon className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-sm truncate text-gray-800">{activity.title}</h4>
-                <p className="text-xs text-muted-foreground truncate">{activity.desc}</p>
-              </div>
-              <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">{activity.time}</span>
-            </div>
-          ))}
-        </div>
+        {activitiesLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+          </div>
+        ) : !activities || activities.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <p className="text-sm">No recent activity</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activities.map((activity) => {
+              const iconMap: Record<string, typeof Wallet> = {
+                payment: Wallet,
+                tenant: UserPlus,
+                complaint: AlertCircle,
+              };
+              const gradientMap: Record<string, string> = {
+                payment: "from-emerald-500 to-green-600",
+                tenant: "from-blue-500 to-cyan-600",
+                complaint: "from-orange-500 to-red-600",
+              };
+              const ActivityIcon = iconMap[activity.type] || AlertCircle;
+              const gradient = gradientMap[activity.type] || "from-gray-500 to-gray-600";
+              
+              return (
+                <div key={activity.id} className="group flex items-start gap-3 p-4 bg-gradient-to-r from-white to-gray-50 hover:from-purple-50 hover:to-blue-50 rounded-xl border-2 border-transparent hover:border-purple-200 shadow-sm hover:shadow-lg transition-all duration-300" data-testid={`activity-${activity.id}`}>
+                  <div className={cn(
+                    "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-md transition-transform duration-300 group-hover:scale-110",
+                    `bg-gradient-to-br ${gradient}`
+                  )}>
+                    <ActivityIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-sm truncate text-gray-800">{activity.title}</h4>
+                    <p className="text-xs text-muted-foreground truncate">{activity.description}</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">{format(new Date(activity.createdAt), 'MMM d')}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </MobileLayout>
   );

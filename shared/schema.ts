@@ -245,7 +245,7 @@ export const rooms = pgTable("rooms", {
   floor: integer("floor").default(1), // Floor number
   hasAttachedBathroom: boolean("has_attached_bathroom").default(false), // true for attached, false for common
   hasAC: boolean("has_ac").default(false), // true if AC, false if no AC
-  status: text("status").default("vacant"), // occupied, vacant
+  status: text("status").default("vacant"), // vacant, partially_occupied, fully_occupied
   amenities: text("amenities").array().default([]), // WiFi, Water, Power
   meterNumber: text("meter_number"), // Electricity meter number for this room
   createdAt: timestamp("created_at").defaultNow(),

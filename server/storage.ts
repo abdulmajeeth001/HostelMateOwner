@@ -974,7 +974,7 @@ export class DatabaseStorage implements IStorage {
           let status = "vacant";
           if (tenants.length > 0 && room.sharing) {
             if (tenants.length >= room.sharing) {
-              status = "occupied";
+              status = "fully_occupied";
             } else {
               status = "partially_occupied";
             }
@@ -1716,7 +1716,7 @@ export class DatabaseStorage implements IStorage {
       
       let newStatus = "vacant";
       if (updatedTenantIds.length >= roomSharing) {
-        newStatus = "occupied";
+        newStatus = "fully_occupied";
       } else if (updatedTenantIds.length > 0) {
         newStatus = "partially_occupied";
       }
@@ -2146,13 +2146,17 @@ export class DatabaseStorage implements IStorage {
     const pendingDues = pendingPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
     // Get occupancy rate (occupied rooms / total rooms * 100)
+    // Count partially_occupied and fully_occupied as occupied
+    // Also include legacy "occupied" status for backward compatibility
     const allRooms = await db.select()
       .from(rooms)
       .where(and(
         eq(rooms.ownerId, ownerId),
         eq(rooms.pgId, pgId)
       ));
-    const occupiedRooms = allRooms.filter(r => r.status === 'occupied');
+    const occupiedRooms = allRooms.filter(r => 
+      r.status === 'partially_occupied' || r.status === 'fully_occupied' || r.status === 'occupied'
+    );
     const occupancyRate = allRooms.length > 0 
       ? Math.round((occupiedRooms.length / allRooms.length) * 100)
       : 0;
