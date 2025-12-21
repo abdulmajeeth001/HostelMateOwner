@@ -62,7 +62,9 @@ export default function Login() {
         className="w-full space-y-8"
       >
         <div className="text-center space-y-2">
-          <img src={appIcon} alt="StayBuki Logo" className="w-40 h-40 mx-auto mb-6" style={{ mixBlendMode: 'multiply' }} />
+          <div className="w-48 h-48 mx-auto mb-6 flex items-center justify-center">
+            <img src={appIcon} alt="StayBuki Logo" className="w-full h-full object-contain scale-150" />
+          </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">StayBuki</h1>
           <p className="text-muted-foreground">Manage your PG smarter, not harder.</p>
         </div>
