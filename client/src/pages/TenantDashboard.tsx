@@ -150,7 +150,7 @@ export default function TenantDashboard() {
               className="block cursor-pointer group"
               data-testid={`link-dashboard-${item.label.toLowerCase().replace(" ", "-")}`}
             >
-              <Card className="h-full border-2 hover:border-purple-200 hover:shadow-xl transition-all duration-300 overflow-hidden">
+              <Card className="relative h-full border-2 hover:border-purple-200 hover:shadow-xl transition-all duration-300 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <CardContent className="relative p-5 flex flex-col items-center justify-center gap-3 h-full">
                   <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-md ${item.color} group-hover:scale-110 transition-transform duration-300`}>
