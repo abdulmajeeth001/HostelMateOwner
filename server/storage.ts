@@ -1818,7 +1818,12 @@ export class DatabaseStorage implements IStorage {
   async getElectricityBillingCycles(ownerId: number, pgId?: number): Promise<any[]> {
     let query = db.select()
       .from(electricityBillingCycles)
-      .where(eq(electricityBillingCycles.ownerId, ownerId))
+      .where(
+        and(
+          eq(electricityBillingCycles.ownerId, ownerId),
+          eq(electricityBillingCycles.status, "confirmed")
+        )
+      )
       .orderBy(desc(electricityBillingCycles.createdAt));
 
     if (pgId) {
@@ -1827,7 +1832,8 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(electricityBillingCycles.ownerId, ownerId),
-            eq(electricityBillingCycles.pgId, pgId)
+            eq(electricityBillingCycles.pgId, pgId),
+            eq(electricityBillingCycles.status, "confirmed")
           )
         )
         .orderBy(desc(electricityBillingCycles.createdAt));

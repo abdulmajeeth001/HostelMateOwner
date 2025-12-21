@@ -77,6 +77,8 @@ export default function ElectricityHistory() {
 
 function ElectricityHistoryDesktop() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [selectedCycle, setSelectedCycle] = useState<ElectricityBillingCycle | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
@@ -107,8 +109,19 @@ function ElectricityHistoryDesktop() {
     const matchesSearch =
       cycle.billingMonth.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cycle.invoiceNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    
+    const cycleStartDate = new Date(cycle.periodStart);
+    const matchesFromDate = !fromDate || cycleStartDate >= new Date(fromDate);
+    const matchesToDate = !toDate || cycleStartDate <= new Date(toDate);
+    
+    return matchesSearch && matchesFromDate && matchesToDate;
   });
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setFromDate("");
+    setToDate("");
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -127,28 +140,59 @@ function ElectricityHistoryDesktop() {
   };
 
   return (
-    <DesktopLayout title="Electricity Bill History">
+    <DesktopLayout title="EB History">
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent" data-testid="text-eb-history-title">
-            Electricity Bill History
+            EB History
           </h1>
           <p className="text-muted-foreground mt-2">
-            View all electricity billing cycles and their details
+            View confirmed electricity billing cycles
           </p>
         </div>
 
         {/* Search Bar */}
-        <div className="flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by month or invoice number..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-              data-testid="input-search-cycles"
-            />
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-4 items-end">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by month or invoice number..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-cycles"
+              />
+            </div>
+            <div className="flex gap-2 items-end">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">From Date</label>
+                <Input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="w-40"
+                  data-testid="input-from-date"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">To Date</label>
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="w-40"
+                  data-testid="input-to-date"
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleClearFilters}
+                data-testid="button-clear-filters"
+              >
+                Clear
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -343,6 +387,8 @@ function ElectricityHistoryDesktop() {
 
 function ElectricityHistoryMobile() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [selectedCycle, setSelectedCycle] = useState<ElectricityBillingCycle | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
@@ -373,8 +419,19 @@ function ElectricityHistoryMobile() {
     const matchesSearch =
       cycle.billingMonth.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cycle.invoiceNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    
+    const cycleStartDate = new Date(cycle.periodStart);
+    const matchesFromDate = !fromDate || cycleStartDate >= new Date(fromDate);
+    const matchesToDate = !toDate || cycleStartDate <= new Date(toDate);
+    
+    return matchesSearch && matchesFromDate && matchesToDate;
   });
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setFromDate("");
+    setToDate("");
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -400,20 +457,53 @@ function ElectricityHistoryMobile() {
             EB History
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            All electricity billing cycles
+            View confirmed electricity billing cycles
           </p>
         </div>
 
         {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-            data-testid="input-search-cycles-mobile"
-          />
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              data-testid="input-search-cycles-mobile"
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1 space-y-1">
+              <label className="text-xs text-muted-foreground">From Date</label>
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                data-testid="input-from-date-mobile"
+              />
+            </div>
+            <div className="flex-1 space-y-1">
+              <label className="text-xs text-muted-foreground">To Date</label>
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                data-testid="input-to-date-mobile"
+              />
+            </div>
+          </div>
+          {(searchQuery || fromDate || toDate) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearFilters}
+              className="w-full"
+              data-testid="button-clear-filters-mobile"
+            >
+              Clear Filters
+            </Button>
+          )}
         </div>
 
         {/* Cycles List */}
