@@ -53,21 +53,30 @@ export function useNotifications() {
   useEffect(() => {
     if (!notifications.length) return;
 
-    const latestNotification = notifications[0];
-    
-    // Only show toast for new notifications
+    // Initialize on first load
     if (lastNotificationId === null) {
-      setLastNotificationId(latestNotification.id);
+      const latestId = Math.max(...notifications.map(n => n.id));
+      setLastNotificationId(latestId);
       return;
     }
 
-    if (latestNotification.id > lastNotificationId) {
-      // New notification received!
-      toast.info(latestNotification.title, {
-        description: latestNotification.message,
-        duration: 5000,
+    // Find all new notifications (not just the first one)
+    const newNotifications = notifications
+      .filter(n => n.id > lastNotificationId)
+      .sort((a, b) => a.id - b.id); // Show oldest new notification first
+
+    if (newNotifications.length > 0) {
+      // Show toast for each new notification
+      newNotifications.forEach((notification) => {
+        toast.info(notification.title, {
+          description: notification.message,
+          duration: 5000,
+        });
       });
-      setLastNotificationId(latestNotification.id);
+
+      // Update last seen ID to the newest
+      const latestId = Math.max(...newNotifications.map(n => n.id));
+      setLastNotificationId(Math.max(lastNotificationId, latestId));
     }
   }, [notifications, lastNotificationId]);
 
@@ -75,27 +84,40 @@ export function useNotifications() {
   const requestPermission = useCallback(async () => {
     if (!("Notification" in window)) {
       console.log("This browser does not support notifications");
+      toast.error("This browser does not support notifications");
       return false;
     }
 
     if (!("serviceWorker" in navigator)) {
       console.log("Service workers are not supported");
+      toast.error("This browser does not support push notifications");
       return false;
     }
 
     try {
+      // Fetch VAPID public key from server
+      const vapidResponse = await fetch("/api/notifications/vapid-public-key", {
+        credentials: "include",
+      });
+
+      if (!vapidResponse.ok) {
+        console.log("Push notifications not configured on server");
+        toast.error("Push notifications are not enabled. Please contact support.");
+        return false;
+      }
+
+      const { publicKey } = await vapidResponse.json();
+
       const permission = await Notification.requestPermission();
       
       if (permission === "granted") {
         // Register service worker
         const registration = await navigator.serviceWorker.register("/sw.js");
         
-        // Subscribe to push notifications
+        // Subscribe to push notifications using server's VAPID public key
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(
-            "BP6QOmZWCPfmtZ8EGjBQN9cF8wJKvPfXRZp8S8a2QPVX7VJMn7F8h0jKvPfXRZp8S8a2QPVX7VJMn7F8h0jK" // Replace with your VAPID public key
-          )
+          applicationServerKey: urlBase64ToUint8Array(publicKey)
         });
 
         // Send subscription to server

@@ -32,24 +32,25 @@ self.addEventListener('notificationclick', function(event) {
   let targetUrl = '/';
 
   // Determine the target URL based on notification type
+  // Use paths that match actual routing (mobile uses different paths)
   if (data.url) {
     targetUrl = data.url;
   } else if (data.type) {
     switch(data.type) {
       case 'visit_request':
-        targetUrl = '/owner/visit-requests';
+        targetUrl = '/owner-visit-requests';
         break;
       case 'onboarding_request':
-        targetUrl = '/owner/onboarding-requests';
+        targetUrl = '/owner-onboarding-requests';
         break;
       case 'payment':
-        targetUrl = '/owner/payments';
+        targetUrl = '/payments';
         break;
       case 'complaint':
-        targetUrl = '/owner/complaints';
+        targetUrl = '/complaints';
         break;
       default:
-        targetUrl = '/owner/dashboard';
+        targetUrl = '/dashboard';
     }
   }
 

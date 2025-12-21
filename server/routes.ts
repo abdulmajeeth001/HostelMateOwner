@@ -6,6 +6,7 @@ import { z } from "zod";
 import multer from "multer";
 import Papa from "papaparse";
 import { sendOtpEmail, sendTenantWelcomeEmail, sendOwnerPgWelcomeEmail, sendTenantOnboardingWithPasswordEmail, sendTenantOnboardingExistingUserEmail } from "./email";
+import { sendPushNotificationSafe, VAPID_PUBLIC_KEY, isPushEnabled } from "./push-service";
 
 // Configure multer for file upload (memory storage for CSV processing)
 const upload = multer({ 
@@ -1670,13 +1671,20 @@ export async function registerRoutes(
         }
 
         // Create notification for owner when tenant submits payment
-        await storage.createNotification({
-          userId: payment.ownerId,
+        const notificationPayload = {
           title: "Payment Submitted",
           message: `${tenant.name} has submitted payment of ₹${payment.amount}. Transaction ID: ${req.body.transactionId || 'N/A'}. Please review and approve.`,
           type: "payment",
           referenceId: payment.id,
+        };
+        
+        await storage.createNotification({
+          userId: payment.ownerId,
+          ...notificationPayload,
         });
+
+        // Send web push notification
+        await sendPushNotificationSafe(storage, payment.ownerId, notificationPayload);
 
         res.json(payment);
       } else if (user.userType === "owner") {
@@ -1724,13 +1732,20 @@ export async function registerRoutes(
       // Notify tenant that payment was approved
       const tenant = await storage.getTenant(payment.tenantId);
       if (tenant && tenant.userId) {
-        await storage.createNotification({
-          userId: tenant.userId,
+        const notificationPayload = {
           title: "Payment Approved",
           message: `Your payment of ₹${payment.amount} has been approved by the owner.`,
           type: "payment",
           referenceId: payment.id,
+        };
+        
+        await storage.createNotification({
+          userId: tenant.userId,
+          ...notificationPayload,
         });
+
+        // Send web push notification
+        await sendPushNotificationSafe(storage, tenant.userId, notificationPayload);
       }
 
       res.json(payment);
@@ -1768,13 +1783,20 @@ export async function registerRoutes(
           ? `Your payment of ₹${payment.amount} was rejected. Reason: ${rejectionReason}. Please resubmit with correct details.`
           : `Your payment of ₹${payment.amount} was rejected. Please resubmit with correct details.`;
         
-        await storage.createNotification({
-          userId: tenant.userId,
+        const notificationPayload = {
           title: "Payment Rejected",
           message,
           type: "payment",
           referenceId: payment.id,
+        };
+        
+        await storage.createNotification({
+          userId: tenant.userId,
+          ...notificationPayload,
         });
+
+        // Send web push notification
+        await sendPushNotificationSafe(storage, tenant.userId, notificationPayload);
       }
 
       res.json(payment);
@@ -1962,11 +1984,21 @@ export async function registerRoutes(
 
   app.post("/api/notifications/:id/read", async (req, res) => {
     try {
-      if (!req.session!.userId) {
+      const userId = req.session!.userId;
+      if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
       const notificationId = parseInt(req.params.id);
+      
+      // Security: Verify the notification belongs to the current user
+      const notifications = await storage.getNotifications(userId, null);
+      const notification = notifications.find(n => n.id === notificationId);
+      
+      if (!notification) {
+        return res.status(404).json({ error: "Notification not found or access denied" });
+      }
+
       await storage.markNotificationAsRead(notificationId);
       res.json({ success: true });
     } catch (error) {
@@ -1984,6 +2016,23 @@ export async function registerRoutes(
       res.json({ count });
     } catch (error) {
       res.status(400).json({ error: "Failed to get unread count" });
+    }
+  });
+
+  app.get("/api/notifications/vapid-public-key", async (req, res) => {
+    try {
+      // Require authentication
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!isPushEnabled || !VAPID_PUBLIC_KEY) {
+        return res.status(503).json({ error: "Push notifications not configured" });
+      }
+
+      res.json({ publicKey: VAPID_PUBLIC_KEY });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get VAPID public key" });
     }
   });
 
@@ -2840,13 +2889,20 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       if (user.userType === "tenant" && complaintData.tenantId) {
         const tenant = await storage.getTenant(complaintData.tenantId);
         if (tenant) {
-          await storage.createNotification({
-            userId: complaintData.ownerId,
+          const notificationPayload = {
             title: "New Complaint",
             message: `${tenant.name} has raised a complaint: ${complaintData.title}. Priority: ${complaintData.priority}.`,
             type: "complaint",
             referenceId: complaint.id,
+          };
+          
+          await storage.createNotification({
+            userId: complaintData.ownerId,
+            ...notificationPayload,
           });
+
+          // Send web push notification
+          await sendPushNotificationSafe(storage, complaintData.ownerId, notificationPayload);
         }
       }
 
@@ -3305,13 +3361,20 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       });
 
       // Create notification for owner
-      await storage.createNotification({
-        userId: pg.ownerId,
+      const notificationPayload = {
         title: "New Visit Request",
         message: `${user.name} has requested to visit ${pg.pgName} on ${new Date(body.requestedDate).toLocaleDateString()} at ${body.requestedTime}.`,
         type: "visit_request",
         referenceId: visitRequest.id,
+      };
+      
+      await storage.createNotification({
+        userId: pg.ownerId,
+        ...notificationPayload,
       });
+
+      // Send web push notification
+      await sendPushNotificationSafe(storage, pg.ownerId, notificationPayload);
 
       res.status(201).json(visitRequest);
     } catch (error) {
@@ -3565,13 +3628,20 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       });
 
       // Create notification for owner
-      await storage.createNotification({
-        userId: pg.ownerId,
+      const notificationPayload = {
         title: "New Onboarding Request",
         message: `${body.name} has submitted an onboarding request for ${pg.pgName}. Monthly rent: ₹${body.monthlyRent}.`,
         type: "onboarding_request",
         referenceId: onboardingRequest.id,
+      };
+      
+      await storage.createNotification({
+        userId: pg.ownerId,
+        ...notificationPayload,
       });
+
+      // Send web push notification
+      await sendPushNotificationSafe(storage, pg.ownerId, notificationPayload);
 
       res.status(201).json(onboardingRequest);
     } catch (error) {

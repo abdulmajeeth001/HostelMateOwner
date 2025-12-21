@@ -81,6 +81,23 @@ Core entities include Users, OTP Codes, PG Master, Rooms, Tenants, Emergency Con
 - **Onboarding System:** Two-stage process:
     1.  **Visit Request Flow:** Prospective tenants request visits, owners approve/reschedule/cancel.
     2.  **Onboarding Request Flow:** After visit, tenants submit a 4-step application (personal info, emergency contact, documents), owners review and approve/reject.
+- **Notification System (Dec 2024):** Real-time dual notification system for owners with in-app and web push capabilities:
+    - **Notification Bell UI:** Bell icon in owner layouts (desktop and mobile) with unread count badge and dropdown list
+    - **In-App Notifications:** 30-second polling for new notifications, automatic toast pop-ups for new events
+    - **Database Schema:** Notifications table tracks: userId, title, message, type (visit_request, onboarding_request, payment, complaint), referenceId, isRead, createdAt
+    - **Push Subscriptions:** Table stores web push subscription data (endpoint, p256dh, auth keys) for owners who enable push notifications
+    - **Automatic Triggers:** Notifications created for key events:
+        - Visit request submitted → notifies owner
+        - Onboarding request submitted → notifies owner
+        - Payment submitted for approval → notifies owner
+        - Complaint created by tenant → notifies owner
+        - Payment approved → notifies tenant
+        - Payment rejected → notifies tenant
+    - **Security:** Ownership validation ensures users can only read/mark their own notifications
+    - **Click-to-Navigate:** Clicking notifications navigates to relevant pages (/owner-visit-requests, /owner-onboarding-requests, /payments, /complaints)
+    - **Service Worker:** Registered at /sw.js handles web push notifications with click handlers
+    - **Push Delivery:** Infrastructure ready for web push (requires VAPID key configuration for actual delivery)
+    - **Toast Deduplication:** Improved logic handles multiple new notifications, prevents duplicate toasts
 - **Tenant Lifecycle Management:** Complete tracking of tenant housing status and history:
     - **UserType Lifecycle:** Reflects actual housing state - "applicant" (searching for housing) → "tenant" (has housing) → removed → "applicant" (with history preserved)
     - **Soft-Delete Approach:** Tenants marked as "vacated" (status="vacated") instead of hard deletion, preserving all payment history and tenant records

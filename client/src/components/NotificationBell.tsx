@@ -21,19 +21,19 @@ export function NotificationBell() {
   const handleNotificationClick = (notification: typeof notifications[0]) => {
     markAsRead(notification.id);
 
-    // Navigate based on notification type
+    // Navigate based on notification type (use actual routing paths)
     switch (notification.type) {
       case "visit_request":
-        setLocation("/owner/visit-requests");
+        setLocation("/owner-visit-requests");
         break;
       case "onboarding_request":
-        setLocation("/owner/onboarding-requests");
+        setLocation("/owner-onboarding-requests");
         break;
       case "payment":
-        setLocation("/owner/payments");
+        setLocation("/payments");
         break;
       case "complaint":
-        setLocation("/owner/complaints");
+        setLocation("/complaints");
         break;
       default:
         break;
