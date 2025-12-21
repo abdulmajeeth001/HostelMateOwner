@@ -647,7 +647,7 @@ function PaymentsDesktop() {
                         </Button>
                       </div>
                     )}
-                    {tx.status === 'pending' && tx.paymentType === 'electricity' && (
+                    {tx.status === 'pending' && (
                       <Button
                         size="sm"
                         className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-md"
@@ -722,7 +722,7 @@ function PaymentsDesktop() {
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <p className="text-sm text-muted-foreground">
-              Are you sure you want to delete this electricity payment? This action cannot be undone.
+              Are you sure you want to delete this payment? This action cannot be undone.
             </p>
             <div className="flex gap-2 justify-end pt-4">
               <Button 
@@ -1264,7 +1264,7 @@ function PaymentsMobile() {
                       </Button>
                     </div>
                   )}
-                  {tx.status === 'pending' && tx.paymentType === 'electricity' && (
+                  {tx.status === 'pending' && (
                     <Button
                       size="sm"
                       className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-md"
@@ -1406,7 +1406,7 @@ function PaymentsMobile() {
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <p className="text-sm text-muted-foreground">
-              Are you sure you want to delete this electricity payment? This action cannot be undone.
+              Are you sure you want to delete this payment? This action cannot be undone.
             </p>
             <div className="flex gap-2 justify-end pt-4">
               <Button 
