@@ -1,6 +1,7 @@
 import DesktopLayout from "@/components/layout/DesktopLayout";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { ArrowUpRight, ArrowDownLeft, Calendar, Filter, Plus, Wallet, TrendingUp, DollarSign, Check, X, Zap } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Calendar, Filter, Plus, Wallet, TrendingUp, DollarSign, Check, X, Zap, History } from "lucide-react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,7 @@ export default function Payments() {
 
 function PaymentsDesktop() {
   const { pg } = usePG();
+  const [, navigate] = useLocation();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -338,6 +340,16 @@ function PaymentsDesktop() {
                 data-testid="button-auto-generate"
               >
                 Auto Generate
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="bg-white/20 backdrop-blur-sm border-white/30 hover:bg-white/30 text-white"
+                onClick={() => navigate("/electricity-history")}
+                data-testid="button-view-eb-history"
+              >
+                <History className="w-4 h-4 mr-2" />
+                EB History
               </Button>
               <Button 
                 size="sm" 
@@ -636,20 +648,12 @@ function PaymentsDesktop() {
                     {tx.status === 'pending' && tx.paymentType === 'electricity' && (
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                        className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-md"
                         onClick={() => handleDeletePayment(tx.id)}
                         disabled={deletingId === tx.id}
                         data-testid={`button-delete-${tx.id}`}
                       >
-                        {deletingId === tx.id ? (
-                          "Deleting..."
-                        ) : (
-                          <>
-                            <X className="w-4 h-4 mr-1" />
-                            Delete
-                          </>
-                        )}
+                        {deletingId === tx.id ? "Deleting..." : "Delete"}
                       </Button>
                     )}
                   </div>
@@ -754,6 +758,7 @@ function PaymentsDesktop() {
 
 function PaymentsMobile() {
   const { pg } = usePG();
+  const [, navigate] = useLocation();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1062,7 +1067,7 @@ function PaymentsMobile() {
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button 
             variant="outline"
             size="sm"
@@ -1070,7 +1075,16 @@ function PaymentsMobile() {
             disabled={creating || !pg?.rentPaymentDate}
             data-testid="button-auto-generate-mobile"
           >
-            Auto Generate
+            <span className="text-xs">Auto Gen</span>
+          </Button>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/electricity-history")}
+            data-testid="button-view-eb-history-mobile"
+          >
+            <History className="w-4 h-4 mr-1" />
+            <span className="text-xs">History</span>
           </Button>
           <Button 
             variant="outline"
@@ -1078,8 +1092,8 @@ function PaymentsMobile() {
             onClick={() => setEbDialogOpen(true)}
             data-testid="button-create-eb-bill-mobile"
           >
-            <Zap className="w-4 h-4 mr-2" />
-            EB Bill
+            <Zap className="w-4 h-4 mr-1" />
+            <span className="text-xs">EB Bill</span>
           </Button>
         </div>
 
@@ -1249,20 +1263,12 @@ function PaymentsMobile() {
                   {tx.status === 'pending' && tx.paymentType === 'electricity' && (
                     <Button
                       size="sm"
-                      variant="outline"
-                      className="w-full bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                      className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-md"
                       onClick={() => handleDeletePayment(tx.id)}
                       disabled={deletingId === tx.id}
                       data-testid={`button-delete-mobile-${tx.id}`}
                     >
-                      {deletingId === tx.id ? (
-                        "Deleting..."
-                      ) : (
-                        <>
-                          <X className="w-4 h-4 mr-1" />
-                          Delete
-                        </>
-                      )}
+                      {deletingId === tx.id ? "Deleting..." : "Delete"}
                     </Button>
                   )}
                 </CardContent>

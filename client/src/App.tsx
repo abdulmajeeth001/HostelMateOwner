@@ -43,6 +43,7 @@ import PGDetailsPage from "@/pages/PGDetailsPage";
 import TenantVisitRequestsPage from "@/pages/TenantVisitRequestsPage";
 import OwnerVisitRequestsPage from "@/pages/OwnerVisitRequestsPage";
 import OwnerOnboardingRequestsPage from "@/pages/OwnerOnboardingRequestsPage";
+import ElectricityHistory from "@/pages/ElectricityHistory";
 
 function Router() {
   return (
@@ -61,6 +62,7 @@ function Router() {
       <Route path="/tenants/view/:id" component={ViewTenant} />
       <Route path="/tenants/edit/:id" component={EditTenant} />
       <Route path="/payments" component={Payments} />
+      <Route path="/electricity-history" component={ElectricityHistory} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/rooms" component={Rooms} />
       <Route path="/rooms/add" component={AddRoom} />
