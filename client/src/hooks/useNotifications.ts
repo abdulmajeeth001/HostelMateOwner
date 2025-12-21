@@ -39,10 +39,9 @@ export function useNotifications() {
     const checkPushAvailability = async () => {
       console.log("[Push Availability Check] Starting...");
       console.log("[Push Availability Check] serviceWorker in navigator:", "serviceWorker" in navigator);
-      console.log("[Push Availability Check] PushManager in window:", "PushManager" in window);
       
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        console.log("[Push Availability Check] Basic requirements not met");
+      if (!("serviceWorker" in navigator)) {
+        console.log("[Push Availability Check] Service workers not supported");
         setIsPushAvailable(false);
         return;
       }
@@ -50,7 +49,10 @@ export function useNotifications() {
       // Check if in PWA standalone mode (Safari iOS requirement)
       const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
                           (window.navigator as any).standalone === true;
+      const isSafariIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
       console.log("[Push Availability Check] Is standalone mode:", isStandalone);
+      console.log("[Push Availability Check] Is Safari iOS:", isSafariIOS);
       console.log("[Push Availability Check] User agent:", navigator.userAgent);
 
       try {
@@ -60,21 +62,20 @@ export function useNotifications() {
         console.log("[Push Availability Check] Service worker registered");
         console.log("[Push Availability Check] registration.pushManager exists:", !!registration.pushManager);
         
-        // For Safari iOS in standalone mode, trust PushManager in window even if registration.pushManager is missing
-        const isSafariIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const pushAvailable = registration.pushManager || (isSafariIOS && isStandalone && "PushManager" in window);
+        // For Safari iOS in standalone mode, always enable push (iOS PWAs don't expose PushManager on window)
+        // For other browsers, check if registration.pushManager exists
+        const pushAvailable = (isSafariIOS && isStandalone) || !!registration.pushManager;
         
-        console.log("[Push Availability Check] Is Safari iOS:", isSafariIOS);
         console.log("[Push Availability Check] Push available:", pushAvailable);
         
         if (!pushAvailable) {
-          console.log("[Push Availability Check] Push not available");
+          console.log("[Push Availability Check] Push not available - not iOS standalone and no pushManager");
           setIsPushAvailable(false);
           return;
         }
 
         setIsPushAvailable(true);
-        console.log("[Push Availability Check] Set isPushAvailable to true");
+        console.log("[Push Availability Check] ✅ Set isPushAvailable to TRUE");
 
         // Check if user already has an active subscription (only if pushManager exists)
         if (registration.pushManager) {
@@ -82,7 +83,7 @@ export function useNotifications() {
           console.log("[Push Availability Check] Existing subscription:", !!subscription);
           setHasActiveSubscription(!!subscription);
         } else {
-          console.log("[Push Availability Check] No pushManager, assuming no subscription");
+          console.log("[Push Availability Check] No pushManager yet, assuming no subscription");
           setHasActiveSubscription(false);
         }
       } catch (error) {
