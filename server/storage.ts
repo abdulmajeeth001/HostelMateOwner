@@ -303,8 +303,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTenantByUserId(userId: number): Promise<Tenant | undefined> {
-    const result = await db.select().from(tenants).where(eq(tenants.userId, userId)).limit(1);
-    return result[0];
+    // First try to get active tenant
+    const activeResult = await db.select()
+      .from(tenants)
+      .where(and(
+        eq(tenants.userId, userId),
+        eq(tenants.status, "active")
+      ))
+      .limit(1);
+    
+    if (activeResult.length > 0) {
+      return activeResult[0];
+    }
+    
+    // If no active tenant, return any tenant record (for historical data access)
+    const anyResult = await db.select()
+      .from(tenants)
+      .where(eq(tenants.userId, userId))
+      .limit(1);
+    
+    return anyResult[0];
   }
 
   async getActiveTenantByEmail(email: string): Promise<{tenant: Tenant, pg: PgMaster} | undefined> {
