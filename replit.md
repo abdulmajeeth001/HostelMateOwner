@@ -84,15 +84,23 @@ Core entities include Users, OTP Codes, PG Master, Rooms, Tenants, Emergency Con
 - **Notification System (Dec 2024):** Real-time dual notification system for owners with in-app and web push capabilities:
     - **Notification Bell UI:** Bell icon in owner layouts (desktop and mobile) with unread count badge and dropdown list
     - **In-App Notifications:** 30-second polling for new notifications, automatic toast pop-ups for new events
-    - **Database Schema:** Notifications table tracks: userId, title, message, type (visit_request, onboarding_request, payment, complaint), referenceId, isRead, createdAt
+    - **Database Schema:** Notifications table tracks: userId, pgId (nullable, for PG-specific filtering), title, message, type (visit_request, onboarding_request, payment, complaint), referenceId, isRead, createdAt
+    - **PG-Specific Filtering (Dec 2024):** Owners see only notifications for their currently selected PG:
+        - Added nullable `pgId` column to notifications table with foreign key to `pg_master`
+        - All 7 notification creation points include pgId (visit request, onboarding, payment submit/approve/reject, complaint, rent reminder)
+        - Backend filtering in `getNotifications()` and `getUnreadNotificationCount()` when pgId provided
+        - Role-based filtering: applies only to owners (userType === "owner"), tenants/applicants get all notifications
+        - Automatic context switching: notification list updates when owner switches between PGs
+        - Backfilled existing notifications by joining with source tables
     - **Push Subscriptions:** Table stores web push subscription data (endpoint, p256dh, auth keys) for owners who enable push notifications
     - **Automatic Triggers:** Notifications created for key events:
-        - Visit request submitted → notifies owner
-        - Onboarding request submitted → notifies owner
-        - Payment submitted for approval → notifies owner
-        - Complaint created by tenant → notifies owner
-        - Payment approved → notifies tenant
-        - Payment rejected → notifies tenant
+        - Visit request submitted → notifies owner (includes pgId)
+        - Onboarding request submitted → notifies owner (includes pgId)
+        - Payment submitted for approval → notifies owner (includes pgId)
+        - Complaint created by tenant → notifies owner (includes pgId)
+        - Payment approved → notifies tenant (includes pgId)
+        - Payment rejected → notifies tenant (includes pgId)
+        - Rent payment reminder → notifies tenant (includes pgId)
     - **Security:** Ownership validation ensures users can only read/mark their own notifications
     - **Click-to-Navigate:** Clicking notifications navigates to relevant pages (/owner-visit-requests, /owner-onboarding-requests, /payments, /complaints)
     - **Service Worker:** Registered at /sw.js handles web push notifications with click handlers

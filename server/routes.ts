@@ -1977,7 +1977,10 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const selectedPgId = req.session!.selectedPgId;
+      // Only filter by PG for owners (tenants don't have selectedPgId and can only be in one PG)
+      const user = await storage.getUser(req.session!.userId);
+      const selectedPgId = user?.userType === "owner" ? req.session!.selectedPgId : undefined;
+      
       const notifications = await storage.getNotifications(req.session!.userId, selectedPgId);
       res.json(notifications);
     } catch (error) {
@@ -1995,7 +1998,7 @@ export async function registerRoutes(
       const notificationId = parseInt(req.params.id);
       
       // Security: Verify the notification belongs to the current user
-      const notifications = await storage.getNotifications(userId, null);
+      const notifications = await storage.getNotifications(userId, undefined);
       const notification = notifications.find(n => n.id === notificationId);
       
       if (!notification) {
@@ -2015,7 +2018,10 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const selectedPgId = req.session!.selectedPgId;
+      // Only filter by PG for owners (tenants don't have selectedPgId and can only be in one PG)
+      const user = await storage.getUser(req.session!.userId);
+      const selectedPgId = user?.userType === "owner" ? req.session!.selectedPgId : undefined;
+      
       const count = await storage.getUnreadNotificationCount(req.session!.userId, selectedPgId);
       res.json({ count });
     } catch (error) {
