@@ -7,6 +7,7 @@ import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { usePG } from "@/hooks/use-pg";
 
 export default function Dashboard() {
   return (
@@ -23,14 +24,17 @@ export default function Dashboard() {
 
 function DashboardDesktop() {
   const [, navigate] = useLocation();
+  const { pg } = usePG();
   
-  // Fetch dashboard stats
+  // Fetch dashboard stats - include pgId in query key for proper caching per PG
   const { data: statsData, isLoading: statsLoading } = useQuery({
-    queryKey: ['/api/owner/dashboard-stats'],
+    queryKey: ['owner-dashboard-stats', pg?.id],
+    queryFn: () => fetch('/api/owner/dashboard-stats', { credentials: 'include' }).then(res => res.json()),
+    enabled: !!pg?.id,
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  // Fetch recent activity
+  // Fetch recent activity - include pgId in query key for proper caching per PG
   const { data: activities, isLoading: activitiesLoading } = useQuery<Array<{
     id: number;
     type: string;
@@ -38,7 +42,9 @@ function DashboardDesktop() {
     description: string;
     createdAt: Date;
   }>>({
-    queryKey: ['/api/owner/recent-activity'],
+    queryKey: ['owner-recent-activity', pg?.id],
+    queryFn: () => fetch('/api/owner/recent-activity', { credentials: 'include' }).then(res => res.json()),
+    enabled: !!pg?.id,
     refetchInterval: 30000,
   });
   
@@ -201,14 +207,17 @@ function DashboardDesktop() {
 
 function DashboardMobile() {
   const [, navigate] = useLocation();
+  const { pg } = usePG();
   
-  // Fetch dashboard stats
+  // Fetch dashboard stats - include pgId in query key for proper caching per PG
   const { data: statsData, isLoading: statsLoading } = useQuery({
-    queryKey: ['/api/owner/dashboard-stats'],
+    queryKey: ['owner-dashboard-stats', pg?.id],
+    queryFn: () => fetch('/api/owner/dashboard-stats', { credentials: 'include' }).then(res => res.json()),
+    enabled: !!pg?.id,
     refetchInterval: 30000,
   });
 
-  // Fetch recent activity
+  // Fetch recent activity - include pgId in query key for proper caching per PG
   const { data: activities, isLoading: activitiesLoading } = useQuery<Array<{
     id: number;
     type: string;
@@ -216,7 +225,9 @@ function DashboardMobile() {
     description: string;
     createdAt: Date;
   }>>({
-    queryKey: ['/api/owner/recent-activity'],
+    queryKey: ['owner-recent-activity', pg?.id],
+    queryFn: () => fetch('/api/owner/recent-activity', { credentials: 'include' }).then(res => res.json()),
+    enabled: !!pg?.id,
     refetchInterval: 30000,
   });
   
