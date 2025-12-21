@@ -42,3 +42,10 @@ waitForPort = 5000
 
 [agent]
 mockupState = "FULLSTACK"
+
+[userenv]
+
+[userenv.shared]
+VAPID_PUBLIC_KEY = "BASZXGmjKNuP1w9CWSrDyeat70g1jfieuWeig6gBpgEkhdMjO9yMvb-yjulXYLLi2-2Oc4neb9CUI3U8IVMeiO0"
+VAPID_PRIVATE_KEY = "cw47djU6v7wDmscY54IWCxUp8t7si2Ztiabe1CwqQhs"
+VAPID_SUBJECT = "mailto:admin@winkstay.com"
