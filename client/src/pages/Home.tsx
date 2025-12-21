@@ -11,10 +11,10 @@ export default function Home() {
       <nav className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
+            <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
               <img src={appIcon} alt="StayBuki" className="w-full h-full object-cover rounded-lg" />
             </div>
-            <h1 className="text-xl font-bold text-foreground">StayBuki</h1>
+            <h1 className="text-2xl font-bold text-foreground">StayBuki</h1>
           </div>
           <div className="flex gap-3">
             <Button onClick={() => navigate("/login")} variant="outline" data-testid="button-nav-login">
