@@ -173,11 +173,7 @@ export default function MobileLayout({
             <img 
               src={appIcon} 
               alt="StayBuki" 
-              className="h-12 w-auto"
-              style={{
-                filter: 'drop-shadow(0 1px 2px rgb(0 0 0 / 0.1))',
-                imageRendering: 'crisp-edges'
-              }}
+              className="h-14 w-auto"
             />
             <div>
               <h1 className="font-bold text-xl text-foreground">StayBuki</h1>

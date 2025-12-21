@@ -65,11 +65,7 @@ export default function Login() {
           <img 
             src={appIcon} 
             alt="StayBuki Logo" 
-            className="h-32 w-auto mx-auto"
-            style={{
-              filter: 'drop-shadow(0 4px 6px rgb(0 0 0 / 0.1))',
-              imageRendering: 'crisp-edges'
-            }}
+            className="h-48 w-auto mx-auto"
           />
           <h1 className="text-3xl font-bold tracking-tight text-foreground">StayBuki</h1>
           <p className="text-muted-foreground">Manage your PG smarter, not harder.</p>

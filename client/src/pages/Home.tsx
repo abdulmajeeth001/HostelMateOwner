@@ -14,11 +14,7 @@ export default function Home() {
             <img 
               src={appIcon} 
               alt="StayBuki" 
-              className="h-12 w-auto"
-              style={{
-                filter: 'drop-shadow(0 1px 2px rgb(0 0 0 / 0.1))',
-                imageRendering: 'crisp-edges'
-              }}
+              className="h-16 w-auto"
             />
             <h1 className="text-2xl font-bold text-foreground">StayBuki</h1>
           </div>
