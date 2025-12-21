@@ -37,29 +37,56 @@ export function useNotifications() {
   // Check if push notifications are available and if user has active subscription
   useEffect(() => {
     const checkPushAvailability = async () => {
+      console.log("[Push Availability Check] Starting...");
+      console.log("[Push Availability Check] serviceWorker in navigator:", "serviceWorker" in navigator);
+      console.log("[Push Availability Check] PushManager in window:", "PushManager" in window);
+      
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        console.log("[Push Availability Check] Basic requirements not met");
         setIsPushAvailable(false);
         return;
       }
+
+      // Check if in PWA standalone mode (Safari iOS requirement)
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
+                          (window.navigator as any).standalone === true;
+      console.log("[Push Availability Check] Is standalone mode:", isStandalone);
+      console.log("[Push Availability Check] User agent:", navigator.userAgent);
 
       try {
         // Register service worker first (required before checking availability)
         await navigator.serviceWorker.register("/sw.js");
         const registration = await navigator.serviceWorker.ready;
+        console.log("[Push Availability Check] Service worker registered");
+        console.log("[Push Availability Check] registration.pushManager exists:", !!registration.pushManager);
         
-        // Check if pushManager exists (required for Safari iOS PWA)
-        if (!registration.pushManager) {
+        // For Safari iOS in standalone mode, trust PushManager in window even if registration.pushManager is missing
+        const isSafariIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const pushAvailable = registration.pushManager || (isSafariIOS && isStandalone && "PushManager" in window);
+        
+        console.log("[Push Availability Check] Is Safari iOS:", isSafariIOS);
+        console.log("[Push Availability Check] Push available:", pushAvailable);
+        
+        if (!pushAvailable) {
+          console.log("[Push Availability Check] Push not available");
           setIsPushAvailable(false);
           return;
         }
 
         setIsPushAvailable(true);
+        console.log("[Push Availability Check] Set isPushAvailable to true");
 
-        // Check if user already has an active subscription
-        const subscription = await registration.pushManager.getSubscription();
-        setHasActiveSubscription(!!subscription);
+        // Check if user already has an active subscription (only if pushManager exists)
+        if (registration.pushManager) {
+          const subscription = await registration.pushManager.getSubscription();
+          console.log("[Push Availability Check] Existing subscription:", !!subscription);
+          setHasActiveSubscription(!!subscription);
+        } else {
+          console.log("[Push Availability Check] No pushManager, assuming no subscription");
+          setHasActiveSubscription(false);
+        }
       } catch (error) {
-        console.error("Error checking push availability:", error);
+        console.error("[Push Availability Check] Error:", error);
         setIsPushAvailable(false);
       }
     };
