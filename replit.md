@@ -54,6 +54,16 @@ Core entities include Users, OTP Codes, PG Master, Rooms, Tenants, Emergency Con
 - **Responsive Design:** Mobile-first approach with separate layouts (MobileLayout, DesktopLayout), `useIsMobile` hook, and PWA manifest. Navigation is simplified to use userType alone (reflects actual housing status: applicant vs tenant).
 - **State Management:** React Query for server state caching, custom hooks for user/PG context.
 - **Automated Payment Generation:** Monthly rent payment generation with duplicate prevention, in-app and email notifications. Configurable per PG with `rentPaymentDate`. Manual trigger available.
+- **Electricity Billing System (Dec 2024):** Comprehensive room-level meter reading and billing with automatic charge calculation:
+    - **Monthly Cycle Creation:** Owners create billing cycles for a specific month with unique constraint (pg_id, billing_month) preventing duplicates
+    - **Room-Level Metering:** Three-step wizard flow: cycle details → room readings → confirmation
+        - Support for individual room meters or shared meters with manual distribution
+        - Automatic units calculation, rate-per-unit configuration, and room amount calculation
+    - **Tenant Charge Distribution:** Automatic equal distribution of room charges among active tenants, creates pending electricity payments
+    - **Duplicate Prevention:** Backend validation prevents multiple cycles for same month/PG; frontend clears existing room bills before re-saving to prevent duplication
+    - **Back Button Safety:** When navigating back from summary to readings, existing room bills are deleted via API before allowing edits (prevents duplication on re-save)
+    - **Payment Deletion:** Owners can delete pending electricity payments with confirmation dialog (backend validates: must be pending status AND electricity type; rent payments must use rejection flow instead)
+    - **Error Handling:** Comprehensive validation at both frontend and backend; DELETE responses checked before proceeding with data recreation
 - **Onboarding System:** Two-stage process:
     1.  **Visit Request Flow:** Prospective tenants request visits, owners approve/reschedule/cancel.
     2.  **Onboarding Request Flow:** After visit, tenants submit a 4-step application (personal info, emergency contact, documents), owners review and approve/reject.
