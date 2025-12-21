@@ -33,8 +33,8 @@ export async function sendOtpEmail(email: string, otp: string, purpose: string =
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0;">WinkStay</h1>
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <img src="https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/staybuki-logo-full.png" alt="StayBuki" style="max-width: 200px; height: auto; margin: 0 auto; display: block;" />
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0;">
           <h2 style="color: #333; margin-top: 0;">${subject}</h2>
@@ -47,7 +47,7 @@ export async function sendOtpEmail(email: string, otp: string, purpose: string =
           </div>
 
           <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
-            Do not share this code with anyone. WinkStay will never ask for your OTP.
+            Do not share this code with anyone. StayBuki will never ask for your OTP.
           </p>
           
           <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
@@ -56,7 +56,7 @@ export async function sendOtpEmail(email: string, otp: string, purpose: string =
             If you didn't request this code, please ignore this email.
           </p>
           <p style="color: #999; font-size: 12px; margin: 0;">
-            © 2025 WinkStay. All rights reserved.
+            © 2025 StayBuki. All rights reserved.
           </p>
         </div>
       </div>
@@ -91,13 +91,12 @@ export async function sendTenantWelcomeEmail(data: TenantWelcomeEmailData): Prom
   try {
     const transporter = getTransporter();
 
-    const subject = "Welcome to WinkStay - Your Room is Ready!";
+    const subject = "Welcome to StayBuki - Your Room is Ready!";
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0;">WinkStay</h1>
-          <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">Your Home Away From Home</p>
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <img src="https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/staybuki-logo-full.png" alt="StayBuki" style="max-width: 200px; height: auto; margin: 0 auto; display: block;" />
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0;">
           <h2 style="color: #333; margin-top: 0;">Welcome, ${data.tenantName}! 🎉</h2>
@@ -135,7 +134,7 @@ export async function sendTenantWelcomeEmail(data: TenantWelcomeEmailData): Prom
           <div style="background: #e8f0fe; border-radius: 8px; padding: 15px; margin: 20px 0;">
             <h4 style="margin: 0 0 10px 0; color: #1a73e8; font-size: 14px;">📌 Next Steps:</h4>
             <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 13px; line-height: 1.8;">
-              <li>Log in to your WinkStay account to view complete details</li>
+              <li>Log in to your StayBuki account to view complete details</li>
               <li>Contact your PG owner for move-in coordination</li>
               <li>Keep track of your payment due dates</li>
               <li>Explore amenities and house rules</li>
@@ -143,13 +142,13 @@ export async function sendTenantWelcomeEmail(data: TenantWelcomeEmailData): Prom
           </div>
 
           <p style="color: #666; font-size: 13px; margin-top: 20px;">
-            We're excited to have you as part of the WinkStay community. If you have any questions, please reach out to your PG owner or contact our support team.
+            We're excited to have you as part of the StayBuki community. If you have any questions, please reach out to your PG owner or contact our support team.
           </p>
           
           <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
           
           <p style="color: #999; font-size: 12px; margin: 0;">
-            © 2025 WinkStay. All rights reserved.
+            © 2025 StayBuki. All rights reserved.
           </p>
         </div>
       </div>
@@ -193,16 +192,15 @@ export async function sendTenantOnboardingWithPasswordEmail(data: TenantOnboardi
   try {
     const transporter = getTransporter();
 
-    const subject = "Welcome to WinkStay - Your Account & Room Details";
+    const subject = "Welcome to StayBuki - Your Account & Room Details";
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0;">WinkStay</h1>
-          <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">Your Home Away From Home</p>
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <img src="https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/staybuki-logo-full.png" alt="StayBuki" style="max-width: 200px; height: auto; margin: 0 auto; display: block;" />
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0;">
-          <h2 style="color: #333; margin-top: 0;">Welcome to WinkStay, ${data.tenantName}! 🎉</h2>
+          <h2 style="color: #333; margin-top: 0;">Welcome to StayBuki, ${data.tenantName}! 🎉</h2>
           <p style="color: #666; font-size: 14px;">
             Your account has been created and your room is ready! Below are your login credentials and accommodation details.
           </p>
@@ -254,7 +252,7 @@ export async function sendTenantOnboardingWithPasswordEmail(data: TenantOnboardi
           <div style="background: #e8f0fe; border-radius: 8px; padding: 15px; margin: 20px 0;">
             <h4 style="margin: 0 0 10px 0; color: #1a73e8; font-size: 14px;">📌 Next Steps:</h4>
             <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 13px; line-height: 1.8;">
-              <li>Log in to WinkStay with your email and temporary password</li>
+              <li>Log in to StayBuki with your email and temporary password</li>
               <li>Change your password on first login</li>
               <li>View your complete accommodation details</li>
               <li>Keep track of your payment due dates</li>
@@ -263,13 +261,13 @@ export async function sendTenantOnboardingWithPasswordEmail(data: TenantOnboardi
           </div>
 
           <p style="color: #666; font-size: 13px; margin-top: 20px;">
-            Welcome to the WinkStay community! If you have any questions, please reach out to your PG owner.
+            Welcome to the StayBuki community! If you have any questions, please reach out to your PG owner.
           </p>
           
           <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
           
           <p style="color: #999; font-size: 12px; margin: 0;">
-            © 2025 WinkStay. All rights reserved.
+            © 2025 StayBuki. All rights reserved.
           </p>
         </div>
       </div>
@@ -308,9 +306,8 @@ export async function sendTenantOnboardingExistingUserEmail(data: TenantOnboardi
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0;">WinkStay</h1>
-          <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">Your Home Away From Home</p>
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <img src="https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/staybuki-logo-full.png" alt="StayBuki" style="max-width: 200px; height: auto; margin: 0 auto; display: block;" />
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0;">
           <h2 style="color: #333; margin-top: 0;">Good News, ${data.tenantName}! 🎉</h2>
@@ -348,7 +345,7 @@ export async function sendTenantOnboardingExistingUserEmail(data: TenantOnboardi
           <div style="background: #e8f0fe; border-radius: 8px; padding: 15px; margin: 20px 0;">
             <h4 style="margin: 0 0 10px 0; color: #1a73e8; font-size: 14px;">📌 Next Steps:</h4>
             <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 13px; line-height: 1.8;">
-              <li>Log in to your WinkStay account to view complete details</li>
+              <li>Log in to your StayBuki account to view complete details</li>
               <li>Contact your PG owner for move-in coordination</li>
               <li>Keep track of your payment due dates</li>
               <li>Explore amenities and house rules</li>
@@ -362,7 +359,7 @@ export async function sendTenantOnboardingExistingUserEmail(data: TenantOnboardi
           <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
           
           <p style="color: #999; font-size: 12px; margin: 0;">
-            © 2025 WinkStay. All rights reserved.
+            © 2025 StayBuki. All rights reserved.
           </p>
         </div>
       </div>
@@ -387,18 +384,17 @@ export async function sendOwnerPgWelcomeEmail(data: OwnerPgWelcomeEmailData): Pr
   try {
     const transporter = getTransporter();
 
-    const subject = "Welcome to WinkStay - Your PG is Set Up!";
+    const subject = "Welcome to StayBuki - Your PG is Set Up!";
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0;">WinkStay</h1>
-          <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">Simplifying PG Management</p>
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <img src="https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/staybuki-logo-full.png" alt="StayBuki" style="max-width: 200px; height: auto; margin: 0 auto; display: block;" />
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0;">
-          <h2 style="color: #333; margin-top: 0;">Welcome to WinkStay, ${data.ownerName}! 🏠</h2>
+          <h2 style="color: #333; margin-top: 0;">Welcome to StayBuki, ${data.ownerName}! 🏠</h2>
           <p style="color: #666; font-size: 14px;">
-            Congratulations! Your PG has been successfully set up on WinkStay. You're now ready to streamline your hostel management operations.
+            Congratulations! Your PG has been successfully set up on StayBuki. You're now ready to streamline your hostel management operations.
           </p>
           
           <div style="background: white; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 4px;">
@@ -441,13 +437,13 @@ export async function sendOwnerPgWelcomeEmail(data: OwnerPgWelcomeEmailData): Pr
           </div>
 
           <p style="color: #666; font-size: 13px; margin-top: 20px;">
-            We're thrilled to have you on board! WinkStay is here to make your PG management easier and more efficient.
+            We're thrilled to have you on board! StayBuki is here to make your PG management easier and more efficient.
           </p>
           
           <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
           
           <p style="color: #999; font-size: 12px; margin: 0;">
-            © 2025 WinkStay. All rights reserved.
+            © 2025 StayBuki. All rights reserved.
           </p>
         </div>
       </div>

@@ -85,7 +85,7 @@ export default function TenantProfile() {
           </div>
           
           <h1 className="text-3xl font-bold drop-shadow-lg mb-1">{profile?.name || "Tenant"}</h1>
-          <p className="text-sm text-white/90">WinkStay Member</p>
+          <p className="text-sm text-white/90">StayBuki Member</p>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
-# WinkStay - PG Management System
+# StayBuki - PG Management System
 
 ## Overview
-WinkStay is a comprehensive PG (Paying Guest) hostel management application designed for owners and tenants. It streamlines operations related to rooms, tenants, payments, complaints, maintenance, and reporting. The system features a dual-interface for owners and tenants, aiming to enhance tenant experience and provide owners with robust management capabilities. It is a full-stack web application utilizing React for the frontend, Express.js for the backend, and PostgreSQL with Drizzle ORM for the database.
+StayBuki is a comprehensive PG (Paying Guest) hostel management application designed for owners and tenants. It streamlines operations related to rooms, tenants, payments, complaints, maintenance, and reporting. The system features a dual-interface for owners and tenants, aiming to enhance tenant experience and provide owners with robust management capabilities. It is a full-stack web application utilizing React for the frontend, Express.js for the backend, and PostgreSQL with Drizzle ORM for the database.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

@@ -1,8 +1,8 @@
-# WhatsApp Integration for WinkStay
+# WhatsApp Integration for StayBuki
 
 ## Overview
 
-This document outlines the options and requirements for adding WhatsApp messaging capabilities to WinkStay's notification system.
+This document outlines the options and requirements for adding WhatsApp messaging capabilities to StayBuki's notification system.
 
 ## Current Status
 
@@ -83,16 +83,16 @@ Other providers like MessageBird, Vonage, or Infobip offer similar services but 
 ```
 Hello {{tenant_name}},
 
-Welcome to WinkStay! Your onboarding has been approved.
+Welcome to StayBuki! Your onboarding has been approved.
 
 *Room Details:*
 PG: {{pg_name}}
 Room: {{room_number}}
 Rent: ₹{{monthly_rent}}
 
-For complete details, log in to your WinkStay account.
+For complete details, log in to your StayBuki account.
 
-- WinkStay Team
+- StayBuki Team
 ```
 
 ### 2. Owner PG Welcome Message
@@ -100,23 +100,23 @@ For complete details, log in to your WinkStay account.
 ```
 Hello {{owner_name}},
 
-Welcome to WinkStay! Your PG "{{pg_name}}" has been successfully set up.
+Welcome to StayBuki! Your PG "{{pg_name}}" has been successfully set up.
 
 Total Rooms: {{total_rooms}}
 
 Start adding rooms and onboarding tenants through your dashboard.
 
-- WinkStay Team
+- StayBuki Team
 ```
 
 ### 3. OTP Verification Message
 
 ```
-Your WinkStay verification code is: {{otp}}
+Your StayBuki verification code is: {{otp}}
 
 This code expires in {{expiry_minutes}} minutes. Do not share with anyone.
 
-- WinkStay Team
+- StayBuki Team
 ```
 
 ## Implementation Priority

@@ -180,7 +180,7 @@ export default function Register() {
               {step === 1 && (
                 <>
                   <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground mb-4">Select how you'll use WinkStay</p>
+                    <p className="text-sm text-muted-foreground mb-4">Select how you'll use StayBuki</p>
                     
                     <div 
                       onClick={() => handleInputChange("userType", "owner")}

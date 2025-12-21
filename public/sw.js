@@ -6,7 +6,7 @@ self.addEventListener('push', function(event) {
   }
 
   const data = event.data.json();
-  const title = data.title || 'WinkStay Notification';
+  const title = data.title || 'StayBuki Notification';
   const options = {
     body: data.message || data.body,
     icon: '/icon-192.png',
