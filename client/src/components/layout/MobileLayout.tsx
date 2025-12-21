@@ -170,9 +170,15 @@ export default function MobileLayout({
             onClick={() => navigate(isAdmin ? "/admin-dashboard" : "/dashboard")}
             className="flex items-center gap-3 cursor-pointer mb-4"
           >
-            <div className="w-14 h-14 flex items-center justify-center">
-              <img src={appIcon} alt="StayBuki" className="w-full h-full object-contain scale-150" />
-            </div>
+            <img 
+              src={appIcon} 
+              alt="StayBuki" 
+              className="h-12 w-auto"
+              style={{
+                filter: 'drop-shadow(0 1px 2px rgb(0 0 0 / 0.1))',
+                imageRendering: 'crisp-edges'
+              }}
+            />
             <div>
               <h1 className="font-bold text-xl text-foreground">StayBuki</h1>
               {isAdmin && (

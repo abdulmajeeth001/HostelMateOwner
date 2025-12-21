@@ -10,10 +10,16 @@ export default function Home() {
       {/* Navigation */}
       <nav className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 flex items-center justify-center">
-              <img src={appIcon} alt="StayBuki" className="w-full h-full object-contain scale-150" />
-            </div>
+          <div className="flex items-center gap-3">
+            <img 
+              src={appIcon} 
+              alt="StayBuki" 
+              className="h-12 w-auto"
+              style={{
+                filter: 'drop-shadow(0 1px 2px rgb(0 0 0 / 0.1))',
+                imageRendering: 'crisp-edges'
+              }}
+            />
             <h1 className="text-2xl font-bold text-foreground">StayBuki</h1>
           </div>
           <div className="flex gap-3">
