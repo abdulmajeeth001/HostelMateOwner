@@ -66,6 +66,9 @@ function PaymentsDesktop() {
   const [rejectingPaymentId, setRejectingPaymentId] = useState<number | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [ebDialogOpen, setEbDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingPaymentId, setDeletingPaymentId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -222,6 +225,38 @@ function PaymentsDesktop() {
       toast.error("Failed to reject payment");
     } finally {
       setRejectingId(null);
+    }
+  };
+
+  const handleDeletePayment = (paymentId: number) => {
+    setDeletingPaymentId(paymentId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingPaymentId) return;
+
+    setDeletingId(deletingPaymentId);
+    try {
+      const res = await fetch(`/api/payments/${deletingPaymentId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        toast.success("Payment deleted successfully");
+        setDeleteDialogOpen(false);
+        setDeletingPaymentId(null);
+        fetchData();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to delete payment");
+      }
+    } catch (error) {
+      console.error("Delete payment error:", error);
+      toast.error("Failed to delete payment");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -567,7 +602,7 @@ function PaymentsDesktop() {
                           variant="outline"
                           className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                           onClick={() => handleApprovePayment(tx.id)}
-                          disabled={approvingId === tx.id || rejectingId === tx.id}
+                          disabled={approvingId === tx.id || rejectingId === tx.id || deletingId === tx.id}
                           data-testid={`button-approve-${tx.id}`}
                         >
                           {approvingId === tx.id ? (
@@ -584,7 +619,7 @@ function PaymentsDesktop() {
                           variant="outline"
                           className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                           onClick={() => handleRejectPayment(tx.id)}
-                          disabled={approvingId === tx.id || rejectingId === tx.id}
+                          disabled={approvingId === tx.id || rejectingId === tx.id || deletingId === tx.id}
                           data-testid={`button-reject-${tx.id}`}
                         >
                           {rejectingId === tx.id ? (
@@ -597,6 +632,25 @@ function PaymentsDesktop() {
                           )}
                         </Button>
                       </div>
+                    )}
+                    {tx.status === 'pending' && tx.paymentType === 'electricity' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                        onClick={() => handleDeletePayment(tx.id)}
+                        disabled={deletingId === tx.id}
+                        data-testid={`button-delete-${tx.id}`}
+                      >
+                        {deletingId === tx.id ? (
+                          "Deleting..."
+                        ) : (
+                          <>
+                            <X className="w-4 h-4 mr-1" />
+                            Delete
+                          </>
+                        )}
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -654,6 +708,40 @@ function PaymentsDesktop() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Payment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete this electricity payment? This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setDeleteDialogOpen(false);
+                  setDeletingPaymentId(null);
+                }}
+                data-testid="button-cancel-delete"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDelete}
+                disabled={deletingId !== null}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                data-testid="button-confirm-delete"
+              >
+                {deletingId !== null ? "Deleting..." : "Confirm Delete"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Electricity Billing Dialog */}
       <ElectricityBillingDialog
         open={ebDialogOpen}
@@ -679,6 +767,9 @@ function PaymentsMobile() {
   const [rejectingPaymentId, setRejectingPaymentId] = useState<number | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [ebDialogOpen, setEbDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingPaymentId, setDeletingPaymentId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -835,6 +926,38 @@ function PaymentsMobile() {
       toast.error("Failed to reject payment");
     } finally {
       setRejectingId(null);
+    }
+  };
+
+  const handleDeletePayment = (paymentId: number) => {
+    setDeletingPaymentId(paymentId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingPaymentId) return;
+
+    setDeletingId(deletingPaymentId);
+    try {
+      const res = await fetch(`/api/payments/${deletingPaymentId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        toast.success("Payment deleted successfully");
+        setDeleteDialogOpen(false);
+        setDeletingPaymentId(null);
+        fetchData();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to delete payment");
+      }
+    } catch (error) {
+      console.error("Delete payment error:", error);
+      toast.error("Failed to delete payment");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -1092,7 +1215,7 @@ function PaymentsMobile() {
                         variant="outline"
                         className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                         onClick={() => handleApprovePayment(tx.id)}
-                        disabled={approvingId === tx.id || rejectingId === tx.id}
+                        disabled={approvingId === tx.id || rejectingId === tx.id || deletingId === tx.id}
                         data-testid={`button-approve-mobile-${tx.id}`}
                       >
                         {approvingId === tx.id ? (
@@ -1109,7 +1232,7 @@ function PaymentsMobile() {
                         variant="outline"
                         className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                         onClick={() => handleRejectPayment(tx.id)}
-                        disabled={approvingId === tx.id || rejectingId === tx.id}
+                        disabled={approvingId === tx.id || rejectingId === tx.id || deletingId === tx.id}
                         data-testid={`button-reject-mobile-${tx.id}`}
                       >
                         {rejectingId === tx.id ? (
@@ -1122,6 +1245,25 @@ function PaymentsMobile() {
                         )}
                       </Button>
                     </div>
+                  )}
+                  {tx.status === 'pending' && tx.paymentType === 'electricity' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                      onClick={() => handleDeletePayment(tx.id)}
+                      disabled={deletingId === tx.id}
+                      data-testid={`button-delete-mobile-${tx.id}`}
+                    >
+                      {deletingId === tx.id ? (
+                        "Deleting..."
+                      ) : (
+                        <>
+                          <X className="w-4 h-4 mr-1" />
+                          Delete
+                        </>
+                      )}
+                    </Button>
                   )}
                 </CardContent>
               </Card>
@@ -1240,6 +1382,40 @@ function PaymentsMobile() {
                 data-testid="button-confirm-reject"
               >
                 {rejectingId !== null ? "Rejecting..." : "Confirm Reject"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Payment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete this electricity payment? This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setDeleteDialogOpen(false);
+                  setDeletingPaymentId(null);
+                }}
+                data-testid="button-cancel-delete"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDelete}
+                disabled={deletingId !== null}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                data-testid="button-confirm-delete"
+              >
+                {deletingId !== null ? "Deleting..." : "Confirm Delete"}
               </Button>
             </div>
           </div>

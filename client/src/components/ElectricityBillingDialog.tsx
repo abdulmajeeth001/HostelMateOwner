@@ -205,10 +205,17 @@ export function ElectricityBillingDialog({
     setLoading(true);
     try {
       // Delete existing room bills to prevent duplication
-      await fetch(`/api/electricity/cycles/${cycleId}/room-bills`, {
+      const deleteRes = await fetch(`/api/electricity/cycles/${cycleId}/room-bills`, {
         method: "DELETE",
         credentials: "include",
       });
+
+      if (!deleteRes.ok) {
+        const errorData = await deleteRes.json();
+        toast.error(errorData.error || "Failed to clear existing room bills");
+        setLoading(false);
+        return;
+      }
       
       // Go back to room readings step
       setCurrentStep(1);
@@ -236,10 +243,17 @@ export function ElectricityBillingDialog({
     setLoading(true);
     try {
       // First, delete any existing room bills for this cycle to prevent duplication
-      await fetch(`/api/electricity/cycles/${cycleId}/room-bills`, {
+      const deleteRes = await fetch(`/api/electricity/cycles/${cycleId}/room-bills`, {
         method: "DELETE",
         credentials: "include",
       });
+
+      if (!deleteRes.ok) {
+        const errorData = await deleteRes.json();
+        toast.error(errorData.error || "Failed to clear existing room bills");
+        setLoading(false);
+        return;
+      }
 
       // Save all room bills that have readings
       const billsToSave = roomBills.filter(
