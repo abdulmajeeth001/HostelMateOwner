@@ -2999,6 +2999,59 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
 
   // ADMIN ROUTES
 
+  // Owner Dashboard Stats
+  app.get("/api/owner/dashboard-stats", requireApprovedPg, async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      const selectedPgId = req.session?.selectedPgId;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Only owners can access dashboard stats" });
+      }
+
+      const stats = await storage.getOwnerDashboardStats(userId, selectedPgId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Get dashboard stats error:", error);
+      res.status(500).json({ error: "Failed to get dashboard stats" });
+    }
+  });
+
+  app.get("/api/owner/recent-activity", requireApprovedPg, async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      const selectedPgId = req.session?.selectedPgId;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!selectedPgId) {
+        return res.status(400).json({ error: "No PG selected" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Only owners can access recent activity" });
+      }
+
+      const activities = await storage.getOwnerRecentActivity(userId, selectedPgId);
+      res.json(activities);
+    } catch (error) {
+      console.error("Get recent activity error:", error);
+      res.status(500).json({ error: "Failed to get recent activity" });
+    }
+  });
+
   // Admin Dashboard Stats
   app.get("/api/admin/stats", adminOnly, async (req, res) => {
     try {

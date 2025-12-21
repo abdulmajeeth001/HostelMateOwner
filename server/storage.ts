@@ -138,6 +138,21 @@ export interface IStorage {
   updateComplaint(id: number, updates: Partial<Complaint>): Promise<Complaint | undefined>;
   deleteComplaint(id: number): Promise<void>;
 
+  // Dashboard Stats
+  getOwnerDashboardStats(ownerId: number, pgId: number): Promise<{
+    totalTenants: number;
+    revenue: number;
+    pendingDues: number;
+    occupancyRate: number;
+  }>;
+  getOwnerRecentActivity(ownerId: number, pgId: number): Promise<Array<{
+    id: number;
+    type: string;
+    title: string;
+    description: string;
+    createdAt: Date;
+  }>>;
+
   // Admin Methods
   adminExists(): Promise<boolean>;
   getAllPgs(): Promise<any[]>;
@@ -2087,6 +2102,158 @@ export class DatabaseStorage implements IStorage {
         notificationsCreated,
       };
     });
+  }
+
+  // Dashboard Stats
+  async getOwnerDashboardStats(ownerId: number, pgId: number): Promise<{
+    totalTenants: number;
+    revenue: number;
+    pendingDues: number;
+    occupancyRate: number;
+  }> {
+    // Get total active tenants for this PG
+    const activeTenants = await db.select()
+      .from(tenants)
+      .where(and(
+        eq(tenants.ownerId, ownerId),
+        eq(tenants.pgId, pgId),
+        eq(tenants.status, 'active')
+      ));
+    const totalTenants = activeTenants.length;
+
+    // Get revenue (sum of all paid payments)
+    const paidPayments = await db.select()
+      .from(payments)
+      .where(and(
+        eq(payments.ownerId, ownerId),
+        eq(payments.pgId, pgId),
+        eq(payments.status, 'paid')
+      ));
+    const revenue = paidPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+    // Get pending dues (sum of pending and overdue payments, excluding deleted)
+    const pendingPayments = await db.select()
+      .from(payments)
+      .where(and(
+        eq(payments.ownerId, ownerId),
+        eq(payments.pgId, pgId),
+        or(
+          eq(payments.status, 'pending'),
+          eq(payments.status, 'pending_approval'),
+          eq(payments.status, 'overdue')
+        )
+      ));
+    const pendingDues = pendingPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+    // Get occupancy rate (occupied rooms / total rooms * 100)
+    const allRooms = await db.select()
+      .from(rooms)
+      .where(and(
+        eq(rooms.ownerId, ownerId),
+        eq(rooms.pgId, pgId)
+      ));
+    const occupiedRooms = allRooms.filter(r => r.status === 'occupied');
+    const occupancyRate = allRooms.length > 0 
+      ? Math.round((occupiedRooms.length / allRooms.length) * 100)
+      : 0;
+
+    return {
+      totalTenants,
+      revenue,
+      pendingDues,
+      occupancyRate,
+    };
+  }
+
+  async getOwnerRecentActivity(ownerId: number, pgId: number): Promise<Array<{
+    id: number;
+    type: string;
+    title: string;
+    description: string;
+    createdAt: Date;
+  }>> {
+    const activities: Array<{
+      id: number;
+      type: string;
+      title: string;
+      description: string;
+      createdAt: Date;
+    }> = [];
+
+    // Get recent paid payments (last 3)
+    const recentPayments = await db.select({
+      id: payments.id,
+      amount: payments.amount,
+      tenantId: payments.tenantId,
+      paidAt: payments.paidAt,
+      createdAt: payments.createdAt,
+    })
+      .from(payments)
+      .where(and(
+        eq(payments.ownerId, ownerId),
+        eq(payments.pgId, pgId),
+        eq(payments.status, 'paid')
+      ))
+      .orderBy(desc(payments.paidAt))
+      .limit(3);
+
+    for (const payment of recentPayments) {
+      const tenant = await this.getTenant(payment.tenantId);
+      if (tenant) {
+        activities.push({
+          id: payment.id,
+          type: 'payment',
+          title: 'Payment Received',
+          description: `${tenant.name} paid ₹${parseFloat(payment.amount).toLocaleString('en-IN')}`,
+          createdAt: payment.paidAt || payment.createdAt,
+        });
+      }
+    }
+
+    // Get recent tenants (last 2)
+    const recentTenants = await db.select()
+      .from(tenants)
+      .where(and(
+        eq(tenants.ownerId, ownerId),
+        eq(tenants.pgId, pgId),
+        eq(tenants.status, 'active')
+      ))
+      .orderBy(desc(tenants.createdAt))
+      .limit(2);
+
+    for (const tenant of recentTenants) {
+      activities.push({
+        id: tenant.id,
+        type: 'tenant',
+        title: 'New Tenant',
+        description: `${tenant.name} joined Room ${tenant.roomNumber}`,
+        createdAt: tenant.createdAt,
+      });
+    }
+
+    // Get recent complaints (last 2)
+    const recentComplaints = await db.select()
+      .from(complaints)
+      .where(and(
+        eq(complaints.ownerId, ownerId),
+        eq(complaints.pgId, pgId)
+      ))
+      .orderBy(desc(complaints.createdAt))
+      .limit(2);
+
+    for (const complaint of recentComplaints) {
+      activities.push({
+        id: complaint.id,
+        type: 'complaint',
+        title: 'Complaint Logged',
+        description: `${complaint.title}`,
+        createdAt: complaint.createdAt,
+      });
+    }
+
+    // Sort all activities by date (most recent first) and take top 5
+    activities.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return activities.slice(0, 5);
   }
 }
 
