@@ -15,7 +15,7 @@ import { useLocation } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 
 export function NotificationBell() {
-  const { notifications, unreadCount, markAsRead, requestPermission, hasActiveSubscription, isPushAvailable } = useNotifications();
+  const { notifications, unreadCount, markAsRead, requestPermission, hasActiveSubscription, isPushAvailable, debugInfo } = useNotifications();
   const [, setLocation] = useLocation();
 
   const handleNotificationClick = (notification: typeof notifications[0]) => {
@@ -75,6 +75,19 @@ export function NotificationBell() {
             </Button>
           )}
         </DropdownMenuLabel>
+        
+        {/* Debug panel for iOS troubleshooting */}
+        <div className="px-3 py-2 text-xs bg-yellow-50 border-y border-yellow-200">
+          <div className="font-semibold mb-1">🔍 Push Debug Info:</div>
+          <div>Standalone: {debugInfo.isStandalone ? "✅ YES" : "❌ NO"}</div>
+          <div>Safari iOS: {debugInfo.isSafariIOS ? "✅ YES" : "❌ NO"}</div>
+          <div>Service Worker: {debugInfo.hasServiceWorker ? "✅ YES" : "❌ NO"}</div>
+          <div>Push Manager: {debugInfo.hasPushManager ? "✅ YES" : "❌ NO"}</div>
+          <div>Push Available: {isPushAvailable ? "✅ YES" : "❌ NO"}</div>
+          <div>Has Subscription: {hasActiveSubscription ? "✅ YES" : "❌ NO"}</div>
+          {debugInfo.error && <div className="text-red-600 mt-1">Error: {debugInfo.error}</div>}
+        </div>
+        
         <DropdownMenuSeparator />
         <ScrollArea className="h-[400px]">
           {notifications.length === 0 ? (

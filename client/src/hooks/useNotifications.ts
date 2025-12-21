@@ -19,6 +19,15 @@ export function useNotifications() {
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [isPushAvailable, setIsPushAvailable] = useState(false);
+  
+  // Debug state for iOS troubleshooting
+  const [debugInfo, setDebugInfo] = useState({
+    isStandalone: false,
+    isSafariIOS: false,
+    hasServiceWorker: false,
+    hasPushManager: false,
+    error: null as string | null,
+  });
 
   // Fetch notifications
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
@@ -54,6 +63,14 @@ export function useNotifications() {
       console.log("[Push Availability Check] Is standalone mode:", isStandalone);
       console.log("[Push Availability Check] Is Safari iOS:", isSafariIOS);
       console.log("[Push Availability Check] User agent:", navigator.userAgent);
+      
+      // Update debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        isStandalone,
+        isSafariIOS,
+        hasServiceWorker: true,
+      }));
 
       try {
         // Register service worker first (required before checking availability)
@@ -61,6 +78,12 @@ export function useNotifications() {
         const registration = await navigator.serviceWorker.ready;
         console.log("[Push Availability Check] Service worker registered");
         console.log("[Push Availability Check] registration.pushManager exists:", !!registration.pushManager);
+        
+        // Update debug info with pushManager status
+        setDebugInfo(prev => ({
+          ...prev,
+          hasPushManager: !!registration.pushManager,
+        }));
         
         // For Safari iOS in standalone mode, always enable push (iOS PWAs don't expose PushManager on window)
         // For other browsers, check if registration.pushManager exists
@@ -89,6 +112,10 @@ export function useNotifications() {
       } catch (error) {
         console.error("[Push Availability Check] Error:", error);
         setIsPushAvailable(false);
+        setDebugInfo(prev => ({
+          ...prev,
+          error: error instanceof Error ? error.message : String(error),
+        }));
       }
     };
 
@@ -243,6 +270,7 @@ export function useNotifications() {
     requestPermission,
     hasActiveSubscription,
     isPushAvailable,
+    debugInfo,
   };
 }
 
