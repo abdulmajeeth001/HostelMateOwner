@@ -62,8 +62,8 @@ export default function Login() {
         className="w-full space-y-8"
       >
         <div className="text-center space-y-2">
-          <div className="bg-primary/10 w-28 h-28 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg border border-primary/20">
-             <img src={appIcon} alt="StayBuki Logo" className="w-full h-full object-cover rounded-2xl" />
+          <div className="bg-primary/10 w-40 h-40 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg border border-primary/20 p-4">
+             <img src={appIcon} alt="StayBuki Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">StayBuki</h1>
           <p className="text-muted-foreground">Manage your PG smarter, not harder.</p>
