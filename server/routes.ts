@@ -2612,7 +2612,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/tenants/bulk-upload-template", requireApprovedPg, async (req, res) => {
+  app.get("/api/tenants/bulk-upload-template", async (req, res) => {
     const userId = req.session.userId;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
