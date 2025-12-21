@@ -24,6 +24,7 @@ import Complaints from "@/pages/Complaints";
 import Maintenance from "@/pages/Maintenance";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
+import ManageDevices from "@/pages/ManageDevices";
 import TenantResetPassword from "@/pages/TenantResetPassword";
 import TenantDashboard from "@/pages/TenantDashboard";
 import TenantProfile from "@/pages/TenantProfile";
@@ -71,6 +72,7 @@ function Router() {
       <Route path="/maintenance" component={Maintenance} />
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
+      <Route path="/manage-devices" component={ManageDevices} />
       <Route path="/pg-management" component={PGManagement} />
       <Route path="/owner-visit-requests" component={OwnerVisitRequestsPage} />
       <Route path="/owner-onboarding-requests" component={OwnerOnboardingRequestsPage} />

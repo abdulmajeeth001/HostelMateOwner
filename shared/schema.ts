@@ -233,6 +233,29 @@ export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
+// Sessions table (for device management and multi-session support)
+export const sessions = pgTable("sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().unique(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  deviceName: text("device_name"), // e.g., "Chrome on Windows"
+  deviceType: text("device_type"), // mobile, tablet, desktop
+  browser: text("browser"), // Chrome, Firefox, Safari, etc.
+  os: text("os"), // Windows, macOS, Linux, Android, iOS
+  ipAddress: text("ip_address"),
+  lastActiveAt: timestamp("last_active_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSessionSchema = createInsertSchema(sessions).omit({ 
+  id: true, 
+  createdAt: true,
+  lastActiveAt: true
+});
+export type InsertSession = z.infer<typeof insertSessionSchema>;
+export type Session = typeof sessions.$inferSelect;
+
 // Rooms table
 export const rooms = pgTable("rooms", {
   id: serial("id").primaryKey(),

@@ -11,6 +11,8 @@ import {
   type InsertNotification,
   type PushSubscription,
   type InsertPushSubscription,
+  type Session,
+  type InsertSession,
   type Room,
   type InsertRoom,
   type PgMaster,
@@ -41,6 +43,7 @@ import {
   payments,
   notifications,
   pushSubscriptions,
+  sessions,
   rooms,
   pgMaster,
   emergencyContacts,
@@ -106,6 +109,15 @@ export interface IStorage {
   createPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
   getPushSubscriptionsByUser(userId: number): Promise<PushSubscription[]>;
   deletePushSubscription(id: number): Promise<void>;
+
+  // Sessions
+  createSession(session: InsertSession): Promise<Session>;
+  getSessionsByUserId(userId: number): Promise<Session[]>;
+  getSessionBySessionId(sessionId: string): Promise<Session | undefined>;
+  updateSessionActivity(sessionId: string): Promise<void>;
+  deleteSession(sessionId: string): Promise<void>;
+  deleteAllUserSessionsExcept(userId: number, currentSessionId: string): Promise<void>;
+  deleteExpiredSessions(): Promise<void>;
 
   // Rooms
   getRooms(ownerId: number, pgId?: number): Promise<Room[]>;
@@ -882,6 +894,49 @@ export class DatabaseStorage implements IStorage {
 
   async deletePushSubscription(id: number): Promise<void> {
     await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, id));
+  }
+
+  // Sessions
+  async createSession(session: InsertSession): Promise<Session> {
+    const result = await db.insert(sessions).values(session).returning();
+    return result[0];
+  }
+
+  async getSessionsByUserId(userId: number): Promise<Session[]> {
+    return await db.select().from(sessions)
+      .where(and(
+        eq(sessions.userId, userId),
+        gte(sessions.expiresAt, new Date())
+      ))
+      .orderBy(desc(sessions.lastActiveAt));
+  }
+
+  async getSessionBySessionId(sessionId: string): Promise<Session | undefined> {
+    const result = await db.select().from(sessions)
+      .where(eq(sessions.sessionId, sessionId));
+    return result[0];
+  }
+
+  async updateSessionActivity(sessionId: string): Promise<void> {
+    await db.update(sessions)
+      .set({ lastActiveAt: new Date() })
+      .where(eq(sessions.sessionId, sessionId));
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    await db.delete(sessions).where(eq(sessions.sessionId, sessionId));
+  }
+
+  async deleteAllUserSessionsExcept(userId: number, currentSessionId: string): Promise<void> {
+    await db.delete(sessions)
+      .where(and(
+        eq(sessions.userId, userId),
+        sql`${sessions.sessionId} != ${currentSessionId}`
+      ));
+  }
+
+  async deleteExpiredSessions(): Promise<void> {
+    await db.delete(sessions).where(lte(sessions.expiresAt, new Date()));
   }
 
   // Rooms

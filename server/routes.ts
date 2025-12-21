@@ -7,6 +7,7 @@ import multer from "multer";
 import Papa from "papaparse";
 import { sendOtpEmail, sendTenantWelcomeEmail, sendOwnerPgWelcomeEmail, sendTenantOnboardingWithPasswordEmail, sendTenantOnboardingExistingUserEmail } from "./email";
 import { sendPushNotificationSafe, VAPID_PUBLIC_KEY, isPushEnabled } from "./push-service";
+import { UAParser } from "ua-parser-js";
 
 // Configure multer for file upload (memory storage for CSV processing)
 const upload = multer({ 
@@ -356,11 +357,17 @@ export async function registerRoutes(
       }
 
       // Handle Remember Me - extend session to 30 days if checked
-      if (body.rememberMe) {
-        req.session!.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-      } else {
-        req.session!.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours (default)
-      }
+      const maxAge = body.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000; // 30 days or 24 hours
+      req.session!.cookie.maxAge = maxAge;
+
+      // Parse device information from user-agent
+      const parser = new UAParser(req.headers['user-agent']);
+      const deviceInfo = parser.getResult();
+      const deviceName = `${deviceInfo.browser.name || 'Unknown Browser'} on ${deviceInfo.os.name || 'Unknown OS'}`;
+      const deviceType = deviceInfo.device.type || 'desktop';
+      const browser = deviceInfo.browser.name || 'Unknown';
+      const os = deviceInfo.os.name || 'Unknown';
+      const ipAddress = req.ip || req.socket.remoteAddress || 'Unknown';
 
       // Check if user needs password reset (for newly invited tenants)
       if (user.requiresPasswordReset) {
@@ -375,6 +382,21 @@ export async function registerRoutes(
 
       // Set user session first
       req.session!.userId = user.id;
+
+      // Create session record in database
+      if (req.sessionID) {
+        const expiresAt = new Date(Date.now() + maxAge);
+        await storage.createSession({
+          sessionId: req.sessionID,
+          userId: user.id,
+          deviceName,
+          deviceType,
+          browser,
+          os,
+          ipAddress,
+          expiresAt
+        });
+      }
 
       // Check PG approval status for owners
       if (user.userType === "owner") {
@@ -518,9 +540,21 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/auth/logout", (req: Request, res: Response) => {
-    req.session!.destroy((err: any) => {
+  app.post("/api/auth/logout", async (req: Request, res: Response) => {
+    const sessionId = req.sessionID;
+    
+    req.session!.destroy(async (err: any) => {
       if (err) return res.status(500).json({ error: "Logout failed" });
+      
+      // Delete session from database
+      if (sessionId) {
+        try {
+          await storage.deleteSession(sessionId);
+        } catch (error) {
+          console.error("Failed to delete session from database:", error);
+        }
+      }
+      
       res.json({ success: true });
     });
   });
@@ -2070,6 +2104,106 @@ export async function registerRoutes(
       console.error("Push subscription error:", error);
       res.status(400).json({ error: "Failed to create push subscription" });
     }
+  });
+
+  // Track sessions to invalidate (sessionId -> true)
+  const invalidatedSessions = new Set<string>();
+
+  // SESSION MANAGEMENT ROUTES
+  app.get("/api/sessions", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const sessions = await storage.getSessionsByUserId(req.session.userId);
+      
+      // Add 'current' flag to the current session
+      const sessionsWithCurrent = sessions.map(session => ({
+        ...session,
+        isCurrent: session.sessionId === req.sessionID
+      }));
+
+      res.json(sessionsWithCurrent);
+    } catch (error) {
+      console.error("Get sessions error:", error);
+      res.status(500).json({ error: "Failed to fetch sessions" });
+    }
+  });
+
+  app.delete("/api/sessions/:sessionId", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { sessionId } = req.params;
+      
+      // Verify the session belongs to the current user
+      const session = await storage.getSessionBySessionId(sessionId);
+      if (!session || session.userId !== req.session.userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      // Delete the session from database
+      await storage.deleteSession(sessionId);
+      
+      // Mark session for invalidation (will be destroyed when request comes in)
+      invalidatedSessions.add(sessionId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete session error:", error);
+      res.status(500).json({ error: "Failed to delete session" });
+    }
+  });
+
+  app.post("/api/sessions/logout-all", async (req, res) => {
+    try {
+      if (!req.session?.userId || !req.sessionID) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Get all sessions except current
+      const allSessions = await storage.getSessionsByUserId(req.session.userId);
+      const otherSessions = allSessions.filter(s => s.sessionId !== req.sessionID);
+
+      // Delete all sessions except the current one
+      await storage.deleteAllUserSessionsExcept(req.session.userId, req.sessionID);
+
+      // Mark all other sessions for invalidation
+      otherSessions.forEach(s => invalidatedSessions.add(s.sessionId));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Logout all error:", error);
+      res.status(500).json({ error: "Failed to logout from all devices" });
+    }
+  });
+
+  // Session validation middleware - must be registered BEFORE other routes
+  app.use(async (req, res, next) => {
+    if (req.session?.userId && req.sessionID) {
+      // Check if session is invalidated
+      if (invalidatedSessions.has(req.sessionID)) {
+        invalidatedSessions.delete(req.sessionID);
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: "Session invalidated" });
+      }
+
+      // Check if session exists in database
+      try {
+        const session = await storage.getSessionBySessionId(req.sessionID);
+        if (!session) {
+          // Session not in database - destroy it
+          req.session.destroy(() => {});
+          return res.status(401).json({ error: "Session not found" });
+        }
+      } catch (error) {
+        console.error("Session validation error:", error);
+      }
+    }
+    next();
   });
 
   // AVAILABLE TENANTS ROUTE

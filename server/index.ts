@@ -39,6 +39,20 @@ app.use(
   }),
 );
 
+// Update session activity middleware - tracks lastActiveAt for device management
+app.use(async (req, res, next) => {
+  if (req.session?.userId && req.sessionID) {
+    try {
+      const { storage } = await import("./storage");
+      await storage.updateSessionActivity(req.sessionID);
+    } catch (error) {
+      // Silent fail - don't block request if session update fails
+      console.error("Failed to update session activity:", error);
+    }
+  }
+  next();
+});
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -112,4 +126,15 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
     },
   );
+
+  // Clean up expired sessions every 1 hour
+  setInterval(async () => {
+    try {
+      const { storage } = await import("./storage");
+      await storage.deleteExpiredSessions();
+      log("Expired sessions cleaned up", "session-cleanup");
+    } catch (error) {
+      console.error("Failed to clean up expired sessions:", error);
+    }
+  }, 60 * 60 * 1000); // Run every hour
 })();
