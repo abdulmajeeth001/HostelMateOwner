@@ -1672,11 +1672,10 @@ export async function registerRoutes(
         // Create notification for owner when tenant submits payment
         await storage.createNotification({
           userId: payment.ownerId,
-          pgId: payment.pgId || null,
           title: "Payment Submitted",
           message: `${tenant.name} has submitted payment of ₹${payment.amount}. Transaction ID: ${req.body.transactionId || 'N/A'}. Please review and approve.`,
           type: "payment",
-          isRead: false,
+          referenceId: payment.id,
         });
 
         res.json(payment);
@@ -1727,11 +1726,10 @@ export async function registerRoutes(
       if (tenant && tenant.userId) {
         await storage.createNotification({
           userId: tenant.userId,
-          pgId: payment.pgId || null,
           title: "Payment Approved",
           message: `Your payment of ₹${payment.amount} has been approved by the owner.`,
           type: "payment",
-          isRead: false,
+          referenceId: payment.id,
         });
       }
 
@@ -1772,11 +1770,10 @@ export async function registerRoutes(
         
         await storage.createNotification({
           userId: tenant.userId,
-          pgId: payment.pgId || null,
           title: "Payment Rejected",
           message,
           type: "payment",
-          isRead: false,
+          referenceId: payment.id,
         });
       }
 
@@ -2838,6 +2835,21 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
       }
 
       const complaint = await storage.createComplaint(complaintData);
+
+      // Create notification for owner when tenant creates a complaint
+      if (user.userType === "tenant" && complaintData.tenantId) {
+        const tenant = await storage.getTenant(complaintData.tenantId);
+        if (tenant) {
+          await storage.createNotification({
+            userId: complaintData.ownerId,
+            title: "New Complaint",
+            message: `${tenant.name} has raised a complaint: ${complaintData.title}. Priority: ${complaintData.priority}.`,
+            type: "complaint",
+            referenceId: complaint.id,
+          });
+        }
+      }
+
       res.status(201).json(complaint);
     } catch (error) {
       console.error("Create complaint error:", error);
@@ -3292,6 +3304,15 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
         status: "pending",
       });
 
+      // Create notification for owner
+      await storage.createNotification({
+        userId: pg.ownerId,
+        title: "New Visit Request",
+        message: `${user.name} has requested to visit ${pg.pgName} on ${new Date(body.requestedDate).toLocaleDateString()} at ${body.requestedTime}.`,
+        type: "visit_request",
+        referenceId: visitRequest.id,
+      });
+
       res.status(201).json(visitRequest);
     } catch (error) {
       console.error("Create visit request error:", error);
@@ -3541,6 +3562,15 @@ Bob Johnson,bob@example.com,9876543212,10000,103`;
         emergencyContactPhone: body.emergencyContactPhone || null,
         emergencyContactRelationship: body.emergencyContactRelationship || null,
         status: "pending",
+      });
+
+      // Create notification for owner
+      await storage.createNotification({
+        userId: pg.ownerId,
+        title: "New Onboarding Request",
+        message: `${body.name} has submitted an onboarding request for ${pg.pgName}. Monthly rent: ₹${body.monthlyRent}.`,
+        type: "onboarding_request",
+        referenceId: onboardingRequest.id,
       });
 
       res.status(201).json(onboardingRequest);

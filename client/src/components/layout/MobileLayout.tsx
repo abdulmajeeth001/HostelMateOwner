@@ -16,6 +16,7 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -255,7 +256,10 @@ export default function MobileLayout({
               </Button>
               <h1 className="text-lg font-bold tracking-tight text-foreground">{title}</h1>
             </div>
-            {action}
+            <div className="flex items-center gap-2">
+              {isOwner && <NotificationBell />}
+              {action}
+            </div>
           </header>
         )}
 

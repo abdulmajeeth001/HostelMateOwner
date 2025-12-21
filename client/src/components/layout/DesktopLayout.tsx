@@ -3,6 +3,7 @@ import MobileLayout from "./MobileLayout";
 import { useUser } from "@/hooks/use-user";
 import { PGSwitcher } from "@/components/PGSwitcher";
 import { PendingApprovalBanner } from "@/components/PendingApprovalBanner";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface DesktopLayoutProps {
   children: React.ReactNode;
@@ -30,6 +31,7 @@ export default function DesktopLayout({
           <h1 className="text-2xl font-bold text-foreground">{title}</h1>
           <div className="flex items-center gap-4">
             {isOwner && <PGSwitcher variant="header" />}
+            {isOwner && <NotificationBell />}
             {action}
           </div>
         </header>
