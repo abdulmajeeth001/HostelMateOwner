@@ -2612,15 +2612,30 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/tenants/bulk-upload-template", async (req, res) => {
-    const template = `name,email,phone,monthlyRent,roomNumber
+  app.get("/api/tenants/bulk-upload-template", requireApprovedPg, async (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== "owner") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const template = `name,email,phone,monthlyRent,roomNumber
 John Doe,john@example.com,9876543210,8000,101
 Jane Smith,jane@example.com,9876543211,8000,102
 Bob Johnson,bob@example.com,9876543212,10000,103`;
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=tenant_bulk_upload_template.csv');
-    res.send(template);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=tenant_bulk_upload_template.csv');
+      res.send(template);
+    } catch (error) {
+      console.error("Template download error:", error);
+      res.status(500).json({ error: "Failed to download template" });
+    }
   });
 
   // COMPLAINTS ROUTES
