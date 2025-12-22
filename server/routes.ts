@@ -488,6 +488,15 @@ export async function registerRoutes(
       });
     } catch (error) {
       console.error("Login error:", error);
+      
+      // Handle Zod validation errors
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        return res.status(400).json({ 
+          error: `Invalid ${firstError.path.join('.')}: ${firstError.message}` 
+        });
+      }
+      
       res.status(400).json({ error: "Invalid login data" });
     }
   });
