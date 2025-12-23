@@ -8,6 +8,20 @@
       "when": 1765618656648,
       "tag": "0000_square_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1766159761044,
+      "tag": "0001_mushy_shriek",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1766451498937,
+      "tag": "0002_famous_wolfpack",
+      "breakpoints": true
     }
   ]
 }
